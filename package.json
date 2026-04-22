@@ -96,9 +96,8 @@
     "typecheck": "tsc --noEmit --project tsconfig.json",
     "lint": "eslint . --max-warnings 0",
     "format": "prettier --write .",
-    "format:check": "prettier --check .",
     "test": "bun test",
-    "release:package": "bun publish --access public"
+    "release": "bun publish --access public"
   },
   "publishConfig": {
     "access": "public"
