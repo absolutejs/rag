@@ -1,14 +1,17 @@
 # RAG + Vector Roadmap
 
 ## Objective
+
 Make AbsoluteJS the default full-stack framework for RAG and vector-driven products.
 
 That means a serious team should be able to build, tune, operate, and govern a production RAG system inside AbsoluteJS without immediately replacing ingestion, retrieval, evaluation, or operations.
 
 ## Current Position
+
 AbsoluteJS is no longer in the "interesting demo" stage.
 
 Core is now strong in:
+
 - backend-agnostic RAG workflow primitives
 - retrieval, reranking, citations, streaming, and evaluation
 - retrieval diagnostics, trace presentation, and query attribution
@@ -29,11 +32,14 @@ Core is now strong in:
 The main bottleneck is no longer release-control depth.
 
 The main remaining question is:
+
 - can a serious team trust AbsoluteJS to ingest hard real-world content, chunk it well, retrieve it well, evaluate it rigorously, and run it safely in production at larger scale?
 - and, more importantly, does the product surface now compete with the strongest Python and vector-native ecosystems rather than only other JS frameworks?
 
 ## Competitive Reality Check
+
 The current comparison set is not generic "RAG libraries". It is the strongest current public capability surface across:
+
 - LangChain retrieval and RAG workflows
 - LangSmith RAG evaluation workflows
 - Haystack retrieval and evaluation components
@@ -45,6 +51,7 @@ The current comparison set is not generic "RAG libraries". It is the strongest c
 This matters because the remaining roadmap should be driven by real competitive gaps, not internal optimism.
 
 Cross-library parity status (quick sanity check):
+
 - **Connector breadth**: 42% parity (`partial`)
 - **Vector/runtime depth**: 61% parity (`partial`)
 - **Query planning/filtering**: 63% parity (`partial`)
@@ -53,37 +60,45 @@ Cross-library parity status (quick sanity check):
 - **Document understanding/OCR**: 55% parity (`partial`)
 
 ### Competitive win condition
+
 AbsoluteJS does not need to win by having the most connectors.
 
 That is not realistic against LangChain or LlamaIndex in the near term, and chasing that scoreboard first would produce a broader but weaker product.
 
 AbsoluteJS wins if it becomes the best integrated production RAG stack across:
+
 - retrieval quality and runtime behavior
 - evaluation, release, and governance operations
 - extraction quality on hard real-world content
 - full-stack operator and product ergonomics
 
 Connector breadth still matters, but as selective high-value coverage:
+
 - enough first-party connectors that serious teams do not immediately churn to another stack
 - reference kits that make the missing long tail cheaper to implement than in competing ecosystems
 
 Leadership rule:
+
 - do not optimize for raw connector count first
 - optimize for being hardest to replace once a team starts shipping
 
 ### Competitive baseline (JS + Python)
+
 This is an internal feature-audit baseline, not a benchmark leaderboard. It scores whether core, persistence, and operations primitives are present or production-ready in practice.
 
 Reference set:
+
 - JS: LangChain, LangSmith, Haystack, LlamaIndex, Weaviate, Qdrant, Milvus
 - Python: LangChain, LangSmith, Haystack, LlamaIndex
 
 Comparative signal:
+
 - **Leading JS+Python stacks** have strong connector ecosystems, broad vector backend depth, and opinionated experiment workflows.
 - **AbsoluteJS is strongest where it is now** in retrieval choreography, routing observability, framework parity, and governance persistence.
 - **The gap is concentrated** in ecosystem breadth, vector runtime depth at cluster scale, and evaluation product ergonomics.
 
 ### Competitive Leadership Scorecard
+
 The percentages below are feature-audit estimates against the strongest public JS/Python stacks listed above.
 
 - **Overall parity**: **58%**
@@ -91,6 +106,7 @@ The percentages below are feature-audit estimates against the strongest public J
 - **Current gap to target**: **24 percentage points**
 
 Category scores:
+
 - **Connector breadth**: **42%**
   - Strong: file/sync/http baseline coverage and stable sync surfaces
   - Missing: LangChain/LlamaIndex-level connector ecosystem breadth
@@ -112,40 +128,49 @@ Category scores:
   - Missing: high-end scanned-document/OCR, region traceability, and confidence tuning
 
 As of now:
+
 - AbsoluteJS is already unusually strong for a JS-first stack
 - AbsoluteJS is competitive on workflow cohesion, diagnostics, governance, and framework parity
 - AbsoluteJS is not yet the leader across JS and Python overall
 
 The largest remaining deltas are:
+
 1. vector-store and large-corpus operational depth
 2. evaluation workflow productization and experiment ergonomics
 3. OCR/document-understanding depth beyond the current first-pass foundation
 4. selective connector and parser ecosystem breadth
 
 Implication:
+
 - the next roadmap should bias toward those deltas first
 - more demo polish or local diagnostic depth should not outrank them
 
 ### Competitive proof standard
+
 The roadmap should be judged by competitive proof, not only by feature-audit parity.
 
 AbsoluteJS is plausibly category-leading only when it can demonstrate all of these against designated benchmark suites and demo workloads:
+
 - retrieval quality holds or improves on exact-phrase, hybrid, multivector, filter-heavy, and source-structure-sensitive cases
 - vector backends behave credibly on larger corpora with inspectable planner, latency, filter, and maintenance behavior
 - evaluation and release-control surfaces let operators detect, explain, and gate regressions faster than generic library workflows
 - extraction quality remains usable on PDFs, Office docs, spreadsheets, transcripts, archives, email, and scanned/OCR-heavy documents without immediate custom replacement
 
 This means every major roadmap branch should eventually produce:
+
 - benchmark cases
 - release-gate criteria
 - operator-visible diagnostics
 - example flows that prove the behavior end to end
 
 ## What Has Landed
+
 These are no longer roadmap ideas. They are now part of the current foundation.
 
 ### Retrieval depth and routing foundation: shipped
+
 Shipped or materially in place:
+
 - query rewrite/expansion hooks
 - per-query retrieval strategy selection
 - built-in heuristic routing helpers
@@ -158,12 +183,15 @@ Shipped or materially in place:
 - quoted speaker/channel attribution cues in reranking and trace presentation
 
 Implication:
+
 - retrieval is no longer the weakest Tier 1 area
 - the next retrieval work should be selective and high leverage, not generic plumbing
 - the remaining retrieval gaps are more about deeper corpus-specific behavior and evaluation explanation than missing baseline controls
 
 ### Extractor and chunker extensibility foundation: shipped
+
 Shipped or materially in place:
+
 - first-class extractor registries
 - first-class chunking registries
 - registry fallback chains
@@ -173,11 +201,14 @@ Shipped or materially in place:
 - conformance-style regression coverage around extractor/chunker selection
 
 Implication:
+
 - the extension story is now credible
 - the bigger remaining ingestion gap is extraction quality and chunking quality, not extension hooks
 
 ### Extraction and structure quality foundation: materially shipped for the first wave
+
 Shipped or materially in place:
+
 - PDF native block extraction
 - repeated PDF chrome suppression
 - PDF block-aware source-aware chunking
@@ -300,12 +331,15 @@ Shipped or materially in place:
 - bidirectional media continuity metadata (`mediaSegmentGapFromPreviousMs` and `mediaSegmentGapToNextMs`)
 
 Implication:
+
 - PDF, HTML, DOCX, XLSX, PPTX, email, and archive now have a credible first-pass extraction-to-retrieval story
 - archive/email relationship depth is no longer the top missing extraction branch
 - the next extraction branch should focus on OCR depth and the spreadsheet/media cases that still need stronger semantic reconstruction
 
 ### Corpus operations and sync foundation: materially shipped for the first wave
+
 Shipped or materially in place:
+
 - file-backed sync state recovery and interrupted-run recovery
 - deletion reconciliation for managed sync documents
 - first-class stale-document detection during managed source reconciliation
@@ -323,12 +357,15 @@ Shipped or materially in place:
 - first-pass extraction recovery orchestration that runs grouped OCR/extractor/inspection actions through explicit recovery handlers
 
 Implication:
+
 - sync is no longer just fire-and-forget ingestion
 - higher-level ops surfaces can consume durable reconciliation, lineage, conflict, retry, and extraction-remediation semantics without re-diffing documents
 - the remaining sync gap is more about deeper end-to-end recovery automation, higher-end source coordination, and stronger delta/extraction-depth behavior than baseline stale/refresh detection
 
 ### Governance and operations persistence foundation: materially shipped
+
 Shipped or materially in place:
+
 - SQLite stores for search traces, comparison history, baselines, release decisions, release incidents, handoff decisions, handoff incidents, handoff incident history, remediation decisions, remediation execution history, and policy history
 - migration-safe SQLite column backfill for evolved governance schemas
 - shared SQLite migration inspection/apply helpers for the currently evolved governance store schemas
@@ -338,22 +375,28 @@ Shipped or materially in place:
 - restart-persistence and browser-level mutation smoke coverage for the example governance path
 
 Implication:
+
 - governance persistence is no longer a roadmap-only promise
 - the remaining operations gap is less about basic storage and more about broader production backends, scaling, and operational analytics
 
 ### Example and package parity foundation: materially shipped
+
 Shipped or materially in place:
+
 - one-page-per-framework parity across the main RAG example surfaces
 - shared formatter-driven parity updates for lead evidence, routing, and media cue diagnostics
 - package-wired beta examples validating the public AI, quality, and UI subpaths
 - public-surface coverage proving the new diagnostics can be consumed without source-level imports
 
 Implication:
+
 - the example story is no longer the weak point
 - future example work should stay constrained to parity updates on existing pages, not route proliferation
 
 ### Production durability baseline: shipped
+
 Shipped or materially in place:
+
 - file-backed job state store
 - persisted ingest/admin/sync job history
 - persisted admin action history
@@ -363,12 +406,15 @@ Shipped or materially in place:
 - corruption-tolerant file-store recovery tests
 
 Implication:
+
 - durability is much stronger than before
 - the remaining production gap is not "do we persist anything?"
 - the remaining gap is richer persistence backends, migrations, and larger-scale operations
 
 ### Access control and scope foundation: shipped
+
 Shipped or materially in place:
+
 - `authorizeRAGAction(...)`
 - `resolveRAGAccessScope(...)`
 - composed access bridge via `createRAGAccessControl(...)`
@@ -379,11 +425,14 @@ Shipped or materially in place:
 - scoped release-incident synchronization for ops status (incident summaries and recent incident lists now respect allowed comparison groups)
 
 Implication:
+
 - the platform now has a real auth/access seam
 - the remaining work is deeper consistency, not inventing the model
 
 ## What Is Still Missing
+
 The remaining roadmap is best understood in three tiers:
+
 - must-have before calling AbsoluteJS the default choice
 - strong differentiators that make the product obviously better
 - later depth work
@@ -391,14 +440,17 @@ The remaining roadmap is best understood in three tiers:
 ## Tier 1: Must-have
 
 ### 1. Vector-store and large-corpus operational depth
+
 This is the biggest remaining gap versus vector-native systems.
 
 Why it matters:
+
 - Weaviate, Qdrant, and Milvus win on search infrastructure depth, not just API aesthetics
 - leadership requires more than "has a vector adapter"
 - larger corpora expose planning, filtering, recall, latency, and operational weaknesses quickly
 
 Must-have work:
+
 - stronger Postgres vector-store depth beyond the newly landed core adapter and first-pass pushdown
 - richer prefilter/query planning across backends, not just SQLite-first planner observability
 - larger-corpus candidate management and backfill strategy controls
@@ -411,17 +463,21 @@ Must-have work:
   - retention and cleanup on durable backends
 
 Target outcome:
+
 - AbsoluteJS feels credible not only as a workflow framework, but as a serious retrieval runtime over larger corpora
 
 ### 2. Evaluation and experiment productization
+
 This is the biggest remaining gap versus LangSmith and Haystack.
 
 Why it matters:
+
 - evaluation is no longer missing in AbsoluteJS
 - the gap is now workflow and product feel
 - serious teams need repeatable experiment operations, not just raw helpers
 
 Must-have work:
+
 - experiment management beyond current suite/run/history primitives
 - more operable comparison workflows across retrieval, reranking, prompting, and backend variants
 - clearer benchmark inspection and triage flows
@@ -433,17 +489,21 @@ Must-have work:
 - stronger integration between failure classes, entity rollups, and release decisions
 
 Target outcome:
+
 - evaluation in AbsoluteJS becomes something teams adopt as a working system, not just a capability surface
 
 ### 3. Extraction quality and document understanding
+
 This remains high leverage, but it is no longer the only top priority.
 
 Why it matters:
+
 - weak extraction still poisons downstream stages
 - extractor registries do not help if the default extractors are not good enough
 - this is still where many production RAG systems quietly fail
 
 Must-have work:
+
 - deeper Office extraction
   - XLSX sheet/table/cell extraction with still stronger merged-cell, formula/value, and sparse-layout semantics
   - stronger column-range and table-shape detection within sheets where semantic inference is still weak
@@ -463,18 +523,22 @@ Must-have work:
   - richer timestamp/locality cues for grounding and answer-time navigation
 
 Target outcome:
+
 - extracted output is useful for RAG before custom app logic touches it
 
 ### 4. Connector and ingestion ecosystem breadth
+
 This is still important, but it should not be mistaken for the main victory condition.
 
 Why it matters:
+
 - LlamaIndex and LangChain still win by sheer breadth of loaders, readers, and source adapters
 - teams often choose a platform because their data source is already supported
 - extension hooks are good, but a category leader also needs more first-party source coverage
 - the right goal is high-value coverage plus strong connector kits, not a connector-count race
 
 Must-have work:
+
 - first-party connectors beyond the current local/source/sync baseline
   - docs/wiki platforms
   - SaaS knowledge systems
@@ -486,17 +550,21 @@ Must-have work:
 - reference connector kits so teams can implement new sources without reverse-engineering core
 
 Target outcome:
+
 - serious teams do not immediately reach for LangChain/LlamaIndex solely because their source systems are missing
 - teams can fill long-tail gaps without treating AbsoluteJS as hostile to extension
 
 ### 5. Smarter chunking and chunk intelligence
+
 Chunking is still the second major gap.
 
 Why it matters:
+
 - chunking quality directly controls recall, reranking, grounding, and citation quality
 - teams will replace chunking quickly if it behaves like generic text splitting
 
 Must-have work:
+
 - heading-aware hierarchical chunking
 - section-aware chunk boundaries
 - table-aware chunking
@@ -508,12 +576,15 @@ Must-have work:
 - richer chunk-debug metadata beyond the newly landed chunk-boundary reasons and source-aware scope labels
 
 Target outcome:
+
 - default chunking is good enough that serious teams do not immediately replace it
 
 ### 6. Production persistence beyond file-backed durability
+
 The durability baseline is good, but the production story is still incomplete.
 
 Must-have work:
+
 - broader SQLite/Postgres-backed persistence for release/eval/ops histories beyond the current governance-heavy path
 - migration-safe persistence story for larger corpora and longer-lived deployments
 - retention and cleanup policies for non-file stores too
@@ -521,12 +592,15 @@ Must-have work:
 - stronger source sync durability under larger sources and repeated restarts
 
 Target outcome:
+
 - the operational control plane feels credible for production use beyond local or small deployments
 
 ### 7. Retrieval quality refinement, not generic retrieval plumbing
+
 The retrieval foundation is strong enough that the next retrieval work should be selective.
 
 Must-have work:
+
 - better default hybrid presets based on real corpus/query shapes
 - deeper metadata-aware ranking and boosting depth across more source types, not just the now-improved section/spreadsheet/media path
 - parent-document and section-graph aware retrieval behavior
@@ -534,12 +608,15 @@ Must-have work:
 - better retrieval evaluation around routing decisions and source-specific failures
 
 Target outcome:
+
 - teams can tune retrieval deeply without replacing the retrieval layer
 
 ### 8. Access-control and governance consistency cleanup
+
 The model exists. The remaining work is consistency and operability.
 
 Must-have work:
+
 - sweep remaining governance/reporting surfaces for `corpusGroupKey` consistency
 - make scoped governance visibility uniform across admin/reporting routes
 - fixed release incident sync ordering so `/status/release` and `/status/release/incidents` reflect handoff-stale incidents from handoff-readiness state
@@ -548,14 +625,17 @@ Must-have work:
 - provide clearer integration guidance for multi-corpus server deployments
 
 Target outcome:
+
 - multi-corpus governance feels uniform instead of partly explicit and partly inferred
 
 ## Tier 2: Strong differentiators
 
 ### 9. Corpus operations depth
+
 Corpus operations can still become stronger than most competing frameworks.
 
 High-value work:
+
 - deduplication actions beyond the current safe single-latest resolution baseline
 - partial reindex depth beyond the current targeted-refresh baseline
 - stale-document workflows beyond the current reconciliation baseline
@@ -564,18 +644,22 @@ High-value work:
 - deeper extraction recovery automation beyond the current analytics/remediation/recovery-handler baseline
 
 ### 10. Better source sync depth
+
 The current sync baseline is useful, but not yet a moat.
 
 High-value work:
+
 - better delta detection beyond the current stale/refresh baseline
 - richer resume coordination for larger sources beyond the current cursor baseline
 - sync conflict handling beyond the current detection + safe single-latest/deterministic highest-version resolution baseline
 - source-specific deeper recovery automation beyond the current sync diagnostics, remediation, recovery-preview, and recovery-handler baseline
 
 ### 11. Evaluation and dataset tooling depth
+
 Evaluation is already useful. The remaining gain is turning it into a clear competitive advantage.
 
 High-value work:
+
 - dataset authoring and management primitives beyond the current immutable suite helpers
 - golden-set workflows beyond the current first-class case tagging
 - hard-negative management beyond the current first-class case tagging and mutation helpers
@@ -587,10 +671,13 @@ High-value work:
 - more explicit source-specific explanations for why media/spreadsheet/section evidence won or lost across runs
 
 ## Current Scorecard
+
 This is the honest state of the project right now, benchmarked against the strongest current public capability surfaces across LangChain, LangSmith, Haystack, LlamaIndex, Weaviate, Qdrant, and Milvus.
 
 ### Coverage: strong, but not yet category-leading overall
+
 Current coverage by category:
+
 - Connector breadth: 42%
 - Vector/runtime depth: 61%
 - Query planning/filtering: 63%
@@ -601,6 +688,7 @@ Current coverage by category:
 Leadership target: no category should stay below 75%, and overall should be above 82%.
 
 Strong today:
+
 - retrieval, reranking, evaluation, and diagnostics
 - governance, release control, and persistent operational history
 - framework parity and public-surface packaging
@@ -609,18 +697,22 @@ Strong today:
 - growing vector backend depth with SQLite planner surfaces and a real core Postgres adapter, now including parity-critical count/delete lifecycle operations
 
 Still behind the best current ecosystems in:
+
 - connector breadth and source ecosystem scale
 - vector-database-native operational depth
 - eval workflow productization and experiment ergonomics
 - OCR/document-understanding depth at the high end
 
 ### Extensibility: strong and increasingly credible
+
 Extensibility coverage estimate:
+
 - Extension registry coverage: 78%
 - Production connector kits/readiness: 52%
 - Reference implementations (connectors/persistence/controls): 44%
 
 Strong today:
+
 - extractor registry
 - chunker registry
 - routing hooks
@@ -631,60 +723,74 @@ Strong today:
 - backend adapter depth now living in core rather than package sprawl
 
 Still missing to be clearly category-leading:
+
 - stronger connector kits and reference implementations
 - more production-grade persistence adapters across all history/control surfaces
 - deeper source-specific extension kits and reference implementations
 - broader backend parity beyond SQLite-first depth
 
 ## Prioritized Next 10
+
 This is the current execution order, biased toward the shortest path to actual category leadership rather than internal completeness.
 
 1. Postgres vector depth
+
 - extend safe metadata pushdown and planner depth
 - bring Postgres closer to SQLite planner introspection parity and beyond
 
 2. Larger-corpus backend planning
+
 - candidate budgeting, prefilter strategy, backend health, and query planning depth
 - reduce the gap versus Weaviate, Qdrant, and Milvus
 
 3. Evaluation productization
+
 - experiment management, comparison ergonomics, and benchmark triage flows
 - reduce the gap versus LangSmith and Haystack
 
 4. OCR and scanned-document depth
+
 - strengthen scanned PDF and image extraction
 - improve confidence, page/region traceability, and reading-order quality further
 
 5. Connector breadth expansion
+
 - add first-party high-value connectors and source kits
 - close the highest-value ecosystem gaps versus LangChain and LlamaIndex without turning connector count into the main score
 
 6. Richer chunk intelligence
+
 - hierarchical parent/child chunk relationships
 - better excerpt reconstruction from related chunks
 - stronger debug metadata for why a chunk won, not just where it came from
 
 7. Corpus operations depth
+
 - stronger lineage, dedup, partial reindex, and recovery workflows
 - make the corpus layer feel more platform-grade
 
 8. Better source sync depth
+
 - stronger delta detection
 - larger-source coordination and resume semantics
 - deeper recovery automation
 
 9. Broader durable persistence
+
 - extend SQLite/Postgres-backed persistence beyond the current governance-heavy surface and the new eval/dataset histories
 - make migrations and retention policies more uniform
 
 10. Extension kits and reference implementations
+
 - provide stronger first-party extension examples for connectors, extractors, chunkers, routing, backends, and persistence
 - make the extensibility story easier to adopt than Python competitors, not just technically possible
 
 ### 9. Better answer-grounding productization
+
 Grounding primitives are good and can get better in product feel.
 
 High-value work:
+
 - richer artifact inspection
 - better difficulty trends
 - easier provider comparison inspection
@@ -693,19 +799,24 @@ High-value work:
 ## Tier 3: Later depth work
 
 ### 10. More file types where justified
+
 Add more file types only when they improve real ingestion coverage.
 
 Rule:
+
 - do not expand the matrix just to expand the matrix
 - add formats when they improve actual RAG usability
 
 ### 11. More release-control policy depth
+
 Release control is already strong enough to stop being the primary roadmap driver.
 
 Only continue here when a real usage gap appears.
 
 ## Immediate Next Steps
+
 Current execution constraint:
+
 - do not spend cycles on benchmark productization until explicitly requested
 - do not spend cycles on docs until explicitly requested
 - do not spend cycles on example-only work until explicitly requested
@@ -731,27 +842,32 @@ The strongest next branch is:
    - deeper transcript locality only where current grouped media windows still miss
 
 Recommendation:
+
 - do not default back to benchmark, docs, or example work first
 - the best path to leadership right now is extraction quality, OCR depth, archive/email relationship modeling, and then selective backend/runtime depth
 
 ### 12. More example polish
+
 The demo should keep improving, but core product work should not be blocked on endless presentation work.
 
 ## Prioritized Implementation Order
 
 ### Phase 1: Ecosystem and backend competitiveness
+
 1. Postgres vector depth
 2. larger-corpus planner and backend operations depth
 3. evaluation workflow productization
 4. selective connector breadth
 
 ### Phase 2: Extraction quality foundation
+
 1. OCR and scanned-document depth
 2. deeper XLSX table/header semantics
 3. any remaining email/mailbox realism where current extraction still weakens retrieval materially
 4. any deeper PPTX/media work only where current extraction still weakens retrieval materially
 
 ### Phase 3: Chunking intelligence
+
 1. section-aware chunking
 2. heading-aware chunking
 3. code-aware chunking
@@ -761,6 +877,7 @@ The demo should keep improving, but core product work should not be blocked on e
 7. chunk-debug metadata improvements
 
 ### Phase 4: Production persistence hardening
+
 1. SQLite/Postgres-backed persistence for ops/release/eval histories
 2. retention and cleanup policies across durable stores
 3. resumable durable jobs
@@ -768,6 +885,7 @@ The demo should keep improving, but core product work should not be blocked on e
 5. migration-safe persistence guidance
 
 ### Phase 5: Retrieval quality refinement
+
 1. stronger hybrid defaults and presets
 2. metadata-aware ranking and boosting
 3. parent-document and section-graph retrieval depth
@@ -775,18 +893,22 @@ The demo should keep improving, but core product work should not be blocked on e
 5. retrieval-evaluation depth for routing and source-specific regressions
 
 ### Phase 6: Governance and access consistency
+
 1. sweep remaining governance/reporting holdouts for `corpusGroupKey`
 2. tighten scoped audit and denied-action visibility
 3. improve multi-corpus integration guidance and helpers
 
 ### Phase 7: Evaluation advantage
+
 1. dataset management
 2. hard-negative workflows
 3. synthetic eval generation
 4. regression classification and source-level quality analytics
 
 ## Decision Rule For New Work
+
 A new feature should only be prioritized if it does one of these:
+
 - materially improves extraction quality
 - materially improves chunking quality
 - materially improves retrieval quality
@@ -797,33 +919,41 @@ A new feature should only be prioritized if it does one of these:
 A feature should not be prioritized just because it is visible, easy to demo, or adds another governance surface.
 
 ## Competitive Proof Gates
+
 Before claiming category leadership, AbsoluteJS should be able to show all of these on designated internal benchmark suites and example workloads:
 
 1. Retrieval and ranking quality
+
 - exact-phrase, hybrid, multivector, and filter-heavy cases do not regress
 - source-structure-sensitive cases remain explainable in traces and comparisons
 - default routing and reranking choices beat or match the previous stable baseline on the tracked suites
 
 2. Backend and runtime depth
+
 - SQLite, SQLite native, and Postgres pass shared retrieval parity suites
 - larger-corpus workloads have inspectable planner behavior, maintenance status, and stable operational controls
 - backend health and maintenance signals are visible enough to support release gates
 
 3. Evaluation and release operations
+
 - experiment comparisons can identify winners, regressions, and blocker classes without raw JSON inspection
 - multivector, general, and backend/runtime regressions are visible in release-control surfaces
 - release gates can fail on quality regressions, not only on generic status rules
 
 4. Extraction quality
+
 - PDFs, Office docs, spreadsheets, transcripts, email, archives, and OCR-heavy inputs remain usable without immediate custom extractor replacement
 - extraction failures surface explicit recovery cues rather than silent quality drops
 
 5. Example proof
+
 - the external parity example demonstrates the winning behaviors across all supported page surfaces
 - example regressions are guarded by route-level tests, not just helper-state checks
 
 ## Current Recommendation
+
 If choosing the next major build area right now:
+
 1. vector-store and larger-corpus backend depth
 2. evaluation workflow productization
 3. extraction quality
@@ -833,7 +963,9 @@ If choosing the next major build area right now:
 That is the path most likely to make AbsoluteJS the framework teams choose by default instead of merely the framework they find impressive.
 
 ## What “Done Enough” Looks Like
+
 AbsoluteJS is close to default-choice status when these are true:
+
 - teams trust the built-in extraction layer for real-world source material
 - teams trust the built-in chunking layer for real retrieval quality
 - teams can extend extractors/chunkers without forking core

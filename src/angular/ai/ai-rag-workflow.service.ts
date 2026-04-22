@@ -1,14 +1,14 @@
-import { computed, Injectable } from '@angular/core';
-import { RAGStreamService } from './ai-rag-stream.service';
+import { computed, Injectable } from "@angular/core";
+import { RAGStreamService } from "./ai-rag-stream.service";
 
-@Injectable({ providedIn: 'root' })
+@Injectable({ providedIn: "root" })
 export class RAGWorkflowService extends RAGStreamService {
-	connect(path: string, conversationId?: string) {
-		const stream = super.connect(path, conversationId);
+  connect(path: string, conversationId?: string) {
+    const stream = super.connect(path, conversationId);
 
-		return {
-			...stream,
-			state: computed(() => stream.workflow())
-		};
-	}
+    return {
+      ...stream,
+      state: computed(() => stream.workflow()),
+    };
+  }
 }

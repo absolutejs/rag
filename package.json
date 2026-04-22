@@ -1,82 +1,106 @@
 {
-	"name": "@absolutejs/rag",
-	"version": "0.0.2",
-	"description": "Standalone RAG ingestion, sync, retrieval, evaluation, clients, and framework adapters extracted from AbsoluteJS",
-	"license": "BSL-1.1",
-	"type": "module",
-	"main": "./dist/ai/rag/index.js",
-	"types": "./dist/src/ai/rag/index.d.ts",
-	"files": [
-		"dist",
-		"README.md"
-	],
-	"exports": {
-		".": {
-			"import": "./dist/ai/rag/index.js",
-			"types": "./dist/src/ai/rag/index.d.ts"
-		},
-		"./client": {
-			"import": "./dist/ai/client/index.js",
-			"types": "./dist/src/ai/client/index.d.ts"
-		},
-		"./client/ui": {
-			"import": "./dist/ai/client/ui.js",
-			"types": "./dist/src/ai/client/ui.d.ts"
-		},
-		"./ui": {
-			"import": "./dist/ai/rag/ui.js",
-			"types": "./dist/src/ai/rag/ui.d.ts"
-		},
-		"./quality": {
-			"import": "./dist/ai/rag/quality.js",
-			"types": "./dist/src/ai/rag/quality.d.ts"
-		},
-		"./react": {
-			"import": "./dist/react/ai/index.js",
-			"types": "./dist/src/react/ai/index.d.ts"
-		},
-		"./vue": {
-			"import": "./dist/vue/ai/index.js",
-			"types": "./dist/src/vue/ai/index.d.ts"
-		},
-		"./svelte": {
-			"import": "./dist/svelte/ai/index.js",
-			"types": "./dist/src/svelte/ai/index.d.ts"
-		},
-		"./angular": {
-			"import": "./dist/angular/ai/index.js",
-			"types": "./dist/src/angular/ai/index.d.ts"
-		}
-	},
-	"dependencies": {
-		"@absolutejs/ai": "0.0.3",
-		"@absolutejs/linked-providers": "0.0.1"
-	},
-	"peerDependencies": {
-		"@angular/core": "^21.0.0",
-		"elysia": "^1.4.18",
-		"react": "^19.2.0",
-		"svelte": "^5.35.2",
-		"vue": "^3.5.27"
-	},
-	"peerDependenciesMeta": {
-		"@angular/core": { "optional": true },
-		"react": { "optional": true },
-		"svelte": { "optional": true },
-		"vue": { "optional": true }
-	},
-	"devDependencies": {
-		"@angular/core": "^21.0.0",
-		"@types/bun": "1.3.9",
-		"@types/react": "19.2.0",
-		"elysia": "1.4.18",
-		"react": "19.2.1",
-		"svelte": "5.55.0",
-		"typescript": "^5.9.3",
-		"vue": "3.5.27"
-	},
-	"scripts": {
-		"build": "bun run scripts/build.ts",
-		"typecheck": "tsc --noEmit --project tsconfig.json"
-	}
+  "name": "@absolutejs/rag",
+  "version": "0.0.2",
+  "description": "Standalone RAG ingestion, sync, retrieval, evaluation, clients, and framework adapters extracted from AbsoluteJS",
+  "license": "BSL-1.1",
+  "type": "module",
+  "main": "./dist/ai/rag/index.js",
+  "types": "./dist/src/ai/rag/index.d.ts",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "exports": {
+    ".": {
+      "import": "./dist/ai/rag/index.js",
+      "types": "./dist/src/ai/rag/index.d.ts"
+    },
+    "./client": {
+      "import": "./dist/ai/client/index.js",
+      "types": "./dist/src/ai/client/index.d.ts"
+    },
+    "./client/ui": {
+      "import": "./dist/ai/client/ui.js",
+      "types": "./dist/src/ai/client/ui.d.ts"
+    },
+    "./ui": {
+      "import": "./dist/ai/rag/ui.js",
+      "types": "./dist/src/ai/rag/ui.d.ts"
+    },
+    "./quality": {
+      "import": "./dist/ai/rag/quality.js",
+      "types": "./dist/src/ai/rag/quality.d.ts"
+    },
+    "./react": {
+      "import": "./dist/react/ai/index.js",
+      "types": "./dist/src/react/ai/index.d.ts"
+    },
+    "./vue": {
+      "import": "./dist/vue/ai/index.js",
+      "types": "./dist/src/vue/ai/index.d.ts"
+    },
+    "./svelte": {
+      "import": "./dist/svelte/ai/index.js",
+      "types": "./dist/src/svelte/ai/index.d.ts"
+    },
+    "./angular": {
+      "import": "./dist/angular/ai/index.js",
+      "types": "./dist/src/angular/ai/index.d.ts"
+    }
+  },
+  "dependencies": {
+    "@absolutejs/ai": "0.0.3",
+    "@absolutejs/linked-providers": "0.0.1"
+  },
+  "peerDependencies": {
+    "@angular/core": "^21.0.0",
+    "elysia": "^1.4.18",
+    "react": "^19.2.0",
+    "svelte": "^5.35.2",
+    "vue": "^3.5.27"
+  },
+  "peerDependenciesMeta": {
+    "@angular/core": {
+      "optional": true
+    },
+    "react": {
+      "optional": true
+    },
+    "svelte": {
+      "optional": true
+    },
+    "vue": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@angular/core": "^21.0.0",
+    "@types/bun": "1.3.9",
+    "@types/react": "19.2.0",
+    "elysia": "1.4.18",
+    "react": "19.2.1",
+    "svelte": "5.55.0",
+    "typescript": "^5.9.3",
+    "vue": "3.5.27",
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.0.3",
+    "globals": "^17.4.0",
+    "prettier": "^3.5.3",
+    "typescript-eslint": "^8.56.1",
+    "eslint-plugin-absolute": "^0.2.6",
+    "eslint-plugin-promise": "^7.2.1",
+    "react-dom": "19.2.1"
+  },
+  "scripts": {
+    "build": "bun run scripts/build.ts",
+    "typecheck": "tsc --noEmit --project tsconfig.json",
+    "lint": "eslint . --max-warnings 0",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "bun test",
+    "release:package": "bun publish --access public"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
 }

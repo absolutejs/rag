@@ -3,7 +3,7 @@ export const ANSI_ESCAPE_LENGTH = 3;
 export const ASCII_SPACE = 32;
 export const BASE_36_RADIX = 36;
 export const BUN_BUILD_WARNING_SUPPRESSION =
-	'wildcard sideEffects are not supported yet';
+  "wildcard sideEffects are not supported yet";
 export const BODY_SLICE_LENGTH = 2000;
 export const BYTES_PER_KILOBYTE = 1024;
 export const CLI_ARGS_OFFSET = 3;
@@ -34,12 +34,12 @@ export const MILLISECONDS_IN_A_SECOND = 1000;
 export const MINUTES_IN_AN_HOUR = 60;
 export const SECONDS_IN_A_MINUTE = 60;
 export const MILLISECONDS_IN_A_MINUTE =
-	MILLISECONDS_IN_A_SECOND * SECONDS_IN_A_MINUTE;
+  MILLISECONDS_IN_A_SECOND * SECONDS_IN_A_MINUTE;
 export const MILLISECONDS_IN_A_DAY =
-	MILLISECONDS_IN_A_SECOND *
-	SECONDS_IN_A_MINUTE *
-	MINUTES_IN_AN_HOUR *
-	HOURS_IN_DAY;
+  MILLISECONDS_IN_A_SECOND *
+  SECONDS_IN_A_MINUTE *
+  MINUTES_IN_AN_HOUR *
+  HOURS_IN_DAY;
 export const OVERLAY_FADE_DURATION_MS = 150;
 export const PING_INTERVAL_MS = 30_000;
 export const RAF_BATCH_COUNT = 3;

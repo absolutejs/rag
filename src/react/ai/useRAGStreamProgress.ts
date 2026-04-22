@@ -1,26 +1,26 @@
-import { useMemo } from 'react';
-import type { AIMessage } from '@absolutejs/ai';
+import { useMemo } from "react";
+import type { AIMessage } from "@absolutejs/ai";
 import {
-	buildRAGStreamProgress,
-	type RAGStreamProgress
-} from '../../ai/rag/workflowState';
+  buildRAGStreamProgress,
+  type RAGStreamProgress,
+} from "../../ai/rag/workflowState";
 
 export const useRAGStreamProgress = (params: {
-	error: string | null;
-	isStreaming: boolean;
-	messages: AIMessage[];
+  error: string | null;
+  isStreaming: boolean;
+  messages: AIMessage[];
 }) =>
-	useMemo(
-		() =>
-			buildRAGStreamProgress({
-				error: params.error,
-				isStreaming: params.isStreaming,
-				messages: params.messages
-			}),
-		[params.error, params.isStreaming, params.messages]
-	);
+  useMemo(
+    () =>
+      buildRAGStreamProgress({
+        error: params.error,
+        isStreaming: params.isStreaming,
+        messages: params.messages,
+      }),
+    [params.error, params.isStreaming, params.messages],
+  );
 
 export type UseRAGStreamProgressResult = ReturnType<
-	typeof useRAGStreamProgress
+  typeof useRAGStreamProgress
 >;
 export type { RAGStreamProgress };
