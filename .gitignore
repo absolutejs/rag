@@ -1,0 +1,5 @@
+node_modules/
+dist/
+.rag/
+.absolute/
+.DS_Store

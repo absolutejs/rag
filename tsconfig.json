@@ -1,0 +1,24 @@
+{
+	"compilerOptions": {
+		"allowJs": true,
+		"allowSyntheticDefaultImports": true,
+		"declaration": true,
+		"esModuleInterop": true,
+		"forceConsistentCasingInFileNames": true,
+		"incremental": true,
+		"jsx": "react-jsx",
+		"lib": ["DOM", "DOM.Iterable", "ESNext"],
+		"module": "ESNext",
+		"moduleResolution": "bundler",
+		"noImplicitAny": true,
+		"noUncheckedIndexedAccess": true,
+		"outDir": "dist",
+		"rootDir": ".",
+		"skipLibCheck": true,
+		"strict": true,
+		"target": "ESNext",
+		"tsBuildInfoFile": ".rag/tsconfig.tsbuildinfo"
+	},
+	"include": ["src/**/*", "types/**/*"],
+	"exclude": ["dist", "node_modules"]
+}

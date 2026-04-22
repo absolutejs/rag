@@ -1,0 +1,9 @@
+export const HTTP_STATUS_OK = 200;
+export const HTTP_STATUS_BAD_REQUEST = 400;
+export const HTTP_STATUS_NOT_FOUND = 404;
+export const EXCLUDE_LAST_OFFSET = -1;
+export const RAG_CHUNK_ID_PAD_LENGTH = 3;
+export const RAG_DOCUMENT_ID_PREVIEW_LENGTH = 32;
+export const RAG_DOCUMENT_SLUG_MAX_LENGTH = 48;
+export const RAG_MIN_CHUNK_LENGTH_FLOOR = 120;
+export const RAG_SEARCH_SCORE_DECIMAL_PLACES = 3;
