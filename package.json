@@ -1,6 +1,6 @@
 {
   "name": "@absolutejs/rag",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Standalone RAG ingestion, sync, retrieval, evaluation, clients, and framework adapters extracted from AbsoluteJS",
   "license": "BSL-1.1",
   "type": "module",
@@ -49,8 +49,8 @@
     }
   },
   "dependencies": {
-    "@absolutejs/ai": "0.0.3",
-    "@absolutejs/linked-providers": "0.0.1"
+    "@absolutejs/ai": "0.0.4",
+    "@absolutejs/linked-providers": "0.0.2"
   },
   "peerDependencies": {
     "@angular/core": "^21.0.0",
