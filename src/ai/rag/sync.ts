@@ -1,7 +1,17 @@
 import { S3Client } from "bun";
 import { createHash } from "node:crypto";
-import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readdir } from "node:fs/promises";
+import { writeFileAtomic } from "./atomicWrite";
 import { basename, dirname, extname, join, relative, resolve } from "node:path";
+
+// Opportunistic HTTP/2 multiplexing for outbound HTTPS (Bun 1.3.14+).
+// Sync hits many same-origin URLs per crawl (sitemap of N URLs, RSS feed
+// items, etc.) — multiplexing eliminates per-request handshake. The
+// `protocol` option lands in @types/bun 1.3.14; widen locally for now.
+// Hard-skip on non-HTTPS — Bun's h2 client throws HTTP2Unsupported on h2c.
+type H2Init = RequestInit & { protocol?: "http2" };
+const h2IfHttps = (url: string): H2Init =>
+  url.startsWith("https://") ? { protocol: "http2" } : {};
 import type {
   CreateRAGSyncManagerOptions,
   RAGChunkingOptions,
@@ -62,6 +72,7 @@ import {
   prepareRAGDocuments,
 } from "./ingestion";
 import { createRAGLinkedGmailEmailSyncClient } from "./emailProviders";
+import type { RAGLinkedConnectorSyncSourceOptions } from "./types";
 
 const toSyncError = (caught: unknown) =>
   caught instanceof Error ? caught.message : String(caught);
@@ -83,6 +94,16 @@ const getSyncMetadataBoolean = (
   metadata: Record<string, unknown> | undefined,
   key: string,
 ) => metadata?.[key] === true;
+
+const getSyncMetadataRecord = (
+  metadata: Record<string, unknown> | undefined,
+  key: string,
+) => {
+  const value = metadata?.[key];
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : undefined;
+};
 
 const DEFAULT_DIRECTORY_EXTENSIONS = [
   ".txt",
@@ -587,13 +608,44 @@ const toManagedSyncDocument = (
 const encodeAttachmentContent = (attachment: RAGEmailSyncAttachment) =>
   typeof attachment.content === "string"
     ? {
-        content: attachment.content,
+        content: sanitizeSyncString(attachment.content),
         encoding: attachment.encoding ?? "utf8",
       }
     : {
         content: Buffer.from(attachment.content).toString("base64"),
         encoding: "base64" as const,
       };
+
+const sanitizeSyncString = (value: string) => value.replace(/\u0000/g, "");
+
+const sanitizeOptionalSyncString = (value: string | undefined) =>
+  typeof value === "string" ? sanitizeSyncString(value) : value;
+
+const sanitizeSyncStringList = (value: string[] | undefined) =>
+  value
+    ?.map((entry) => sanitizeSyncString(entry))
+    .filter((entry): entry is string => typeof entry === "string");
+
+const sanitizeSyncMetadataValue = (value: unknown): unknown => {
+  if (typeof value === "string") {
+    return sanitizeSyncString(value);
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((entry) => sanitizeSyncMetadataValue(entry));
+  }
+
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>).map(([key, entry]) => [
+        key,
+        sanitizeSyncMetadataValue(entry),
+      ]),
+    );
+  }
+
+  return value;
+};
 
 const toTimestamp = (value: number | string | Date | undefined) => {
   if (typeof value === "number" && Number.isFinite(value)) {
@@ -1346,7 +1398,7 @@ const isFeedDocument = (value: string) => {
 };
 
 const discoverFeedsFromHTML = async (feed: RAGFeedSyncInput) => {
-  const response = await fetch(feed.url);
+  const response = await fetch(feed.url, h2IfHttps(feed.url));
   if (!response.ok) {
     return [];
   }
@@ -1400,7 +1452,7 @@ const discoverFeedsFromHTML = async (feed: RAGFeedSyncInput) => {
 
   const validated: RAGFeedSyncInput[] = [];
   for (const candidate of discovered.values()) {
-    const candidateResponse = await fetch(candidate.url);
+    const candidateResponse = await fetch(candidate.url, h2IfHttps(candidate.url));
     if (!candidateResponse.ok) {
       continue;
     }
@@ -1484,7 +1536,7 @@ const parseSitemapEntries = (sitemap: RAGSitemapSyncInput, value: string) => {
 
 const discoverSitemapsFromRobots = async (sitemap: RAGSitemapSyncInput) => {
   const robotsURL = resolveSiblingURL(sitemap.url, "/robots.txt");
-  const response = await fetch(robotsURL);
+  const response = await fetch(robotsURL, h2IfHttps(robotsURL));
   if (!response.ok) {
     return [];
   }
@@ -1506,7 +1558,7 @@ const discoverSitemapsFromRobots = async (sitemap: RAGSitemapSyncInput) => {
 
 const loadRobotsDisallowRules = async (siteURL: string) => {
   const robotsURL = resolveSiblingURL(siteURL, "/robots.txt");
-  const response = await fetch(robotsURL);
+  const response = await fetch(robotsURL, h2IfHttps(robotsURL));
   if (!response.ok) {
     return [];
   }
@@ -1553,7 +1605,7 @@ const discoverRecursiveSitemapURLs = async (input: {
     seen.add(current.sitemap.url);
     resolved.push(current.sitemap);
 
-    const response = await fetch(current.sitemap.url);
+    const response = await fetch(current.sitemap.url, h2IfHttps(current.sitemap.url));
     if (!response.ok) {
       throw new Error(
         `Failed to load sitemap ${current.sitemap.url}: ${response.status} ${response.statusText}`,
@@ -1766,7 +1818,7 @@ const discoverLinkedPagesFromHTML = async (input: {
       continue;
     }
 
-    const response = await fetch(current.url);
+    const response = await fetch(current.url, h2IfHttps(current.url));
     if (!response.ok) {
       continue;
     }
@@ -2190,6 +2242,7 @@ const loadDiscoveredGitHubRepositoryFiles = async (input: {
       repo: input.repo,
     });
     const response = await fetch(requestURL, {
+      ...h2IfHttps(requestURL),
       headers: input.requestHeaders,
     });
     if (!response.ok) {
@@ -2408,7 +2461,7 @@ export const createRAGFeedSyncSource = (
     const discoveredEntries = (
       await Promise.all(
         [...feedMap.values()].map(async (feed) => {
-          const response = await fetch(feed.url);
+          const response = await fetch(feed.url, h2IfHttps(feed.url));
           if (!response.ok) {
             throw new Error(
               `Failed to load feed ${feed.url}: ${response.status} ${response.statusText}`,
@@ -2510,7 +2563,7 @@ export const createRAGSitemapSyncSource = (
     const discoveredEntries = (
       await Promise.all(
         [...resolvedSitemapMap.values()].map(async (sitemap) => {
-          const response = await fetch(sitemap.url);
+          const response = await fetch(sitemap.url, h2IfHttps(sitemap.url));
           if (!response.ok) {
             throw new Error(
               `Failed to load sitemap ${sitemap.url}: ${response.status} ${response.statusText}`,
@@ -2602,7 +2655,7 @@ export const createRAGSiteDiscoverySyncSource = (
         const feedEntries = (
           await Promise.all(
             [...feedMap.values()].map(async (feed) => {
-              const response = await fetch(feed.url);
+              const response = await fetch(feed.url, h2IfHttps(feed.url));
               if (!response.ok) {
                 throw new Error(
                   `Failed to load feed ${feed.url}: ${response.status} ${response.statusText}`,
@@ -2669,7 +2722,7 @@ export const createRAGSiteDiscoverySyncSource = (
         const sitemapEntries = (
           await Promise.all(
             resolvedSitemaps.map(async (sitemap) => {
-              const response = await fetch(sitemap.url);
+              const response = await fetch(sitemap.url, h2IfHttps(sitemap.url));
               if (!response.ok) {
                 throw new Error(
                   `Failed to load sitemap ${sitemap.url}: ${response.status} ${response.statusText}`,
@@ -3150,21 +3203,24 @@ export const createRAGEmailSyncSource = (
         id: `email-${message.id}`,
         metadata: {
           ...(options.baseMetadata ?? {}),
-          ...(message.metadata ?? {}),
+          ...((sanitizeSyncMetadataValue(message.metadata ?? {}) as Record<
+            string,
+            unknown
+          >) ?? {}),
           emailKind: "message",
-          from: message.from,
+          from: sanitizeOptionalSyncString(message.from),
           hasAttachments: (message.attachments?.length ?? 0) > 0,
           messageId: message.id,
           receivedAt: toTimestamp(message.receivedAt),
           sentAt: toTimestamp(message.sentAt),
-          threadId: message.threadId,
-          threadTopic: message.subject,
-          to: message.to,
-          cc: message.cc,
+          threadId: sanitizeOptionalSyncString(message.threadId),
+          threadTopic: sanitizeOptionalSyncString(message.subject),
+          to: sanitizeSyncStringList(message.to),
+          cc: sanitizeSyncStringList(message.cc),
         },
-        source: `email/${message.threadId ?? message.id}`,
-        text: message.bodyText,
-        title: message.subject ?? message.id,
+        source: `email/${sanitizeOptionalSyncString(message.threadId) ?? message.id}`,
+        text: sanitizeOptionalSyncString(message.bodyText) ?? "",
+        title: sanitizeOptionalSyncString(message.subject) ?? message.id,
       }),
     );
     const attachmentUploads = listed.messages.flatMap((message) =>
@@ -3175,23 +3231,26 @@ export const createRAGEmailSyncSource = (
         format: attachment.format,
         metadata: {
           ...(options.baseMetadata ?? {}),
-          ...(attachment.metadata ?? {}),
+          ...((sanitizeSyncMetadataValue(attachment.metadata ?? {}) as Record<
+            string,
+            unknown
+          >) ?? {}),
           attachmentId:
             attachment.id ?? `${message.id}-attachment-${index + 1}`,
           emailKind: "attachment",
-          from: message.from,
+          from: sanitizeOptionalSyncString(message.from),
           messageId: message.id,
           sentAt: toTimestamp(message.sentAt),
-          threadId: message.threadId,
-          threadTopic: message.subject,
+          threadId: sanitizeOptionalSyncString(message.threadId),
+          threadTopic: sanitizeOptionalSyncString(message.subject),
         },
-        name: attachment.name,
+        name: sanitizeOptionalSyncString(attachment.name) ?? `attachment-${index + 1}`,
         source:
-          attachment.source ??
-          `email/${message.threadId ?? message.id}/attachments/${attachment.name}`,
+          sanitizeOptionalSyncString(attachment.source) ??
+          `email/${sanitizeOptionalSyncString(message.threadId) ?? message.id}/attachments/${sanitizeOptionalSyncString(attachment.name) ?? `attachment-${index + 1}`}`,
         title:
-          attachment.title ??
-          `${message.subject ?? message.id} · ${attachment.name}`,
+          sanitizeOptionalSyncString(attachment.title) ??
+          `${sanitizeOptionalSyncString(message.subject) ?? message.id} · ${sanitizeOptionalSyncString(attachment.name) ?? `attachment-${index + 1}`}`,
       })),
     );
     const extractionFailures: RAGSyncExtractionFailure[] = [];
@@ -3276,6 +3335,109 @@ export const createRAGEmailSyncSource = (
         resumePending: listed.complete !== true,
         updatedCount: reconciled.updatedCount,
       },
+    };
+  },
+});
+
+export const createRAGLinkedConnectorSyncSource = (
+  options: RAGLinkedConnectorSyncSourceOptions,
+): RAGSyncSourceDefinition => ({
+  description: options.description,
+  id: options.id,
+  kind: "custom",
+  label: options.label,
+  metadata: options.metadata,
+  retryAttempts: options.retryAttempts,
+  retryDelayMs: options.retryDelayMs,
+  target: options.externalAccountId ?? options.bindingId ?? options.label,
+  sync: async ({ collection, deleteDocument, listDocuments, sourceRecord }) => {
+    const requiredScopes =
+      options.requiredScopes ?? options.runtime.requiredScopes({ mode: "read" });
+    const credential = await options.resolver.resolveCredential({
+      bindingId: options.bindingId,
+      connectorProvider: options.runtime.provider,
+      externalAccountId: options.externalAccountId,
+      ownerRef: options.ownerRef,
+      purpose: options.purpose ?? "background_sync",
+      requiredScopes,
+    });
+
+    if (!credential) {
+      throw new Error(
+        `No linked ${options.runtime.provider} credential could be resolved`,
+      );
+    }
+
+    const checkpoint = getSyncMetadataRecord(
+      sourceRecord?.metadata,
+      "connectorCheckpoint",
+    );
+    const result = await options.runtime.sync({
+      checkpoint,
+      credential,
+      resolver: options.resolver,
+    });
+
+    const managedDocuments = result.items.map((item, index) =>
+      toManagedSyncDocument(
+        options.id,
+        {
+          chunking: options.defaultChunking,
+          format: item.html ? "html" : "text",
+          id: `${options.runtime.provider}-${item.id}`,
+          metadata: {
+            ...(options.baseMetadata ?? {}),
+            ...((sanitizeSyncMetadataValue(item.metadata ?? {}) as Record<
+              string,
+              unknown
+            >) ?? {}),
+            connectorBindingId: credential.bindingId,
+            connectorExternalAccountId: credential.externalAccountId,
+            connectorKind: item.kind,
+            connectorProvider: options.runtime.provider,
+            createdAt: toTimestamp(item.createdAt),
+            itemId: item.id,
+            threadId: sanitizeOptionalSyncString(item.threadId),
+            updatedAt: toTimestamp(item.updatedAt),
+            url: sanitizeOptionalSyncString(item.url),
+          },
+          source:
+            sanitizeOptionalSyncString(item.url) ??
+            `connector/${options.runtime.provider}/${sanitizeOptionalSyncString(item.threadId) ?? item.id}`,
+          text:
+            sanitizeOptionalSyncString(item.text) ??
+            sanitizeOptionalSyncString(item.html) ??
+            "",
+          title: sanitizeOptionalSyncString(item.title) ?? item.id,
+        },
+        `${item.kind}:${item.id}:${index + 1}`,
+      ),
+    );
+
+    const reconciled = await reconcileManagedDocuments({
+      chunkingRegistry: options.chunkingRegistry,
+      collection,
+      defaultChunking: options.defaultChunking,
+      deleteDocument,
+      documents: managedDocuments,
+      listDocuments,
+      sourceId: options.id,
+      allowDeletions: result.nextCheckpoint === undefined,
+    });
+
+    return {
+      chunkCount: reconciled.chunkCount,
+      documentCount: reconciled.documentCount,
+      metadata: {
+        connectorCheckpoint: result.nextCheckpoint,
+        connectorDiagnostics: result.diagnostics,
+        connectorItemCount: result.items.length,
+        connectorProvider: options.runtime.provider,
+        deletedCount: reconciled.deletedCount,
+        resumePending: result.nextCheckpoint !== undefined,
+        updatedCount: reconciled.updatedCount,
+      },
+      reconciliation: reconciled.reconciliation,
     };
   },
 });
@@ -3588,7 +3750,7 @@ export const createRAGFileSyncStateStore = (
     },
     save: async (records) => {
       await mkdir(dirname(resolvedPath), { recursive: true });
-      await writeFile(resolvedPath, JSON.stringify(records, null, 2), "utf8");
+      await writeFileAtomic(resolvedPath, JSON.stringify(records, null, 2), "utf8");
     },
   };
 };

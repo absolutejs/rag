@@ -1,6 +1,15 @@
 import { readdir, readFile } from "node:fs/promises";
 import { basename, extname, join, relative, resolve } from "node:path";
 import { gunzipSync, inflateRawSync } from "node:zlib";
+
+// Opportunistic HTTP/2 multiplexing for outbound HTTPS (Bun 1.3.14+).
+// URL-source ingestion may receive a batch of same-origin URLs;
+// multiplexing eliminates per-request handshake. The `protocol` option
+// lands in @types/bun 1.3.14; widen locally for now. Hard-skip on
+// non-HTTPS — Bun's h2 client throws HTTP2Unsupported on h2c.
+type H2Init = RequestInit & { protocol?: "http2" };
+const h2IfHttps = (url: string): H2Init =>
+  url.startsWith("https://") ? { protocol: "http2" } : {};
 import type {
   RAGChunkingOptions,
   RAGChunkingProfile,
@@ -10339,7 +10348,7 @@ export const loadRAGDocumentFromURL = async (input: RAGDocumentUrlInput) => {
     throw new Error("RAG URL is required");
   }
 
-  const response = await fetch(url);
+  const response = await fetch(url, h2IfHttps(url));
   if (!response.ok) {
     throw new Error(
       `Failed to fetch RAG URL ${url}: ${response.status} ${response.statusText}`,
@@ -10414,7 +10423,7 @@ export const loadRAGDocumentsFromURLs = async (
         throw new Error("RAG URL is required");
       }
 
-      const response = await fetch(url);
+      const response = await fetch(url, h2IfHttps(url));
       if (!response.ok) {
         throw new Error(
           `Failed to fetch RAG URL ${url}: ${response.status} ${response.statusText}`,
