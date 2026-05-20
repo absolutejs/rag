@@ -11,6 +11,24 @@ This plan is intentionally split across two concerns:
 
 Those concerns are related, but they are not the same system and should not be collapsed into one abstraction.
 
+## Implementation Status
+
+Landed first slice:
+
+- `@absolutejs/rag` already exposes resolver-backed Gmail sync primitives:
+  - `createRAGLinkedGmailEmailSyncClient(...)`
+  - `createRAGLinkedGmailEmailSyncSource(...)`
+- `auth` now resolves OAuth authorization identity/tokens through shared helpers instead of duplicating provider-specific callback parsing
+- `auth/example` now persists durable Google grants and Gmail bindings during OAuth callback success
+- `auth/example` now exposes a real linked-provider resolver factory that can load and refresh stored Google leases for connector consumers
+
+Still not landed:
+
+- generic multi-provider binding discovery beyond Google/Gmail
+- encryption at rest for durable token material
+- app-facing linked-provider management routes/UI
+- end-to-end connector demo wiring from a RAG example app into the auth example resolver
+
 ## Non-Goals
 
 Do not design this as:

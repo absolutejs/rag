@@ -19,6 +19,7 @@ import {
   createRAGEmailSyncSource,
   createRAGFeedSyncSource,
   createRAGGitHubSyncSource,
+  createRAGLinkedConnectorSyncSource,
   createRAGSitemapSyncSource,
   createRAGFileSyncStateStore,
   createRAGSiteDiscoverySyncSource,
@@ -2309,6 +2310,72 @@ describe("RAG sync helpers", () => {
     expect(attachmentHits[0]?.metadata?.emailKind).toBe("attachment");
   });
 
+  it("strips null bytes from synced email text, headers, and attachment payloads", async () => {
+    const store = createInMemoryRAGStore({ dimensions: 8 });
+    const collection = createRAGCollection({ store });
+    const syncManager = createRAGSyncManager({
+      collection,
+      sources: [
+        createRAGEmailSyncSource({
+          client: createRAGStaticEmailSyncClient({
+            messages: [
+              {
+                attachments: [
+                  {
+                    content: "Null\u0000byte attachment guidance.",
+                    contentType: "text/plain",
+                    metadata: {
+                      mailboxNote: "Attach\u0000ment"
+                    },
+                    name: "null\u0000byte.txt",
+                  },
+                ],
+                bodyText:
+                  "Body with a\u0000 null byte should stay searchable.",
+                from: "ops\u0000@example.com",
+                id: "msg-null-byte",
+                metadata: {
+                  mailboxPath: "Inbox\u0000/Support",
+                },
+                subject: "Null\u0000 byte workflow",
+                threadId: "thread\u0000-1",
+                to: ["support\u0000@example.com"],
+              },
+            ],
+          }),
+          id: "support-mailbox",
+          label: "Support mailbox",
+        }),
+      ],
+    });
+
+    const response = await syncManager.syncSource?.("support-mailbox");
+    expect(response?.ok).toBe(true);
+
+    const messageHits = await collection.search({
+      query: "null byte workflow searchable",
+      retrieval: "hybrid",
+      topK: 5,
+    });
+    const messageHit = messageHits.find((hit) => hit.source === "email/thread-1");
+    expect(messageHit).toBeTruthy();
+    expect(String(messageHit?.text).includes(" ")).toBe(false);
+    expect(messageHit?.metadata?.threadTopic).toBe("Null byte workflow");
+    expect(messageHit?.metadata?.from).toBe("ops@example.com");
+
+    const attachmentHits = await collection.search({
+      query: "attachment guidance",
+      retrieval: "hybrid",
+      topK: 5,
+    });
+    const attachmentHit = attachmentHits.find((hit) =>
+      String(hit.source).includes("attachments/nullbyte.txt"),
+    );
+    expect(attachmentHit).toBeTruthy();
+    expect(String(attachmentHit?.text).includes(" ")).toBe(false);
+    expect(attachmentHit?.metadata?.mailboxNote).toBe("Attachment");
+  });
+
   it("emits OCR remediation guidance for skipped scanned email attachments", async () => {
     const store = createInMemoryRAGStore({ dimensions: 8 });
     const collection = createRAGCollection({ store });
@@ -3143,6 +3210,103 @@ describe("RAG sync helpers", () => {
     } finally {
       rmSync(tempDir, { force: true, recursive: true });
     }
+  });
+
+  it("syncs linked connector runtimes into managed documents and persists checkpoints", async () => {
+    const store = createInMemoryRAGStore({ dimensions: 8 });
+    const collection = createRAGCollection({ store });
+    const syncManager = createRAGSyncManager({
+      collection,
+      sources: [
+        createRAGLinkedConnectorSyncSource({
+          id: "facebook-page",
+          label: "Facebook Page",
+          ownerRef: "FACEBOOK|user-1",
+          resolver: {
+            getAccessToken: async () => ({
+              accessToken: "token",
+              grantedScopes: ["pages_show_list", "pages_read_engagement"],
+            }),
+            listBindings: async () => [],
+            reportFailure: async () => {},
+            resolveCredential: async () => ({
+              authProviderKey: "facebook",
+              bindingId: "facebook:user-1:page-1",
+              connectorProvider: "facebook",
+              externalAccountId: "page-1",
+              externalAccountType: "page",
+              grantId: "facebook:user-1",
+              metadata: { pageAccessToken: "page-token" },
+              ownerRef: "FACEBOOK|user-1",
+              providerFamily: "meta",
+              scopes: ["pages_show_list", "pages_read_engagement"],
+            }),
+          },
+          runtime: {
+            provider: "facebook",
+            requiredScopes: () => ["pages_show_list", "pages_read_engagement"],
+            sync: async ({ checkpoint }) => ({
+              items: [
+                {
+                  createdAt: "2026-04-22T00:00:00.000Z",
+                  id: "post-1",
+                  kind: "facebook_post",
+                  metadata: { socialNetwork: "facebook" },
+                  text: "Meta connector sync should produce searchable documents.",
+                  title: "Meta connector post",
+                  url: "https://facebook.example/post-1",
+                },
+              ],
+              nextCheckpoint:
+                checkpoint?.after === "cursor-1" ? undefined : { after: "cursor-1" },
+            }),
+          },
+        }),
+      ],
+    });
+
+    const firstRun = await syncManager.syncSource?.("facebook-page");
+    expect(firstRun).toMatchObject({
+      ok: true,
+      source: {
+        id: "facebook-page",
+        kind: "custom",
+        metadata: {
+          connectorCheckpoint: { after: "cursor-1" },
+          connectorItemCount: 1,
+          connectorProvider: "facebook",
+          resumePending: true,
+        },
+        status: "completed",
+      },
+    });
+
+    const hits = await collection.search({
+      query: "searchable documents",
+      retrieval: "hybrid",
+      topK: 3,
+    });
+    expect(hits[0]).toMatchObject({
+      metadata: {
+        connectorKind: "facebook_post",
+        connectorProvider: "facebook",
+      },
+      source: "https://facebook.example/post-1",
+      title: "Meta connector post",
+    });
+
+    const secondRun = await syncManager.syncSource?.("facebook-page");
+    expect(secondRun).toMatchObject({
+      ok: true,
+      source: {
+        id: "facebook-page",
+        metadata: {
+          connectorCheckpoint: undefined,
+          resumePending: false,
+        },
+        status: "completed",
+      },
+    });
   });
 
   it("runs scheduled sync jobs through the sync scheduler", async () => {

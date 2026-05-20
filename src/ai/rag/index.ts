@@ -15,6 +15,12 @@ export {
   resolveRAGReranker,
 } from "./reranking";
 export {
+  createCohereRAGReranker,
+  createJinaRAGReranker,
+  createVoyageRAGReranker,
+} from "./rerankerProviders";
+export type { CrossEncoderRerankerConfig } from "./rerankerProviders";
+export {
   applyRAGQueryTransform,
   createHeuristicRAGQueryTransform,
   createRAGQueryTransform,
@@ -57,6 +63,13 @@ export {
   createRAGGraphEmailSyncClient,
   createRAGIMAPEmailSyncClient,
 } from "./emailProviders";
+export {
+  createRAGGoogleContactsConnector,
+} from "./contactProviders";
+export {
+  createRAGFacebookPageConnector,
+  createRAGInstagramBusinessConnector,
+} from "./socialProviders";
 export {
   buildRAGUpsertInputFromDirectory,
   buildRAGUpsertInputFromDocuments,
@@ -279,6 +292,7 @@ export {
   createRAGFeedSyncSource,
   createRAGFileSyncStateStore,
   createRAGGitHubSyncSource,
+  createRAGLinkedConnectorSyncSource,
   createRAGLinkedGmailEmailSyncSource,
   createRAGSiteDiscoverySyncSource,
   createRAGSitemapSyncSource,
@@ -370,6 +384,12 @@ export type {
   RAGEmailSyncListResult,
   RAGEmailSyncMessage,
   RAGEmailSyncSourceOptions,
+  RAGLinkedConnectorSyncSourceOptions,
+  RAGConnectorCheckpoint,
+  RAGConnectorItem,
+  RAGConnectorRuntime,
+  RAGConnectorSyncInput,
+  RAGConnectorSyncResult,
   RAGFeedSyncInput,
   RAGFeedSyncSourceOptions,
   RAGGitHubRepoSyncInput,

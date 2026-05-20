@@ -40,7 +40,9 @@ export type IMAPEmailSyncConfig = {
   maxResults?: number;
 };
 
-const defaultFetch = (...args: Parameters<typeof fetch>) => fetch(...args);
+type FetchLike = (...args: Parameters<typeof fetch>) => ReturnType<typeof fetch>;
+
+const defaultFetch: FetchLike = (...args) => fetch(...args);
 
 const stripHtml = (value: string) =>
   value
@@ -199,9 +201,92 @@ const DEFAULT_GMAIL_READONLY_SCOPES = [
   "https://www.googleapis.com/auth/gmail.readonly",
 ];
 
+const GMAIL_MAX_RETRY_ATTEMPTS = 2;
+const GMAIL_BASE_RETRY_DELAY_MS = 500;
+
+type GmailErrorBody = {
+  error?: {
+    code?: number;
+    message?: string;
+    status?: string;
+    errors?: Array<{
+      domain?: string;
+      message?: string;
+      reason?: string;
+    }>;
+  };
+};
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const getRetryDelayMs = (response: Response, attempt: number) => {
+  const retryAfterHeader = response.headers.get("retry-after");
+  const retryAfterSeconds = retryAfterHeader ? Number(retryAfterHeader) : Number.NaN;
+  if (Number.isFinite(retryAfterSeconds) && retryAfterSeconds >= 0) {
+    return retryAfterSeconds * 1000;
+  }
+
+  return GMAIL_BASE_RETRY_DELAY_MS * 2 ** attempt;
+};
+
+const readGmailError = async (response: Response) => {
+  let reason: string | undefined;
+  let detailMessage: string | undefined;
+
+  try {
+    const body = (await response.clone().json()) as GmailErrorBody;
+    reason = body.error?.errors?.[0]?.reason;
+    detailMessage = body.error?.errors?.[0]?.message ?? body.error?.message;
+  } catch {
+    const text = await response.clone().text();
+    detailMessage = text.trim().length > 0 ? text.trim() : undefined;
+  }
+
+  return { detailMessage, reason };
+};
+
+const createGmailHttpError = async (label: string, response: Response) => {
+  const { detailMessage, reason } = await readGmailError(response);
+  const suffix = [reason, detailMessage]
+    .filter(
+      (value, index, values) =>
+        typeof value === "string" &&
+        value.length > 0 &&
+        values.indexOf(value) === index,
+    )
+    .join(" | ");
+
+  return new Error(
+    `${label}: ${response.status} ${response.statusText}${suffix ? ` (${suffix})` : ""}`,
+  );
+};
+
+const fetchGmailWithRetry = async (
+  fetchImpl: FetchLike,
+  url: URL,
+  init: RequestInit,
+  label: string,
+) => {
+  for (let attempt = 0; attempt <= GMAIL_MAX_RETRY_ATTEMPTS; attempt += 1) {
+    const response = await fetchImpl(url, init);
+    if (response.ok) {
+      return response;
+    }
+
+    if (response.status === 429 && attempt < GMAIL_MAX_RETRY_ATTEMPTS) {
+      await sleep(getRetryDelayMs(response, attempt));
+      continue;
+    }
+
+    throw await createGmailHttpError(label, response);
+  }
+
+  throw new Error(`${label}: retry budget exhausted`);
+};
+
 const inferLinkedProviderFailureCode = (
   error: unknown,
-): "unauthorized" | "insufficient_scope" | "provider_error" => {
+): "unauthorized" | "insufficient_scope" | "provider_error" | "rate_limited" => {
   const message =
     error instanceof Error ? error.message : String(error ?? "Unknown error");
 
@@ -209,7 +294,15 @@ const inferLinkedProviderFailureCode = (
     return "unauthorized";
   }
 
-  if (/\b403\b/.test(message)) {
+  if (/\b429\b|too many requests|rate.?limit/i.test(message)) {
+    return "rate_limited";
+  }
+
+  if (/accessnotconfigured|service_disabled|permission_denied/i.test(message)) {
+    return "provider_error";
+  }
+
+  if (/\b403\b|insufficientpermissions|insufficient_scope/i.test(message)) {
     return "insufficient_scope";
   }
 
@@ -244,14 +337,14 @@ export const createRAGGmailEmailSyncClient = (
       listUrl.searchParams.set("includeSpamTrash", "true");
     }
 
-    const listResponse = await fetchImpl(listUrl, {
-      headers: { Authorization: `Bearer ${config.accessToken}` },
-    });
-    if (!listResponse.ok) {
-      throw new Error(
-        `Gmail list failed: ${listResponse.status} ${listResponse.statusText}`,
-      );
-    }
+    const listResponse = await fetchGmailWithRetry(
+      fetchImpl,
+      listUrl,
+      {
+        headers: { Authorization: `Bearer ${config.accessToken}` },
+      },
+      "Gmail list failed",
+    );
 
     const listJson = (await listResponse.json()) as {
       messages?: Array<{ id: string; threadId?: string }>;
@@ -264,14 +357,14 @@ export const createRAGGmailEmailSyncClient = (
           `https://gmail.googleapis.com/gmail/v1/users/${encodeURIComponent(userId)}/messages/${encodeURIComponent(messageRef.id)}`,
         );
         getUrl.searchParams.set("format", "full");
-        const response = await fetchImpl(getUrl, {
-          headers: { Authorization: `Bearer ${config.accessToken}` },
-        });
-        if (!response.ok) {
-          throw new Error(
-            `Gmail get failed for ${messageRef.id}: ${response.status} ${response.statusText}`,
-          );
-        }
+        const response = await fetchGmailWithRetry(
+          fetchImpl,
+          getUrl,
+          {
+            headers: { Authorization: `Bearer ${config.accessToken}` },
+          },
+          `Gmail get failed for ${messageRef.id}`,
+        );
 
         const json = (await response.json()) as {
           id: string;
@@ -289,14 +382,16 @@ export const createRAGGmailEmailSyncClient = (
               const attachmentUrl = new URL(
                 `https://gmail.googleapis.com/gmail/v1/users/${encodeURIComponent(userId)}/messages/${encodeURIComponent(json.id)}/attachments/${encodeURIComponent(part.body?.attachmentId ?? "")}`,
               );
-              const attachmentResponse = await fetchImpl(attachmentUrl, {
-                headers: {
-                  Authorization: `Bearer ${config.accessToken}`,
+              const attachmentResponse = await fetchGmailWithRetry(
+                fetchImpl,
+                attachmentUrl,
+                {
+                  headers: {
+                    Authorization: `Bearer ${config.accessToken}`,
+                  },
                 },
-              });
-              if (!attachmentResponse.ok) {
-                return null;
-              }
+                `Gmail attachment get failed for ${json.id}:${part.body?.attachmentId ?? "attachment"}`,
+              );
 
               const attachmentJson = (await attachmentResponse.json()) as {
                 data?: string;

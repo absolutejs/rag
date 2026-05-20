@@ -1,5 +1,6 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
+import { writeFileAtomic } from "./atomicWrite";
 import type {
   RAGAdminActionRecord,
   RAGAdminJobRecord,
@@ -51,7 +52,7 @@ export const createRAGFileJobStateStore = (path: string): RAGJobStateStore => {
     },
     save: async (state) => {
       await mkdir(dirname(resolvedPath), { recursive: true });
-      await writeFile(resolvedPath, JSON.stringify(state, null, 2), "utf8");
+      await writeFileAtomic(resolvedPath, JSON.stringify(state, null, 2), "utf8");
     },
   };
 };

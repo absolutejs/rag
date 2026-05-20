@@ -1,4 +1,5 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile } from "node:fs/promises";
+import { writeFileAtomic } from "./atomicWrite";
 import { dirname } from "node:path";
 import type { Database } from "bun:sqlite";
 import type {
@@ -3799,7 +3800,7 @@ export const createRAGFileEvaluationHistoryStore = (
       ...existing.filter((entry: RAGEvaluationSuiteRun) => entry.id !== run.id),
     ]);
     await mkdir(dirname(path), { recursive: true });
-    await writeFile(path, JSON.stringify(next, null, "\t") + "\n", "utf8");
+    await writeFileAtomic(path, JSON.stringify(next, null, "\t") + "\n", "utf8");
   },
   pruneRuns: async (input) => {
     let existing: RAGEvaluationSuiteRun[] = [];
@@ -3818,7 +3819,7 @@ export const createRAGFileEvaluationHistoryStore = (
       sort: normalizeHistoryRuns,
     });
     await mkdir(dirname(path), { recursive: true });
-    await writeFile(
+    await writeFileAtomic(
       path,
       JSON.stringify(pruned.next, null, "\t") + "\n",
       "utf8",
@@ -3884,7 +3885,7 @@ export const createRAGFileEvaluationSuiteSnapshotHistoryStore = (
       ),
     ]);
     await mkdir(dirname(path), { recursive: true });
-    await writeFile(path, JSON.stringify(next, null, "\t") + "\n", "utf8");
+    await writeFileAtomic(path, JSON.stringify(next, null, "\t") + "\n", "utf8");
   },
   pruneSnapshots: async (input) => {
     let existing: RAGEvaluationSuiteSnapshot[] = [];
@@ -3903,7 +3904,7 @@ export const createRAGFileEvaluationSuiteSnapshotHistoryStore = (
       sort: normalizeEvaluationSuiteSnapshots,
     });
     await mkdir(dirname(path), { recursive: true });
-    await writeFile(
+    await writeFileAtomic(
       path,
       JSON.stringify(pruned.next, null, "\t") + "\n",
       "utf8",
@@ -3964,7 +3965,7 @@ export const createRAGFileRetrievalComparisonHistoryStore = (
       ),
     ]);
     await mkdir(dirname(path), { recursive: true });
-    await writeFile(path, JSON.stringify(next, null, "\t") + "\n", "utf8");
+    await writeFileAtomic(path, JSON.stringify(next, null, "\t") + "\n", "utf8");
   },
 });
 
@@ -4044,7 +4045,7 @@ export const createRAGFileRetrievalBaselineStore = (
         ),
       ]);
       await mkdir(dirname(path), { recursive: true });
-      await writeFile(path, JSON.stringify(next, null, "\t") + "\n", "utf8");
+      await writeFileAtomic(path, JSON.stringify(next, null, "\t") + "\n", "utf8");
     },
   };
 };
@@ -4092,7 +4093,7 @@ export const createRAGFileRetrievalReleaseDecisionStore = (
       ),
     ]);
     await mkdir(dirname(path), { recursive: true });
-    await writeFile(path, JSON.stringify(next, null, "\t") + "\n", "utf8");
+    await writeFileAtomic(path, JSON.stringify(next, null, "\t") + "\n", "utf8");
   },
 });
 
@@ -4150,7 +4151,7 @@ export const createRAGFileRetrievalLaneHandoffDecisionStore = (
       ),
     ]);
     await mkdir(dirname(path), { recursive: true });
-    await writeFile(path, JSON.stringify(next, null, "\t") + "\n", "utf8");
+    await writeFileAtomic(path, JSON.stringify(next, null, "\t") + "\n", "utf8");
   },
 });
 
@@ -4208,7 +4209,7 @@ export const createRAGFileRetrievalReleaseIncidentStore = (
       ),
     ]);
     await mkdir(dirname(path), { recursive: true });
-    await writeFile(path, JSON.stringify(next, null, "\t") + "\n", "utf8");
+    await writeFileAtomic(path, JSON.stringify(next, null, "\t") + "\n", "utf8");
   },
 });
 
@@ -4267,7 +4268,7 @@ export const createRAGFileRetrievalLaneHandoffIncidentStore = (
       ),
     ]) as RAGRetrievalLaneHandoffIncidentRecord[];
     await mkdir(dirname(path), { recursive: true });
-    await writeFile(path, JSON.stringify(next, null, "\t") + "\n", "utf8");
+    await writeFileAtomic(path, JSON.stringify(next, null, "\t") + "\n", "utf8");
   },
 });
 
@@ -4324,7 +4325,7 @@ export const createRAGFileRetrievalLaneHandoffIncidentHistoryStore = (
       ) => right.recordedAt - left.recordedAt,
     );
     await mkdir(dirname(path), { recursive: true });
-    await writeFile(path, JSON.stringify(next, null, "\t") + "\n", "utf8");
+    await writeFileAtomic(path, JSON.stringify(next, null, "\t") + "\n", "utf8");
   },
 });
 
@@ -4380,7 +4381,7 @@ export const createRAGFileRetrievalIncidentRemediationDecisionStore = (
       ...existing,
     ]);
     await mkdir(dirname(path), { recursive: true });
-    await writeFile(path, JSON.stringify(next, null, "\t") + "\n", "utf8");
+    await writeFileAtomic(path, JSON.stringify(next, null, "\t") + "\n", "utf8");
   },
 });
 
@@ -4443,7 +4444,7 @@ export const createRAGFileRetrievalIncidentRemediationExecutionHistoryStore = (
       ...existing,
     ]);
     await mkdir(dirname(path), { recursive: true });
-    await writeFile(path, JSON.stringify(next, null, "\t") + "\n", "utf8");
+    await writeFileAtomic(path, JSON.stringify(next, null, "\t") + "\n", "utf8");
   },
 });
 
@@ -4491,7 +4492,7 @@ export const createRAGFileRetrievalLaneHandoffAutoCompletePolicyHistoryStore = (
       ) => right.recordedAt - left.recordedAt,
     );
     await mkdir(dirname(path), { recursive: true });
-    await writeFile(path, JSON.stringify(next, null, "\t") + "\n", "utf8");
+    await writeFileAtomic(path, JSON.stringify(next, null, "\t") + "\n", "utf8");
   },
 });
 
@@ -4539,7 +4540,7 @@ export const createRAGFileRetrievalReleaseLanePolicyHistoryStore = (
       ) => right.recordedAt - left.recordedAt,
     );
     await mkdir(dirname(path), { recursive: true });
-    await writeFile(path, JSON.stringify(next, null, "\t") + "\n", "utf8");
+    await writeFileAtomic(path, JSON.stringify(next, null, "\t") + "\n", "utf8");
   },
 });
 
@@ -4587,7 +4588,7 @@ export const createRAGFileRetrievalBaselineGatePolicyHistoryStore = (
       ) => right.recordedAt - left.recordedAt,
     );
     await mkdir(dirname(path), { recursive: true });
-    await writeFile(path, JSON.stringify(next, null, "\t") + "\n", "utf8");
+    await writeFileAtomic(path, JSON.stringify(next, null, "\t") + "\n", "utf8");
   },
 });
 
@@ -4635,7 +4636,7 @@ export const createRAGFileRetrievalReleaseLaneEscalationPolicyHistoryStore = (
       ) => right.recordedAt - left.recordedAt,
     );
     await mkdir(dirname(path), { recursive: true });
-    await writeFile(path, JSON.stringify(next, null, "\t") + "\n", "utf8");
+    await writeFileAtomic(path, JSON.stringify(next, null, "\t") + "\n", "utf8");
   },
 });
 
@@ -4703,7 +4704,7 @@ export const createRAGFileSearchTraceStore = (
       ...traces.filter((entry) => entry.id !== trace.id),
     ]);
     await mkdir(dirname(path), { recursive: true });
-    await writeFile(
+    await writeFileAtomic(
       path,
       JSON.stringify(
         {
@@ -4738,7 +4739,7 @@ export const createRAGFileSearchTraceStore = (
       traces,
     });
     await mkdir(dirname(path), { recursive: true });
-    await writeFile(
+    await writeFileAtomic(
       path,
       JSON.stringify(
         {
@@ -4799,7 +4800,7 @@ export const createRAGFileSearchTracePruneHistoryStore = (
       ),
     ]);
     await mkdir(dirname(path), { recursive: true });
-    await writeFile(path, JSON.stringify(next, null, "\t") + "\n", "utf8");
+    await writeFileAtomic(path, JSON.stringify(next, null, "\t") + "\n", "utf8");
   },
 });
 
@@ -7749,7 +7750,7 @@ export const createRAGFileAnswerGroundingEvaluationHistoryStore = (
       ...runs.filter((entry) => entry.id !== run.id),
     ]);
     await mkdir(dirname(path), { recursive: true });
-    await writeFile(
+    await writeFileAtomic(
       path,
       JSON.stringify(
         {
@@ -7785,7 +7786,7 @@ export const createRAGFileAnswerGroundingEvaluationHistoryStore = (
       sort: normalizeGroundingHistoryRuns,
     });
     await mkdir(dirname(path), { recursive: true });
-    await writeFile(
+    await writeFileAtomic(
       path,
       JSON.stringify(
         {
@@ -7857,7 +7858,7 @@ export const createRAGFileAnswerGroundingCaseDifficultyHistoryStore = (
       ...runs.filter((entry) => entry.id !== run.id),
     ]);
     await mkdir(dirname(path), { recursive: true });
-    await writeFile(
+    await writeFileAtomic(
       path,
       JSON.stringify(
         {

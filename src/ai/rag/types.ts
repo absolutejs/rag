@@ -4,7 +4,37 @@ import type {
   RAGQueryInput,
   RAGQueryResult,
   RAGUpsertInput,
+  RAGChunkingOptions,
+  RAGChunkingRegistryLike,
+  RAGConnectorRuntime,
+  RAGFileExtractor,
+  RAGFileExtractorRegistryLike,
+  RAGLinkedProviderCredentialResolver,
+  RAGLinkedProviderResolutionPurpose,
 } from "@absolutejs/ai";
+
+export type RAGLinkedConnectorSyncSourceOptions = {
+  id: string;
+  label: string;
+  runtime: RAGConnectorRuntime;
+  resolver: RAGLinkedProviderCredentialResolver;
+  ownerRef: string;
+  bindingId?: string;
+  externalAccountId?: string;
+  purpose?: RAGLinkedProviderResolutionPurpose;
+  requiredScopes?: string[];
+  minValidityMs?: number;
+  description?: string;
+  maxItemsPerRun?: number;
+  baseMetadata?: Record<string, unknown>;
+  defaultChunking?: RAGChunkingOptions;
+  chunkingRegistry?: RAGChunkingRegistryLike;
+  extractors?: RAGFileExtractor[];
+  extractorRegistry?: RAGFileExtractorRegistryLike;
+  metadata?: Record<string, unknown>;
+  retryAttempts?: number;
+  retryDelayMs?: number;
+};
 
 export type {
   AIHTMXRenderConfig,
@@ -60,6 +90,11 @@ export type {
   RAGEmailSyncListResult,
   RAGEmailSyncMessage,
   RAGEmailSyncSourceOptions,
+  RAGConnectorCheckpoint,
+  RAGConnectorItem,
+  RAGConnectorRuntime,
+  RAGConnectorSyncInput,
+  RAGConnectorSyncResult,
   RAGFeedSyncInput,
   RAGFeedSyncSourceOptions,
   RAGGitHubRepoSyncInput,

@@ -197,6 +197,7 @@ const MAX_INGEST_JOBS = 20;
 const MAX_ADMIN_ACTIONS = 20;
 const MAX_ADMIN_JOBS = 20;
 const DEFAULT_STALE_AFTER_MS = 1000 * 60 * 60 * 24 * 7;
+const REQUEST_USER_SUB_HEADER = "x-absolutejs-user-sub";
 
 const HTML_HEADERS = { "Content-Type": "text/html; charset=utf-8" } as const;
 
@@ -218,6 +219,11 @@ const isHTMXRequest = (request: Request) =>
 
 const isObjectRecord = (value: unknown): value is Record<string, unknown> =>
   Boolean(value) && typeof value === "object";
+
+const resolveRequestUserSub = (request?: Request) => {
+  const value = request?.headers.get(REQUEST_USER_SUB_HEADER)?.trim();
+  return value ? value : undefined;
+};
 
 const getStringProperty = (value: unknown, key: string) => {
   if (!isObjectRecord(value)) {
@@ -1666,12 +1672,15 @@ export const ragChat = (config: RAGChatPluginConfig) => {
     }
   };
 
-  const buildSyncSources = async (scope?: RAGAccessScope) => {
+  const buildSyncSources = async (scope?: RAGAccessScope, request?: Request) => {
     if (!indexManager?.listSyncSources) {
       return [];
     }
 
-    const sources = await indexManager.listSyncSources();
+    const userSub = resolveRequestUserSub(request);
+    const sources = await (indexManager.listSyncSources as (
+      options?: { userSub?: string },
+    ) => Promise<any[]>)(userSub ? { userSub } : undefined);
     return sources.filter((source) => matchesSyncSourceScope(scope, source));
   };
 
@@ -11316,7 +11325,7 @@ export const ragChat = (config: RAGChatPluginConfig) => {
         stats: traceStats,
       },
       status,
-      syncSources: await buildSyncSources(accessScope),
+      syncSources: await buildSyncSources(accessScope, request),
     };
   };
 
@@ -11896,7 +11905,7 @@ export const ragChat = (config: RAGChatPluginConfig) => {
     const accessScope = await loadAccessScope(request);
     return {
       ok: true,
-      sources: await buildSyncSources(accessScope),
+      sources: await buildSyncSources(accessScope, request),
     };
   };
 
@@ -11925,7 +11934,12 @@ export const ragChat = (config: RAGChatPluginConfig) => {
     const action = createAdminAction("sync_all_sources");
 
     try {
-      const result = await indexManager.syncAllSources(options);
+      const result = await (indexManager.syncAllSources as (
+        options?: Record<string, unknown>,
+      ) => Promise<RAGSyncResponse>)({
+        ...(options ?? {}),
+        userSub: resolveRequestUserSub(request),
+      });
       if (result && "ok" in result) {
         if (!result.ok) {
           failAdminJob(job, result.error);
@@ -11957,7 +11971,7 @@ export const ragChat = (config: RAGChatPluginConfig) => {
 
       return {
         ok: true,
-        sources: await buildSyncSources(accessScope),
+        sources: await buildSyncSources(accessScope, request),
       };
     } catch (caught) {
       const message = caught instanceof Error ? caught.message : String(caught);
@@ -12000,7 +12014,13 @@ export const ragChat = (config: RAGChatPluginConfig) => {
     const action = createAdminAction("sync_source", undefined, id);
 
     try {
-      const result = await indexManager.syncSource(id, options);
+      const result = await (indexManager.syncSource as (
+        id: string,
+        options?: Record<string, unknown>,
+      ) => Promise<RAGSyncResponse>)(id, {
+        ...(options ?? {}),
+        userSub: resolveRequestUserSub(request),
+      });
       if (result && "ok" in result) {
         if (!result.ok) {
           failAdminJob(job, result.error);
@@ -12018,7 +12038,7 @@ export const ragChat = (config: RAGChatPluginConfig) => {
       completeAdminJob(job);
       completeAdminAction(action);
 
-      const source = (await buildSyncSources(accessScope)).find(
+      const source = (await buildSyncSources(accessScope, request)).find(
         (record) => record.id === id,
       );
 

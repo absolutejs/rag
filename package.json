@@ -1,6 +1,6 @@
 {
   "name": "@absolutejs/rag",
-  "version": "0.0.3",
+  "version": "0.0.11",
   "description": "Standalone RAG ingestion, sync, retrieval, evaluation, clients, and framework adapters extracted from AbsoluteJS",
   "license": "BSL-1.1",
   "type": "module",
@@ -49,7 +49,7 @@
     }
   },
   "dependencies": {
-    "@absolutejs/ai": "0.0.4",
+    "@absolutejs/ai": "0.0.5",
     "@absolutejs/linked-providers": "0.0.2"
   },
   "peerDependencies": {
@@ -101,5 +101,33 @@
   },
   "publishConfig": {
     "access": "public"
+  },
+  "typesVersions": {
+    "*": {
+      "client": [
+        "dist/src/ai/client/index.d.ts"
+      ],
+      "client/ui": [
+        "dist/src/ai/client/ui.d.ts"
+      ],
+      "ui": [
+        "dist/src/ai/rag/ui.d.ts"
+      ],
+      "quality": [
+        "dist/src/ai/rag/quality.d.ts"
+      ],
+      "react": [
+        "dist/src/react/ai/index.d.ts"
+      ],
+      "vue": [
+        "dist/src/vue/ai/index.d.ts"
+      ],
+      "svelte": [
+        "dist/src/svelte/ai/index.d.ts"
+      ],
+      "angular": [
+        "dist/src/angular/ai/index.d.ts"
+      ]
+    }
   }
 }
