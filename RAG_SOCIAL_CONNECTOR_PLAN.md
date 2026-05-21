@@ -656,7 +656,7 @@ Reason:
 
 Recommended new module area:
 
-- `src/ai/rag/connectors/`
+- `src/rag/connectors/`
 
 Examples:
 

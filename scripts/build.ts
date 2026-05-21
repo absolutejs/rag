@@ -7,11 +7,11 @@ await rm(DIST, { force: true, recursive: true });
 
 const serverBuild = await Bun.build({
   entrypoints: [
-    "src/ai/rag/index.ts",
-    "src/ai/rag/ui.ts",
-    "src/ai/rag/quality.ts",
-    "src/ai/client/index.ts",
-    "src/ai/client/ui.ts",
+    "src/rag/index.ts",
+    "src/rag/ui.ts",
+    "src/rag/quality.ts",
+    "src/client/index.ts",
+    "src/client/ui.ts",
   ],
   external: ["elysia", "@absolutejs/ai", "@absolutejs/ai/client"],
   outdir: DIST,
@@ -27,10 +27,10 @@ if (!serverBuild.success) {
 
 const browserBuild = await Bun.build({
   entrypoints: [
-    "src/react/ai/index.ts",
-    "src/vue/ai/index.ts",
-    "src/svelte/ai/index.ts",
-    "src/angular/ai/index.ts",
+    "src/react/index.ts",
+    "src/vue/index.ts",
+    "src/svelte/index.ts",
+    "src/angular/index.ts",
   ],
   external: [
     "react",
