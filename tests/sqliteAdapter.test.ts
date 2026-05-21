@@ -1,12 +1,12 @@
 import { describe, expect, it } from "bun:test";
 import { Database } from "bun:sqlite";
-import { createInMemoryRAGStore } from "../../../src/adapters/inMemory";
+import { createInMemoryRAGStore } from "../src/adapters/inMemory";
 import {
   planNativeCandidateSearchBackfillK,
   planNativeCandidateSearchK,
   summarizeSQLiteCandidateCoverage,
-} from "../../../src/adapters/queryPlanning";
-import { createSQLiteRAGStore } from "../../../src/adapters/sqlite";
+} from "../src/adapters/queryPlanning";
+import { createSQLiteRAGStore } from "../src/adapters/sqlite";
 
 const vectorFixture: Record<string, number[]> = {
   a: [1, 0],

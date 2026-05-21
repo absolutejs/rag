@@ -34,8 +34,8 @@ import {
   buildRAGRetrievalComparisonOverviewPresentation,
   buildRAGRetrievalComparisonPresentations,
   buildRAGRetrievalOverviewPresentation,
-} from "../../../src/presentation/ui";
-import { buildRAGRetrievalReleaseGroupHistoryPresentation } from "../../../src/presentation/presentation";
+} from "../src/presentation/ui";
+import { buildRAGRetrievalReleaseGroupHistoryPresentation } from "../src/presentation/presentation";
 import {
   buildRAGRetrievalComparisonDecisionSummary,
   buildRAGRetrievalReleaseVerdict,
@@ -49,7 +49,7 @@ import {
   buildRAGEvaluationLeaderboard,
   buildRAGEvaluationResponse,
   buildRAGEvaluationRunDiff,
-} from "../../../src/quality/quality";
+} from "../src/quality/quality";
 import {
   compareRAGRetrievalStrategies,
   buildRAGRetrievalTraceHistoryTrend,
@@ -158,10 +158,10 @@ import {
   summarizeRAGEvaluationSuiteDataset,
   runRAGEvaluationSuite,
   updateRAGEvaluationSuiteCase,
-} from "../../../src/index";
-import { createInMemoryRAGStore } from "../../../src/adapters/inMemory";
-import { createSQLiteRAGStore } from "../../../src/adapters/sqlite";
-import { createPostgresRAGStore } from "../../../src/adapters/postgres";
+} from "../src/index";
+import { createInMemoryRAGStore } from "../src/adapters/inMemory";
+import { createSQLiteRAGStore } from "../src/adapters/sqlite";
+import { createPostgresRAGStore } from "../src/adapters/postgres";
 
 const tempPaths = new Set<string>();
 const POSTGRES_URL =

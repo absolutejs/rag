@@ -620,7 +620,7 @@ Must-have work:
 - sweep remaining governance/reporting surfaces for `corpusGroupKey` consistency
 - make scoped governance visibility uniform across admin/reporting routes
 - fixed release incident sync ordering so `/status/release` and `/status/release/incidents` reflect handoff-stale incidents from handoff-readiness state
-- add regression coverage for stale handoff incident visibility in `tests/unit/ai/rag/chatEvaluate.test.ts`
+- add regression coverage for stale handoff incident visibility in `tests/chatEvaluate.test.ts`
 - tighten operator audit visibility around denied and scoped actions
 - provide clearer integration guidance for multi-corpus server deployments
 

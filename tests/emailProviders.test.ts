@@ -3,7 +3,7 @@ import {
   createRAGGmailEmailSyncClient,
   createRAGGraphEmailSyncClient,
   createRAGLinkedGmailEmailSyncClient,
-} from "../../../src/providers/emailProviders";
+} from "../src/providers/emailProviders";
 
 const createFetch = (
   handler: (url: string) => Response | Promise<Response>,

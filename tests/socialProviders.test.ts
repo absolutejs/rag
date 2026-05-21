@@ -2,7 +2,7 @@ import { describe, expect, it } from "bun:test";
 import {
   createRAGFacebookPageConnector,
   createRAGInstagramBusinessConnector,
-} from "../../../src/providers/socialProviders";
+} from "../src/providers/socialProviders";
 
 const createFetch = (
   handler: (url: string) => Response | Promise<Response>,

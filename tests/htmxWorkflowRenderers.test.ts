@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { resolveRAGWorkflowRenderers } from "../../../src/presentation/htmxWorkflowRenderers";
+import { resolveRAGWorkflowRenderers } from "../src/presentation/htmxWorkflowRenderers";
 
 describe("resolveRAGWorkflowRenderers", () => {
   it("renders workflow fragments with sane defaults", () => {

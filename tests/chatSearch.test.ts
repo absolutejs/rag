@@ -1,13 +1,13 @@
 import { describe, expect, it } from "bun:test";
 import { Elysia } from "elysia";
-import { ragChat } from "../../../src/chat/chat";
-import { createInMemoryRAGStore } from "../../../src/adapters/inMemory";
-import { createRAGCollection } from "../../../src/retrieval/collection";
+import { ragChat } from "../src/chat/chat";
+import { createInMemoryRAGStore } from "../src/adapters/inMemory";
+import { createRAGCollection } from "../src/retrieval/collection";
 import type { RAGCollectionSearchParams } from "@absolutejs/ai";
 import {
   createRAGFileSearchTracePruneHistoryStore,
   createRAGFileSearchTraceStore,
-} from "../../../src/quality/quality";
+} from "../src/quality/quality";
 
 const provider = () => ({
   async *stream() {},

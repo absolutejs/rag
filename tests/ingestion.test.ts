@@ -37,7 +37,7 @@ import {
   loadRAGDocumentFile,
   prepareRAGDirectoryDocuments,
   prepareRAGDocument,
-} from "../../../src/ingestion/ingestion";
+} from "../src/ingestion/ingestion";
 import type { RAGContentFormat } from "@absolutejs/ai";
 import {
   MIXED_MAILBOX_BRANCH_KEYS,
@@ -79,7 +79,7 @@ const encodeUInt32LE = (value: number) =>
 
 const EXTRACTION_FIXTURE_DIRECTORY = resolve(
   import.meta.dir,
-  "../../fixtures/rag/extraction",
+  "./fixtures/extraction",
 );
 
 const loadExtractionFixture = (relativePath: string) =>

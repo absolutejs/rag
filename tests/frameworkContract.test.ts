@@ -4,45 +4,45 @@ import { get, readable, type Readable } from "svelte/store";
 
 const originalFetch = globalThis.fetch;
 
-const aiIndexPath = new URL("../../../src/index.ts", import.meta.url).href;
+const aiIndexPath = new URL("../src/index.ts", import.meta.url).href;
 const aiClientIndexPath = new URL(
-  "../../../src/client/index.ts",
+  "../src/client/index.ts",
   import.meta.url,
 ).href;
 const reactWorkflowPath = new URL(
-  "../../../src/react/useRAGWorkflow.ts",
+  "../src/react/useRAGWorkflow.ts",
   import.meta.url,
 ).href;
 const reactSearchPath = new URL(
-  "../../../src/react/useRAGSearch.ts",
+  "../src/react/useRAGSearch.ts",
   import.meta.url,
 ).href;
 const reactStreamPath = new URL(
-  "../../../src/react/useRAGStream.ts",
+  "../src/react/useRAGStream.ts",
   import.meta.url,
 ).href;
 const vueWorkflowPath = new URL(
-  "../../../src/vue/useRAGWorkflow.ts",
+  "../src/vue/useRAGWorkflow.ts",
   import.meta.url,
 ).href;
 const vueSearchPath = new URL(
-  "../../../src/vue/useRAGSearch.ts",
+  "../src/vue/useRAGSearch.ts",
   import.meta.url,
 ).href;
 const vueStreamPath = new URL(
-  "../../../src/vue/useRAGStream.ts",
+  "../src/vue/useRAGStream.ts",
   import.meta.url,
 ).href;
 const svelteSearchPath = new URL(
-  "../../../src/svelte/createRAGSearch.ts",
+  "../src/svelte/createRAGSearch.ts",
   import.meta.url,
 ).href;
 const svelteWorkflowPath = new URL(
-  "../../../src/svelte/createRAGWorkflow.ts",
+  "../src/svelte/createRAGWorkflow.ts",
   import.meta.url,
 ).href;
 const svelteStreamPath = new URL(
-  "../../../src/svelte/createRAGStream.ts",
+  "../src/svelte/createRAGStream.ts",
   import.meta.url,
 ).href;
 
@@ -184,7 +184,7 @@ describe("RAG workflow wrapper parity", () => {
 
     try {
       const { RAGWorkflowService } =
-        await import("../../../src/angular/ai-rag-workflow.service");
+        await import("../src/angular/ai-rag-workflow.service");
       const service = new RAGWorkflowService();
       const result = service.connect("/rag", "conv-1");
 
@@ -462,7 +462,7 @@ describe("RAG workflow wrapper parity", () => {
       },
     };
     const { RAGClientService } =
-      await import("../../../src/angular/rag-client.service");
+      await import("../src/angular/rag-client.service");
     const service = new RAGClientService();
     const response = await service.searchWithTrace("/rag", {
       query: "alpha",

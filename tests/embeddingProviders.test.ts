@@ -4,7 +4,7 @@ import {
   ollamaEmbeddings,
   openaiCompatibleEmbeddings,
   openaiEmbeddings,
-} from "../../../src/providers/embeddingProviders";
+} from "../src/providers/embeddingProviders";
 
 describe("embedding providers", () => {
   it("builds OpenAI embedding requests and parses vectors", async () => {

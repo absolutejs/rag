@@ -27,7 +27,7 @@ import {
   getLatestRetrievedMessage,
   getLatestRAGSources,
   resolveRAGStreamStage,
-} from "../../../src/presentation/presentation";
+} from "../src/presentation/presentation";
 
 const buildSource = (overrides: Partial<RAGSource> = {}): RAGSource => ({
   chunkId: "chunk-1",

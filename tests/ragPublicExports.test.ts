@@ -1,9 +1,9 @@
 import { describe, expect, it } from "bun:test";
-import * as rag from "../../../src/index";
-import * as ragUi from "../../../src/presentation/ui";
-import * as ragQuality from "../../../src/quality/quality";
-import * as ragClient from "../../../src/client/index";
-import * as ragClientUi from "../../../src/client/ui";
+import * as rag from "../src/index";
+import * as ragUi from "../src/presentation/ui";
+import * as ragQuality from "../src/quality/quality";
+import * as ragClient from "../src/client/index";
+import * as ragClientUi from "../src/client/ui";
 
 describe("RAG public API boundary", () => {
   const uiExports = Object.keys(ragUi).filter(

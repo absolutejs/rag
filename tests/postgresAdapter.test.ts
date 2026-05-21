@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import { randomUUID } from "node:crypto";
-import { createPostgresRAGStore } from "../../../src/adapters/postgres";
+import { createPostgresRAGStore } from "../src/adapters/postgres";
 
 type MockPostgresCall = {
   sql: string;

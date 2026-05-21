@@ -3,7 +3,7 @@ import {
   createCohereRAGReranker,
   createJinaRAGReranker,
   createVoyageRAGReranker,
-} from "../../../src/providers/rerankerProviders";
+} from "../src/providers/rerankerProviders";
 import type { RAGQueryResult, RAGRerankerInput } from "@absolutejs/ai";
 
 type CapturedRequest = { url: string; body: Record<string, unknown> };

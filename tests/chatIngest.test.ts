@@ -4,16 +4,16 @@ import { tmpdir } from "node:os";
 import { Database } from "bun:sqlite";
 import { describe, expect, it } from "bun:test";
 import type { RAGJobState, RAGRetrievalBaselineStore } from "@absolutejs/ai";
-import { ragChat } from "../../../src/chat/chat";
-import { createInMemoryRAGStore } from "../../../src/adapters/inMemory";
-import { createSQLiteRAGStore } from "../../../src/adapters/sqlite";
-import { createRAGAccessControl } from "../../../src/internal/accessControl";
-import { createRAGFileExtractor } from "../../../src/ingestion/ingestion";
-import { createRAGFileJobStateStore } from "../../../src/internal/jobState";
+import { ragChat } from "../src/chat/chat";
+import { createInMemoryRAGStore } from "../src/adapters/inMemory";
+import { createSQLiteRAGStore } from "../src/adapters/sqlite";
+import { createRAGAccessControl } from "../src/internal/accessControl";
+import { createRAGFileExtractor } from "../src/ingestion/ingestion";
+import { createRAGFileJobStateStore } from "../src/internal/jobState";
 import {
   createRAGFileEvaluationSuiteSnapshotHistoryStore,
   createRAGFileRetrievalComparisonHistoryStore,
-} from "../../../src/quality/quality";
+} from "../src/quality/quality";
 
 describe("ragChat ingest workflow", () => {
   it("uses configured extractors for upload ingest", async () => {

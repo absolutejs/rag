@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from "bun:test";
 import { mkdtempSync, readFileSync, readdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { writeFileAtomic } from "../../../src/internal/atomicWrite";
+import { writeFileAtomic } from "../src/internal/atomicWrite";
 
 const tempDirs: string[] = [];
 

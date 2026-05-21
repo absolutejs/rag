@@ -2,7 +2,7 @@ import { describe, expect, it } from "bun:test";
 import {
   buildRAGMaintenanceOverview,
   createRAGClient,
-} from "../../../src/client/ragClient";
+} from "../src/client/ragClient";
 
 describe("createRAGClient", () => {
   it("calls search and returns normalized results", async () => {
