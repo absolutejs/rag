@@ -186,7 +186,7 @@ import {
 } from "../ingestion/ingestion";
 import { createHeuristicRAGQueryTransform } from "../retrieval/queryTransforms";
 import { createHeuristicRAGReranker } from "../retrieval/reranking";
-import { buildRAGContext } from "../types";
+import { buildRAGContext } from "../retrieval/context";
 
 const DEFAULT_PATH = "/rag";
 const DEFAULT_TOP_K = 6;

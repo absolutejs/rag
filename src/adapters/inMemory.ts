@@ -1,10 +1,11 @@
-import type { RAGQueryInput, RAGUpsertInput } from "../types";
 import { createRAGVector, normalizeVector, querySimilarity } from "./utils";
 import type {
   RAGBackendCapabilities,
   RAGVectorCountInput,
   RAGVectorDeleteInput,
   RAGLexicalQueryInput,
+  RAGQueryInput,
+  RAGUpsertInput,
   RAGVectorStore,
   RAGVectorStoreStatus,
 } from "@absolutejs/ai";

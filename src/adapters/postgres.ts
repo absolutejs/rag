@@ -1,8 +1,9 @@
-import type { RAGQueryInput, RAGUpsertInput } from "../types";
 import type {
   RAGBackendCapabilities,
   RAGLexicalQueryInput,
   RAGPostgresNativeDiagnostics,
+  RAGQueryInput,
+  RAGUpsertInput,
   RAGVectorCountInput,
   RAGVectorDeleteInput,
   RAGVectorStore,

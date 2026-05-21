@@ -100,7 +100,7 @@ export {
   prepareRAGDocumentFile,
   prepareRAGDocuments,
 } from "./ingestion/ingestion";
-export { buildRAGContext } from "./types";
+export { buildRAGContext } from "./retrieval/context";
 export {
   buildRAGEvaluationLeaderboard,
   buildRAGEvaluationResponse,
@@ -476,7 +476,7 @@ export type {
   RAGVectorStore,
   RAGVectorStoreStatus,
   SQLiteVecResolution,
-} from "./types";
+} from "../types";
 export type {
   RAGJobState,
   RAGJobStateStore,
