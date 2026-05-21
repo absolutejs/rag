@@ -1,9 +1,7 @@
 import { writable } from "svelte/store";
 import type { RAGSearchRequest, RAGSource } from "@absolutejs/ai";
-import {
-  createRAGClient,
-  type RAGDetailedSearchResponse,
-} from "../client/ragClient";
+import { createRAGClient } from "../client/ragClient";
+import type { RAGDetailedSearchResponse } from "../../types/client";
 
 type SearchRequest = Omit<RAGSearchRequest, "includeTrace">;
 

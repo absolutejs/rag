@@ -26,6 +26,7 @@ import type {
   RAGSource,
   RAGVectorStoreStatus,
 } from "@absolutejs/ai";
+import type { ResolvedRAGWorkflowRenderers } from "../../types/presentation";
 import { RAG_SEARCH_SCORE_DECIMAL_PLACES } from "./constants";
 import {
   buildRAGSectionRetrievalDiagnostics,
@@ -33,9 +34,6 @@ import {
   buildRAGChunkGraphNavigation,
   buildRAGChunkPreviewGraph,
 } from "./presentation";
-
-export type ResolvedRAGWorkflowRenderers =
-  Required<RAGHTMXWorkflowRenderConfig>;
 
 const escapeHtml = (text: string) =>
   text

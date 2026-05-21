@@ -72,7 +72,7 @@ import {
   prepareRAGDocuments,
 } from "./ingestion";
 import { createRAGLinkedGmailEmailSyncClient } from "./emailProviders";
-import type { RAGLinkedConnectorSyncSourceOptions } from "./types";
+import type { RAGLinkedConnectorSyncSourceOptions } from "../../types/sync";
 
 const toSyncError = (caught: unknown) =>
   caught instanceof Error ? caught.message : String(caught);

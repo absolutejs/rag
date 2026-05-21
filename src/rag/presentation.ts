@@ -67,12 +67,14 @@ import type {
   RAGSourceLabels,
   RAGSourceGroup,
   RAGSourceSummary,
-  RAGStreamStage,
   RAGSyncOverviewPresentation,
   RAGSyncSourcePresentation,
   RAGSyncSourceRecord,
   RAGSyncSourceRunPresentation,
 } from "@absolutejs/ai";
+import type { RAGStreamProgress } from "../../types/presentation";
+// Re-exported so workflowState (and `@absolutejs/rag/client/ui`) keep this type.
+export type { RAGStreamProgress } from "../../types/presentation";
 import {
   buildRAGCitationReferenceMap,
   buildRAGCitations,
@@ -3635,29 +3637,6 @@ export const buildRAGSectionRetrievalDiagnostics = (
       }
       return left.label.localeCompare(right.label);
     });
-};
-
-export type RAGStreamProgress = {
-  stage: RAGStreamStage;
-  conversationId?: string;
-  messageId?: string;
-  retrievalStartedAt?: number;
-  retrievedAt?: number;
-  retrievalDurationMs?: number;
-  hasContent: boolean;
-  hasRetrieved: boolean;
-  hasSources: boolean;
-  hasThinking: boolean;
-  hasToolCalls: boolean;
-  isComplete: boolean;
-  isError: boolean;
-  isIdle: boolean;
-  isRetrieving: boolean;
-  isRetrieved: boolean;
-  isStreaming: boolean;
-  isSubmitting: boolean;
-  sourceCount: number;
-  latestMessage: AIMessage | undefined;
 };
 
 const buildStreamProgressState = (messages: AIMessage[]) => {

@@ -19,7 +19,6 @@ export {
   createJinaRAGReranker,
   createVoyageRAGReranker,
 } from "./rerankerProviders";
-export type { CrossEncoderRerankerConfig } from "./rerankerProviders";
 export {
   applyRAGQueryTransform,
   createHeuristicRAGQueryTransform,
@@ -325,30 +324,27 @@ export {
 } from "./adapters/utils";
 export type { SQLiteRAGSearchTraceStoreOptions } from "./quality";
 export type {
-  GeminiEmbeddingsConfig,
-  OllamaEmbeddingsConfig,
-  OpenAICompatibleEmbeddingsConfig,
-  OpenAIEmbeddingsConfig,
-} from "./embeddingProviders";
-export type {
   AnthropicOCRConfig,
+  CrossEncoderRerankerConfig,
+  GeminiEmbeddingsConfig,
   GeminiOCRConfig,
-  OllamaOCRConfig,
-  OllamaTranscriptionConfig,
-  OpenAICompatibleOCRConfig,
-  OpenAICompatibleTranscriptionConfig,
-  OpenAIOCRConfig,
-  OpenAITranscriptionConfig,
-} from "./extractorProviders";
-export type {
   GmailEmailSyncConfig,
   GraphEmailSyncConfig,
   IMAPEmailSyncConfig,
-} from "./emailProviders";
+  OllamaEmbeddingsConfig,
+  OllamaOCRConfig,
+  OllamaTranscriptionConfig,
+  OpenAICompatibleEmbeddingsConfig,
+  OpenAICompatibleOCRConfig,
+  OpenAICompatibleTranscriptionConfig,
+  OpenAIEmbeddingsConfig,
+  OpenAIOCRConfig,
+  OpenAITranscriptionConfig,
+} from "../../types/providers";
 export type {
   NativeSQLiteRAGStoreOptions,
   SQLiteRAGStoreOptions,
-} from "./adapters/sqlite";
+} from "../../types/adapters";
 export type {
   AIHTMXRenderConfig,
   RAGAnswerWorkflowState,

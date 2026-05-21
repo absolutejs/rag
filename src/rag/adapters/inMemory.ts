@@ -9,13 +9,9 @@ import type {
   RAGVectorStoreStatus,
 } from "@absolutejs/ai";
 import { RAG_VECTOR_DIMENSIONS_DEFAULT } from "../../constants";
+import type { InMemoryRAGStoreOptions } from "../../../types/adapters";
 import { matchesMetadataFilterRecord } from "./filtering";
 import { rankRAGLexicalMatches } from "../lexical";
-
-export type InMemoryRAGStoreOptions = {
-  dimensions?: number;
-  mockEmbedding?: (text: string) => Promise<number[]>;
-};
 
 const createInMemoryStatus = (dimensions: number): RAGVectorStoreStatus => ({
   backend: "in_memory",

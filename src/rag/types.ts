@@ -1,40 +1,6 @@
-import type {
-  RAGDocumentChunk,
-  RAGDocumentChunkEmbeddingVariant,
-  RAGQueryInput,
-  RAGQueryResult,
-  RAGUpsertInput,
-  RAGChunkingOptions,
-  RAGChunkingRegistryLike,
-  RAGConnectorRuntime,
-  RAGFileExtractor,
-  RAGFileExtractorRegistryLike,
-  RAGLinkedProviderCredentialResolver,
-  RAGLinkedProviderResolutionPurpose,
-} from "@absolutejs/ai";
+import type { RAGQueryResult } from "@absolutejs/ai";
 
-export type RAGLinkedConnectorSyncSourceOptions = {
-  id: string;
-  label: string;
-  runtime: RAGConnectorRuntime;
-  resolver: RAGLinkedProviderCredentialResolver;
-  ownerRef: string;
-  bindingId?: string;
-  externalAccountId?: string;
-  purpose?: RAGLinkedProviderResolutionPurpose;
-  requiredScopes?: string[];
-  minValidityMs?: number;
-  description?: string;
-  maxItemsPerRun?: number;
-  baseMetadata?: Record<string, unknown>;
-  defaultChunking?: RAGChunkingOptions;
-  chunkingRegistry?: RAGChunkingRegistryLike;
-  extractors?: RAGFileExtractor[];
-  extractorRegistry?: RAGFileExtractorRegistryLike;
-  metadata?: Record<string, unknown>;
-  retryAttempts?: number;
-  retryDelayMs?: number;
-};
+export type { RAGLinkedConnectorSyncSourceOptions } from "../../types/sync";
 
 export type {
   AIHTMXRenderConfig,
@@ -179,19 +145,17 @@ export type {
   SQLiteVecResolution,
 } from "@absolutejs/ai";
 
-export type InternalRAGStoredChunk = RAGDocumentChunk & {
-  vector: number[];
-  sourceId: string;
-};
-
-export type { RAGUpsertInput as RAGDocumentBatch };
-export type { RAGQueryInput as RAGQueryParams };
+export type {
+  InternalRAGStoredChunk,
+  RAGDocumentBatch,
+  RAGQueryParams,
+} from "../../types/core";
 export type {
   GeminiEmbeddingsConfig,
   OllamaEmbeddingsConfig,
   OpenAICompatibleEmbeddingsConfig,
   OpenAIEmbeddingsConfig,
-} from "./embeddingProviders";
+} from "../../types/providers";
 export type {
   RAGReranker,
   RAGRerankerCandidate,

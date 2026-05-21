@@ -3,19 +3,11 @@ import type {
   RAGQueryTransformProvider,
   RAGQueryTransformProviderLike,
   RAGQueryTransformResult,
-  RAGQueryTransformer,
 } from "@absolutejs/ai";
-
-export type CreateRAGQueryTransformOptions = {
-  transform: RAGQueryTransformer;
-  defaultModel?: string;
-  providerName?: string;
-};
-
-export type HeuristicRAGQueryTransformOptions = {
-  defaultModel?: string;
-  providerName?: string;
-};
+import type {
+  CreateRAGQueryTransformOptions,
+  HeuristicRAGQueryTransformOptions,
+} from "../../types/retrieval";
 
 const tokenize = (value: string) =>
   value

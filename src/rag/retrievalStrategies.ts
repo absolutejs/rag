@@ -2,11 +2,7 @@ import type {
   RAGRetrievalStrategyProvider,
   RAGRetrievalStrategyInput,
 } from "@absolutejs/ai";
-
-export type HeuristicRAGRetrievalStrategyOptions = {
-  providerName?: string;
-  defaultLabel?: string;
-};
+import type { HeuristicRAGRetrievalStrategyOptions } from "../../types/retrieval";
 
 const tokenize = (value: string) =>
   value

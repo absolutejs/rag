@@ -4,12 +4,7 @@ import type {
   RAGEmbeddingProvider,
   RAGEmbeddingProviderLike,
 } from "@absolutejs/ai";
-
-export type CreateRAGEmbeddingProviderOptions = {
-  embed: RAGEmbeddingFunction;
-  dimensions?: number;
-  defaultModel?: string;
-};
+import type { CreateRAGEmbeddingProviderOptions } from "../../types/retrieval";
 
 const isEmbeddingProvider = (
   value: RAGEmbeddingProviderLike | undefined,

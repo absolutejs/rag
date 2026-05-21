@@ -3,11 +3,7 @@ import type {
   RAGRerankerInput,
   RAGRerankerProvider,
 } from "@absolutejs/ai";
-
-type FetchLike = (
-  input: RequestInfo | URL,
-  init?: RequestInit | BunFetchRequestInit,
-) => Promise<Response>;
+import type { CrossEncoderRerankerConfig } from "../../types/providers";
 
 /** A vendor rerank API response row: an index into the submitted documents + a score. */
 type VendorRerankRow = {
@@ -43,15 +39,6 @@ const applyRanking = (
 const limitCandidates = (input: RAGRerankerInput): RAGQueryResult[] => {
   const cap = input.candidateTopK ?? input.results.length;
   return input.results.slice(0, Math.max(0, cap));
-};
-
-export type CrossEncoderRerankerConfig = {
-  apiKey: string;
-  defaultModel?: string;
-  baseUrl?: string;
-  fetch?: FetchLike;
-  /** Extra headers (e.g. API version) merged into the request. */
-  headers?: Record<string, string>;
 };
 
 type HttpCrossEncoderRerankerOptions = {

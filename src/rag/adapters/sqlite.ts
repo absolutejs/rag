@@ -12,6 +12,10 @@ import type {
   RAGVectorStoreStatus,
   SQLiteVecResolution,
 } from "@absolutejs/ai";
+import type {
+  NativeSQLiteRAGStoreOptions,
+  SQLiteRAGStoreOptions,
+} from "../../../types/adapters";
 import {
   RAG_NATIVE_QUERY_CANDIDATE_LIMIT,
   RAG_VECTOR_DIMENSIONS_DEFAULT,
@@ -35,28 +39,6 @@ const MAX_QUERY_MULTIPLIER = 16;
 const IDENTIFIER_RE = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
 
 type NativeDistanceMetric = "cosine" | "l2";
-
-type NativeRAGMode = "vec0";
-
-export type NativeSQLiteRAGStoreOptions = {
-  mode: NativeRAGMode;
-  extensionPath?: string;
-  extensionInitSql?: string | string[];
-  distanceMetric?: NativeDistanceMetric;
-  tableName?: string;
-  queryMultiplier?: number;
-  requireAvailable?: boolean;
-  resolveFromAbsolutePackages?: boolean;
-};
-
-export type SQLiteRAGStoreOptions = {
-  db?: Database;
-  path?: string;
-  dimensions?: number;
-  mockEmbedding?: (text: string) => Promise<number[]>;
-  tableName?: string;
-  native?: NativeSQLiteRAGStoreOptions;
-};
 
 type InternalChunk = {
   chunkId: string;

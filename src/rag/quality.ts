@@ -3,6 +3,30 @@ import { writeFileAtomic } from "./atomicWrite";
 import { dirname } from "node:path";
 import type { Database } from "bun:sqlite";
 import type {
+  SQLiteRAGAnswerGroundingEvaluationHistoryStoreOptions,
+  SQLiteRAGEvaluationHistoryStoreOptions,
+  SQLiteRAGEvaluationSuiteSnapshotHistoryStoreOptions,
+  SQLiteRAGGovernanceStoreBundleOptions,
+  SQLiteRAGRetrievalBaselineGatePolicyHistoryStoreOptions,
+  SQLiteRAGRetrievalBaselineStoreOptions,
+  SQLiteRAGRetrievalComparisonHistoryStoreOptions,
+  SQLiteRAGRetrievalIncidentRemediationDecisionStoreOptions,
+  SQLiteRAGRetrievalIncidentRemediationExecutionHistoryStoreOptions,
+  SQLiteRAGRetrievalLaneHandoffAutoCompletePolicyHistoryStoreOptions,
+  SQLiteRAGRetrievalLaneHandoffDecisionStoreOptions,
+  SQLiteRAGRetrievalLaneHandoffIncidentHistoryStoreOptions,
+  SQLiteRAGRetrievalLaneHandoffIncidentStoreOptions,
+  SQLiteRAGRetrievalReleaseDecisionStoreOptions,
+  SQLiteRAGRetrievalReleaseLaneEscalationPolicyHistoryStoreOptions,
+  SQLiteRAGRetrievalReleaseLanePolicyHistoryStoreOptions,
+  SQLiteRAGRetrievalReleaseIncidentStoreOptions,
+  SQLiteRAGSearchTracePruneHistoryStoreOptions,
+  SQLiteRAGSearchTraceStoreOptions,
+  SQLiteRAGStoreMigrationOptions,
+} from "../../types/quality";
+// Re-exported so `@absolutejs/rag/quality` consumers keep these option types.
+export type * from "../../types/quality";
+import type {
   RAGAnswerGroundingCaseDifficultyDiffEntry,
   RAGAnswerGroundingCaseDifficultyHistory,
   RAGAnswerGroundingCaseDifficultyHistoryStore,
@@ -4868,122 +4892,6 @@ export const createRAGFileSearchTracePruneHistoryStore = (
   },
 });
 
-export type SQLiteRAGSearchTraceStoreOptions = {
-  db?: Database;
-  path?: string;
-  tableName?: string;
-};
-
-export type SQLiteRAGEvaluationHistoryStoreOptions = {
-  db?: Database;
-  path?: string;
-  tableName?: string;
-};
-
-export type SQLiteRAGEvaluationSuiteSnapshotHistoryStoreOptions = {
-  db?: Database;
-  path?: string;
-  tableName?: string;
-};
-
-export type SQLiteRAGAnswerGroundingEvaluationHistoryStoreOptions = {
-  db?: Database;
-  path?: string;
-  tableName?: string;
-};
-
-export type SQLiteRAGSearchTracePruneHistoryStoreOptions = {
-  db?: Database;
-  path?: string;
-  tableName?: string;
-};
-
-export type SQLiteRAGRetrievalComparisonHistoryStoreOptions = {
-  db?: Database;
-  path?: string;
-  tableName?: string;
-};
-
-export type SQLiteRAGRetrievalReleaseDecisionStoreOptions = {
-  db?: Database;
-  path?: string;
-  tableName?: string;
-};
-
-export type SQLiteRAGRetrievalBaselineStoreOptions = {
-  db?: Database;
-  path?: string;
-  tableName?: string;
-};
-
-export type SQLiteRAGRetrievalReleaseIncidentStoreOptions = {
-  db?: Database;
-  path?: string;
-  tableName?: string;
-};
-
-export type SQLiteRAGRetrievalLaneHandoffDecisionStoreOptions = {
-  db?: Database;
-  path?: string;
-  tableName?: string;
-};
-
-export type SQLiteRAGRetrievalLaneHandoffIncidentStoreOptions = {
-  db?: Database;
-  path?: string;
-  tableName?: string;
-};
-
-export type SQLiteRAGRetrievalLaneHandoffIncidentHistoryStoreOptions = {
-  db?: Database;
-  path?: string;
-  tableName?: string;
-};
-
-export type SQLiteRAGRetrievalIncidentRemediationDecisionStoreOptions = {
-  db?: Database;
-  path?: string;
-  tableName?: string;
-};
-
-export type SQLiteRAGRetrievalIncidentRemediationExecutionHistoryStoreOptions =
-  {
-    db?: Database;
-    path?: string;
-    tableName?: string;
-  };
-
-export type SQLiteRAGRetrievalLaneHandoffAutoCompletePolicyHistoryStoreOptions =
-  {
-    db?: Database;
-    path?: string;
-    tableName?: string;
-  };
-
-export type SQLiteRAGRetrievalReleaseLanePolicyHistoryStoreOptions = {
-  db?: Database;
-  path?: string;
-  tableName?: string;
-};
-
-export type SQLiteRAGRetrievalBaselineGatePolicyHistoryStoreOptions = {
-  db?: Database;
-  path?: string;
-  tableName?: string;
-};
-
-export type SQLiteRAGRetrievalReleaseLaneEscalationPolicyHistoryStoreOptions = {
-  db?: Database;
-  path?: string;
-  tableName?: string;
-};
-
-export type SQLiteRAGGovernanceStoreBundleOptions = {
-  db?: Database;
-  path?: string;
-  tablePrefix?: string;
-};
-
 export const createRAGSQLiteEvaluationHistoryStore = (
   options: SQLiteRAGEvaluationHistoryStoreOptions,
 ): RAGEvaluationHistoryStore => {
@@ -5730,12 +5638,6 @@ const summarizeSQLiteStoreMigrationIssues = (
   issues.length > 0
     ? `${issues.length} SQLite schema migration issue${issues.length === 1 ? "" : "s"} detected`
     : undefined;
-
-export type SQLiteRAGStoreMigrationOptions = {
-  db?: Database;
-  path?: string;
-  descriptors?: SQLiteStoreMigrationDescriptor[];
-};
 
 export const inspectRAGSQLiteStoreMigrations = (
   options: SQLiteRAGStoreMigrationOptions = {},

@@ -3,67 +3,17 @@ import type {
   RAGMediaTranscriber,
   RAGOCRProvider,
 } from "@absolutejs/ai";
+import type {
+  AnthropicOCRConfig,
+  GeminiOCRConfig,
+  OllamaOCRConfig,
+  OllamaTranscriptionConfig,
+  OpenAICompatibleOCRConfig,
+  OpenAICompatibleTranscriptionConfig,
+  OpenAIOCRConfig,
+  OpenAITranscriptionConfig,
+} from "../../types/providers";
 import { createRAGMediaTranscriber, createRAGOCRProvider } from "./ingestion";
-
-type FetchLike = (
-  input: RequestInfo | URL,
-  init?: RequestInit | BunFetchRequestInit,
-) => Promise<Response>;
-
-export type OpenAITranscriptionConfig = {
-  apiKey: string;
-  baseUrl?: string;
-  defaultModel?: string;
-  fetch?: FetchLike;
-  language?: string;
-  prompt?: string;
-};
-
-export type OpenAICompatibleTranscriptionConfig = OpenAITranscriptionConfig & {
-  baseUrl: string;
-};
-
-export type OpenAIOCRConfig = {
-  apiKey: string;
-  baseUrl?: string;
-  defaultModel?: string;
-  fetch?: FetchLike;
-  prompt?: string;
-};
-
-export type OpenAICompatibleOCRConfig = OpenAIOCRConfig & {
-  baseUrl: string;
-};
-
-export type GeminiOCRConfig = {
-  apiKey: string;
-  baseUrl?: string;
-  defaultModel?: string;
-  fetch?: FetchLike;
-  prompt?: string;
-};
-
-export type OllamaOCRConfig = {
-  baseUrl?: string;
-  defaultModel?: string;
-  fetch?: FetchLike;
-  prompt?: string;
-};
-
-export type OllamaTranscriptionConfig = {
-  baseUrl?: string;
-  defaultModel?: string;
-  fetch?: FetchLike;
-  prompt?: string;
-};
-
-export type AnthropicOCRConfig = {
-  apiKey: string;
-  baseUrl?: string;
-  defaultModel?: string;
-  fetch?: FetchLike;
-  prompt?: string;
-};
 
 const DEFAULT_OPENAI_BASE_URL = "https://api.openai.com";
 const DEFAULT_GEMINI_BASE_URL = "https://generativelanguage.googleapis.com";

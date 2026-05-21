@@ -7,38 +7,11 @@ import type {
   RAGEmailSyncMessage,
   RAGGmailLinkedEmailSyncClientOptions,
 } from "@absolutejs/ai";
-
-export type GmailEmailSyncConfig = {
-  accessToken: string;
-  userId?: string;
-  query?: string;
-  labelIds?: string[];
-  includeSpamTrash?: boolean;
-  maxResults?: number;
-  fetch?: typeof fetch;
-};
-
-export type GraphEmailSyncConfig = {
-  accessToken: string;
-  baseUrl?: string;
-  userId?: string;
-  folderId?: string;
-  filter?: string;
-  search?: string;
-  top?: number;
-  fetch?: typeof fetch;
-};
-
-export type IMAPEmailSyncConfig = {
-  host: string;
-  port?: number;
-  secure?: boolean;
-  username: string;
-  password: string;
-  mailbox?: string;
-  search?: string[];
-  maxResults?: number;
-};
+import type {
+  GmailEmailSyncConfig,
+  GraphEmailSyncConfig,
+  IMAPEmailSyncConfig,
+} from "../../types/providers";
 
 type FetchLike = (
   ...args: Parameters<typeof fetch>

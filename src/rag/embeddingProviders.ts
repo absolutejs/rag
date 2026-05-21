@@ -1,36 +1,11 @@
 import type { RAGEmbeddingProvider } from "@absolutejs/ai";
+import type {
+  GeminiEmbeddingsConfig,
+  OllamaEmbeddingsConfig,
+  OpenAICompatibleEmbeddingsConfig,
+  OpenAIEmbeddingsConfig,
+} from "../../types/providers";
 import { createRAGEmbeddingProvider } from "./embedding";
-
-type FetchLike = (
-  input: RequestInfo | URL,
-  init?: RequestInit | BunFetchRequestInit,
-) => Promise<Response>;
-
-export type OpenAIEmbeddingsConfig = {
-  apiKey: string;
-  baseUrl?: string;
-  defaultModel?: string;
-  dimensions?: number;
-  fetch?: FetchLike;
-};
-
-export type OpenAICompatibleEmbeddingsConfig = OpenAIEmbeddingsConfig & {
-  baseUrl: string;
-};
-
-export type GeminiEmbeddingsConfig = {
-  apiKey: string;
-  baseUrl?: string;
-  defaultModel?: string;
-  dimensions?: number;
-  fetch?: FetchLike;
-};
-
-export type OllamaEmbeddingsConfig = {
-  baseUrl?: string;
-  defaultModel?: string;
-  fetch?: FetchLike;
-};
 
 const DEFAULT_OPENAI_BASE_URL = "https://api.openai.com";
 const DEFAULT_GEMINI_BASE_URL = "https://generativelanguage.googleapis.com";

@@ -15,6 +15,7 @@ import type {
   RAGUpsertInput,
   RAGVectorStore,
 } from "@absolutejs/ai";
+import type { CreateRAGCollectionOptions } from "../../types/retrieval";
 import { fuseRAGQueryResults, resolveRAGHybridSearchOptions } from "./lexical";
 import {
   applyRAGQueryTransform,
@@ -200,17 +201,6 @@ const resolveNativeQueryProfileSelection = (input: {
     rowEstimate,
     selectionMode: profile ? ("auto" as const) : ("default" as const),
   };
-};
-
-export type CreateRAGCollectionOptions = {
-  store: RAGVectorStore;
-  embedding?: RAGEmbeddingProviderLike;
-  defaultTopK?: number;
-  defaultCandidateMultiplier?: number;
-  defaultModel?: string;
-  queryTransform?: RAGQueryTransformProviderLike;
-  retrievalStrategy?: RAGRetrievalStrategyProviderLike;
-  rerank?: RAGRerankerProviderLike;
 };
 
 const VARIANT_RESULT_WEIGHT = 0.92;

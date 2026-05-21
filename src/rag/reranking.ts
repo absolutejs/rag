@@ -1,21 +1,13 @@
 import type {
   RAGQueryResult,
-  RAGReranker,
   RAGRerankerInput,
   RAGRerankerProvider,
   RAGRerankerProviderLike,
 } from "@absolutejs/ai";
-
-export type CreateRAGRerankerOptions = {
-  rerank: RAGReranker;
-  defaultModel?: string;
-  providerName?: string;
-};
-
-export type HeuristicRAGRerankerOptions = {
-  defaultModel?: string;
-  providerName?: string;
-};
+import type {
+  CreateRAGRerankerOptions,
+  HeuristicRAGRerankerOptions,
+} from "../../types/retrieval";
 
 const tokenize = (value: string) =>
   value

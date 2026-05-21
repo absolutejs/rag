@@ -8,6 +8,7 @@ import type {
   RAGVectorStore,
   RAGVectorStoreStatus,
 } from "@absolutejs/ai";
+import type { PostgresRAGStoreOptions } from "../../../types/adapters";
 import {
   RAG_NATIVE_QUERY_CANDIDATE_LIMIT,
   RAG_VECTOR_DIMENSIONS_DEFAULT,
@@ -37,21 +38,6 @@ const FILTER_PATH_SEGMENT_RE = /^[a-zA-Z0-9_]+$/;
 type BunSQLClient = InstanceType<typeof Bun.SQL>;
 type PostgresDistanceMetric = "cosine" | "l2" | "inner_product";
 type PostgresIndexType = "none" | "hnsw" | "ivfflat";
-
-export type PostgresRAGStoreOptions = {
-  connectionString?: string;
-  sql?: BunSQLClient;
-  dimensions?: number;
-  mockEmbedding?: (text: string) => Promise<number[]>;
-  tableName?: string;
-  schemaName?: string;
-  distanceMetric?: PostgresDistanceMetric;
-  queryMultiplier?: number;
-  indexType?: PostgresIndexType;
-  indexLists?: number;
-  hnswM?: number;
-  hnswEfConstruction?: number;
-};
 
 type InternalChunk = {
   chunkId: string;

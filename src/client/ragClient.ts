@@ -68,51 +68,16 @@ import type {
   RAGSyncRunOptions,
   RAGSyncResponse,
 } from "@absolutejs/ai";
+import type {
+  RAGClientOptions,
+  RAGDetailedSearchResponse,
+  RAGMaintenanceActionDescriptor,
+  RAGMaintenanceOverview,
+  RAGMaintenancePayload,
+} from "../../types/client";
 const UNFOUND_INDEX = -1;
 
 type FetchLike = typeof fetch;
-
-export type RAGClientOptions = {
-  path: string;
-  fetch?: FetchLike;
-};
-
-export type RAGDetailedSearchResponse = {
-  results: RAGSource[];
-  trace?: RAGSearchResponse["trace"];
-};
-
-export type RAGMaintenancePayload =
-  | Pick<RAGMutationResponse, "maintenance" | "admin" | "workflowStatus">
-  | Pick<RAGOperationsResponse, "maintenance" | "admin" | "status">
-  | Pick<RAGStatusResponse, "maintenance" | "admin" | "status">
-  | null
-  | undefined;
-
-export type RAGMaintenanceActionDescriptor = {
-  kind: "analyze_backend" | "rebuild_native_index";
-  label: string;
-  available: boolean;
-  recommended: boolean;
-  reason?: string;
-};
-
-export type RAGMaintenanceOverview = {
-  activeJobCount: number;
-  actions: RAGMaintenanceActionDescriptor[];
-  availableActions: RAGMaintenanceActionDescriptor[];
-  backend?: RAGBackendMaintenanceSummary["backend"];
-  blockingRecommendations: RAGBackendMaintenanceRecommendation[];
-  criticalCount: number;
-  hasBlockingIssue: boolean;
-  infoCount: number;
-  primaryRecommendation?: RAGBackendMaintenanceRecommendation;
-  recentlyCompletedActions: NonNullable<RAGBackendMaintenanceSummary>["recentActions"];
-  recommendationCount: number;
-  recommendations: RAGBackendMaintenanceRecommendation[];
-  recommendedNow: RAGBackendMaintenanceRecommendation[];
-  warningCount: number;
-};
 
 const jsonHeaders: { "Content-Type": string } = {
   "Content-Type": "application/json",
