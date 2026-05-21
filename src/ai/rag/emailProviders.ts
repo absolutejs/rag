@@ -40,7 +40,9 @@ export type IMAPEmailSyncConfig = {
   maxResults?: number;
 };
 
-type FetchLike = (...args: Parameters<typeof fetch>) => ReturnType<typeof fetch>;
+type FetchLike = (
+  ...args: Parameters<typeof fetch>
+) => ReturnType<typeof fetch>;
 
 const defaultFetch: FetchLike = (...args) => fetch(...args);
 
@@ -221,7 +223,9 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const getRetryDelayMs = (response: Response, attempt: number) => {
   const retryAfterHeader = response.headers.get("retry-after");
-  const retryAfterSeconds = retryAfterHeader ? Number(retryAfterHeader) : Number.NaN;
+  const retryAfterSeconds = retryAfterHeader
+    ? Number(retryAfterHeader)
+    : Number.NaN;
   if (Number.isFinite(retryAfterSeconds) && retryAfterSeconds >= 0) {
     return retryAfterSeconds * 1000;
   }
@@ -286,7 +290,11 @@ const fetchGmailWithRetry = async (
 
 const inferLinkedProviderFailureCode = (
   error: unknown,
-): "unauthorized" | "insufficient_scope" | "provider_error" | "rate_limited" => {
+):
+  | "unauthorized"
+  | "insufficient_scope"
+  | "provider_error"
+  | "rate_limited" => {
   const message =
     error instanceof Error ? error.message : String(error ?? "Unknown error");
 

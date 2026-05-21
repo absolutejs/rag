@@ -78,10 +78,17 @@ const toErrorMessage = async (response: Response, label: string) => {
 };
 
 const normalizeString = (value: unknown) =>
-  typeof value === "string" && value.trim().length > 0 ? value.trim() : undefined;
+  typeof value === "string" && value.trim().length > 0
+    ? value.trim()
+    : undefined;
 
-const toUniqueStringArray = (values: Array<string | undefined>) =>
-  [...new Set(values.filter((value): value is string => typeof value === "string" && value.length > 0))];
+const toUniqueStringArray = (values: Array<string | undefined>) => [
+  ...new Set(
+    values.filter(
+      (value): value is string => typeof value === "string" && value.length > 0,
+    ),
+  ),
+];
 
 const toContactTitle = (person: GooglePerson, fallbackId: string) => {
   const primaryName = person.names?.find(
@@ -108,7 +115,10 @@ const toContactText = (person: GooglePerson) => {
     (person.emailAddresses ?? []).map((entry) => normalizeString(entry.value)),
   );
   const phones = toUniqueStringArray(
-    (person.phoneNumbers ?? []).map((entry) => normalizeString(entry.value) ?? normalizeString(entry.canonicalForm)),
+    (person.phoneNumbers ?? []).map(
+      (entry) =>
+        normalizeString(entry.value) ?? normalizeString(entry.canonicalForm),
+    ),
   );
   const organizations = toUniqueStringArray(
     (person.organizations ?? []).flatMap((entry) => [
@@ -123,14 +133,20 @@ const toContactText = (person: GooglePerson) => {
 
   return [
     name,
-    givenName && familyName ? `${givenName} ${familyName}` : givenName ?? familyName,
+    givenName && familyName
+      ? `${givenName} ${familyName}`
+      : (givenName ?? familyName),
     emails.length > 0 ? `Emails: ${emails.join(", ")}` : undefined,
     phones.length > 0 ? `Phones: ${phones.join(", ")}` : undefined,
-    organizations.length > 0 ? `Organizations: ${organizations.join(", ")}` : undefined,
+    organizations.length > 0
+      ? `Organizations: ${organizations.join(", ")}`
+      : undefined,
     biography,
     urls.length > 0 ? `Links: ${urls.join(", ")}` : undefined,
   ]
-    .filter((value): value is string => typeof value === "string" && value.length > 0)
+    .filter(
+      (value): value is string => typeof value === "string" && value.length > 0,
+    )
     .join("\n");
 };
 
@@ -146,7 +162,10 @@ const toContactItem = (person: GooglePerson): RAGConnectorItem | null => {
     (person.emailAddresses ?? []).map((entry) => normalizeString(entry.value)),
   );
   const phones = toUniqueStringArray(
-    (person.phoneNumbers ?? []).map((entry) => normalizeString(entry.value) ?? normalizeString(entry.canonicalForm)),
+    (person.phoneNumbers ?? []).map(
+      (entry) =>
+        normalizeString(entry.value) ?? normalizeString(entry.canonicalForm),
+    ),
   );
   const organizations = (person.organizations ?? [])
     .map((entry) => ({
@@ -158,7 +177,8 @@ const toContactItem = (person: GooglePerson): RAGConnectorItem | null => {
     (person.urls ?? []).map((entry) => normalizeString(entry.value)),
   );
   const photoUrl = normalizeString(
-    person.photos?.find((photo) => normalizeString(photo.url) !== undefined)?.url,
+    person.photos?.find((photo) => normalizeString(photo.url) !== undefined)
+      ?.url,
   );
   const text = toContactText(person);
 
@@ -194,7 +214,9 @@ export const createRAGGoogleContactsConnector = (input?: {
     });
 
     const fetchImpl = input?.fetch ?? defaultFetch;
-    const url = new URL(`${input?.baseUrl ?? GOOGLE_PEOPLE_BASE_URL}/people/me/connections`);
+    const url = new URL(
+      `${input?.baseUrl ?? GOOGLE_PEOPLE_BASE_URL}/people/me/connections`,
+    );
     url.searchParams.set(
       "personFields",
       [

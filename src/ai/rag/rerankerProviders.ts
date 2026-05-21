@@ -102,9 +102,7 @@ const createHttpCrossEncoderReranker = (
       const rows = payload.results ?? payload.data ?? [];
       const ranked = applyRanking(candidates, rows, input.topK);
       if (input.scoreThreshold !== undefined) {
-        return ranked.filter(
-          (result) => result.score >= input.scoreThreshold!,
-        );
+        return ranked.filter((result) => result.score >= input.scoreThreshold!);
       }
       return ranked;
     },

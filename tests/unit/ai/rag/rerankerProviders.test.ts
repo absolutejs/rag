@@ -104,9 +104,7 @@ describe("vendor cross-encoder rerankers", () => {
     });
     const out = await reranker.rerank(input([candidate("a", "doc")], 1));
     expect(captured[0]?.url).toBe("https://api.jina.ai/v1/rerank");
-    expect(captured[0]?.body.model).toBe(
-      "jina-reranker-v2-base-multilingual",
-    );
+    expect(captured[0]?.body.model).toBe("jina-reranker-v2-base-multilingual");
     expect(out).toHaveLength(1);
   });
 
@@ -114,15 +112,14 @@ describe("vendor cross-encoder rerankers", () => {
     const captured: CapturedRequest[] = [];
     const reranker = createCohereRAGReranker({
       apiKey: "key",
-      fetch: createFetch({ results: [{ index: 0, relevance_score: 1 }] }, captured),
+      fetch: createFetch(
+        { results: [{ index: 0, relevance_score: 1 }] },
+        captured,
+      ),
     });
     await reranker.rerank({
       ...input(
-        [
-          candidate("a", "1"),
-          candidate("b", "2"),
-          candidate("c", "3"),
-        ],
+        [candidate("a", "1"), candidate("b", "2"), candidate("c", "3")],
         1,
       ),
       candidateTopK: 2,
@@ -161,9 +158,9 @@ describe("vendor cross-encoder rerankers", () => {
       apiKey: "key",
       fetch: createFetch({}, [], false),
     });
-    await expect(
-      failing.rerank(input([candidate("a", "x")])),
-    ).rejects.toThrow(/cohere rerank failed/i);
+    await expect(failing.rerank(input([candidate("a", "x")]))).rejects.toThrow(
+      /cohere rerank failed/i,
+    );
   });
 
   it("exposes providerName + defaultModel metadata", () => {

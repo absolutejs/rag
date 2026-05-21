@@ -52,7 +52,11 @@ export const createRAGFileJobStateStore = (path: string): RAGJobStateStore => {
     },
     save: async (state) => {
       await mkdir(dirname(resolvedPath), { recursive: true });
-      await writeFileAtomic(resolvedPath, JSON.stringify(state, null, 2), "utf8");
+      await writeFileAtomic(
+        resolvedPath,
+        JSON.stringify(state, null, 2),
+        "utf8",
+      );
     },
   };
 };

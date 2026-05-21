@@ -2325,13 +2325,12 @@ describe("RAG sync helpers", () => {
                     content: "Null\u0000byte attachment guidance.",
                     contentType: "text/plain",
                     metadata: {
-                      mailboxNote: "Attach\u0000ment"
+                      mailboxNote: "Attach\u0000ment",
                     },
                     name: "null\u0000byte.txt",
                   },
                 ],
-                bodyText:
-                  "Body with a\u0000 null byte should stay searchable.",
+                bodyText: "Body with a\u0000 null byte should stay searchable.",
                 from: "ops\u0000@example.com",
                 id: "msg-null-byte",
                 metadata: {
@@ -2357,7 +2356,9 @@ describe("RAG sync helpers", () => {
       retrieval: "hybrid",
       topK: 5,
     });
-    const messageHit = messageHits.find((hit) => hit.source === "email/thread-1");
+    const messageHit = messageHits.find(
+      (hit) => hit.source === "email/thread-1",
+    );
     expect(messageHit).toBeTruthy();
     expect(String(messageHit?.text).includes(" ")).toBe(false);
     expect(messageHit?.metadata?.threadTopic).toBe("Null byte workflow");
@@ -3258,7 +3259,9 @@ describe("RAG sync helpers", () => {
                 },
               ],
               nextCheckpoint:
-                checkpoint?.after === "cursor-1" ? undefined : { after: "cursor-1" },
+                checkpoint?.after === "cursor-1"
+                  ? undefined
+                  : { after: "cursor-1" },
             }),
           },
         }),

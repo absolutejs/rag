@@ -1452,7 +1452,10 @@ const discoverFeedsFromHTML = async (feed: RAGFeedSyncInput) => {
 
   const validated: RAGFeedSyncInput[] = [];
   for (const candidate of discovered.values()) {
-    const candidateResponse = await fetch(candidate.url, h2IfHttps(candidate.url));
+    const candidateResponse = await fetch(
+      candidate.url,
+      h2IfHttps(candidate.url),
+    );
     if (!candidateResponse.ok) {
       continue;
     }
@@ -1605,7 +1608,10 @@ const discoverRecursiveSitemapURLs = async (input: {
     seen.add(current.sitemap.url);
     resolved.push(current.sitemap);
 
-    const response = await fetch(current.sitemap.url, h2IfHttps(current.sitemap.url));
+    const response = await fetch(
+      current.sitemap.url,
+      h2IfHttps(current.sitemap.url),
+    );
     if (!response.ok) {
       throw new Error(
         `Failed to load sitemap ${current.sitemap.url}: ${response.status} ${response.statusText}`,
@@ -3244,7 +3250,9 @@ export const createRAGEmailSyncSource = (
           threadId: sanitizeOptionalSyncString(message.threadId),
           threadTopic: sanitizeOptionalSyncString(message.subject),
         },
-        name: sanitizeOptionalSyncString(attachment.name) ?? `attachment-${index + 1}`,
+        name:
+          sanitizeOptionalSyncString(attachment.name) ??
+          `attachment-${index + 1}`,
         source:
           sanitizeOptionalSyncString(attachment.source) ??
           `email/${sanitizeOptionalSyncString(message.threadId) ?? message.id}/attachments/${sanitizeOptionalSyncString(attachment.name) ?? `attachment-${index + 1}`}`,
@@ -3352,7 +3360,8 @@ export const createRAGLinkedConnectorSyncSource = (
   target: options.externalAccountId ?? options.bindingId ?? options.label,
   sync: async ({ collection, deleteDocument, listDocuments, sourceRecord }) => {
     const requiredScopes =
-      options.requiredScopes ?? options.runtime.requiredScopes({ mode: "read" });
+      options.requiredScopes ??
+      options.runtime.requiredScopes({ mode: "read" });
     const credential = await options.resolver.resolveCredential({
       bindingId: options.bindingId,
       connectorProvider: options.runtime.provider,
@@ -3750,7 +3759,11 @@ export const createRAGFileSyncStateStore = (
     },
     save: async (records) => {
       await mkdir(dirname(resolvedPath), { recursive: true });
-      await writeFileAtomic(resolvedPath, JSON.stringify(records, null, 2), "utf8");
+      await writeFileAtomic(
+        resolvedPath,
+        JSON.stringify(records, null, 2),
+        "utf8",
+      );
     },
   };
 };

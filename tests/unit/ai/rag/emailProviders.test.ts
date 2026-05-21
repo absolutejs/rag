@@ -313,7 +313,8 @@ describe("RAG email provider adapters", () => {
                 code: 403,
                 errors: [
                   {
-                    message: "Gmail API has not been used in project 123 before or it is disabled.",
+                    message:
+                      "Gmail API has not been used in project 123 before or it is disabled.",
                     reason: "accessNotConfigured",
                   },
                 ],
@@ -412,7 +413,9 @@ describe("RAG email provider adapters", () => {
       },
     });
 
-    await expect(client.listMessages()).rejects.toThrow("429 Too Many Requests");
+    await expect(client.listMessages()).rejects.toThrow(
+      "429 Too Many Requests",
+    );
     expect(listCalls).toBe(3);
     expect(failureReports).toEqual([
       {

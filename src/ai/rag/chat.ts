@@ -197,6 +197,7 @@ const MAX_INGEST_JOBS = 20;
 const MAX_ADMIN_ACTIONS = 20;
 const MAX_ADMIN_JOBS = 20;
 const DEFAULT_STALE_AFTER_MS = 1000 * 60 * 60 * 24 * 7;
+const WEBSOCKET_OPEN = 1;
 const REQUEST_USER_SUB_HEADER = "x-absolutejs-user-sub";
 
 const HTML_HEADERS = { "Content-Type": "text/html; charset=utf-8" } as const;
@@ -994,6 +995,44 @@ const persistSearchTraceIfConfigured = async (input: {
   }
 };
 
+// Report a processing failure to the client over the WebSocket using the same
+// `{ type: "error" }` contract that streamAI already emits, so a failure during
+// retrieval (before streamAI runs) is no longer swallowed into an infinite hang.
+const sendWebSocketError = (
+  ws: { readyState?: number; send: (data: string) => void },
+  error: unknown,
+  conversationId?: string,
+  messageId?: string,
+) => {
+  if (typeof ws.readyState === "number" && ws.readyState !== WEBSOCKET_OPEN) {
+    return;
+  }
+  try {
+    ws.send(
+      JSON.stringify({
+        conversationId,
+        message: error instanceof Error ? error.message : String(error),
+        messageId,
+        type: "error",
+      }),
+    );
+  } catch {
+    // Socket already closed mid-error; nothing further we can do.
+  }
+};
+
+// An embedding provider may carry its own default model. We read it so we can
+// tell whether an embedding model is resolvable without ever falling back to the
+// chat model (which would silently 404 against an embedding endpoint).
+const getProviderDefaultEmbeddingModel = (
+  embedding: RAGChatPluginConfig["embedding"] | undefined,
+): string | undefined =>
+  embedding !== undefined &&
+  typeof embedding === "object" &&
+  typeof (embedding as { defaultModel?: unknown }).defaultModel === "string"
+    ? (embedding as { defaultModel: string }).defaultModel
+    : undefined;
+
 const buildRAGContextFromQuery = async (
   config: Pick<
     RAGChatPluginConfig,
@@ -1008,7 +1047,6 @@ const buildRAGContextFromQuery = async (
   topK: number,
   scoreThreshold: number | undefined,
   queryText: string,
-  ragModel: string,
   embedding: RAGChatPluginConfig["embedding"] | undefined,
   embeddingModel: string | undefined,
 ): Promise<RAGQueryContext> => {
@@ -1016,7 +1054,7 @@ const buildRAGContextFromQuery = async (
     config.collection ??
     (config.ragStore
       ? createRAGCollection({
-          defaultModel: embeddingModel ?? ragModel,
+          defaultModel: embeddingModel,
           defaultTopK: topK,
           embedding,
           rerank: config.rerank,
@@ -1031,8 +1069,12 @@ const buildRAGContextFromQuery = async (
     };
   }
 
+  // The embedding model is `embeddingModel` (or the provider's own default,
+  // resolved inside the collection). It is never derived from the chat model:
+  // sending a chat model name to an embedding endpoint yields an opaque 404, and
+  // a provider that requires a model now raises its own clear error instead.
   const queried = await collection.searchWithTrace({
-    model: embeddingModel ?? ragModel,
+    model: embeddingModel,
     query: queryText,
     scoreThreshold,
     topK,
@@ -1057,7 +1099,42 @@ const buildRAGContextFromQuery = async (
   };
 };
 
+// Fail fast at construction time when retrieval is enabled but no embedding
+// model can be resolved. Otherwise the misconfiguration only surfaces on the
+// first chat message, as an opaque embedding 404 swallowed by the WS handler.
+const assertEmbeddingModelConfigured = (config: RAGChatPluginConfig) => {
+  // A pre-built collection resolves its own embedding model/provider.
+  if (config.collection !== undefined) {
+    return;
+  }
+  // Without a ragStore, retrieval is disabled and embeddings are never requested.
+  if (config.ragStore === undefined) {
+    return;
+  }
+  // An explicit embedding model satisfies every provider.
+  if (config.embeddingModel !== undefined) {
+    return;
+  }
+  // Only an object embedding provider exposes a default model we can verify here.
+  // Function providers and store-supplied embed() resolve their own model (and
+  // may legitimately ignore it), so we defer those to runtime rather than
+  // false-flagging them at construction time.
+  const { embedding } = config;
+  if (embedding === undefined || typeof embedding !== "object") {
+    return;
+  }
+  if (getProviderDefaultEmbeddingModel(embedding) !== undefined) {
+    return;
+  }
+  throw new Error(
+    "ragChat: an embedding provider is configured but no embedding model is set. " +
+      "Pass `embeddingModel` to ragChat() or set `defaultModel` on the embedding provider. " +
+      "The chat model cannot be used for embeddings.",
+  );
+};
+
 export const ragChat = (config: RAGChatPluginConfig) => {
+  assertEmbeddingModelConfigured(config);
   const path = config.path ?? DEFAULT_PATH;
   const authorizeRAGAction = config.authorizeRAGAction;
   const resolveRAGAccessScope = config.resolveRAGAccessScope;
@@ -1672,15 +1749,20 @@ export const ragChat = (config: RAGChatPluginConfig) => {
     }
   };
 
-  const buildSyncSources = async (scope?: RAGAccessScope, request?: Request) => {
+  const buildSyncSources = async (
+    scope?: RAGAccessScope,
+    request?: Request,
+  ) => {
     if (!indexManager?.listSyncSources) {
       return [];
     }
 
     const userSub = resolveRequestUserSub(request);
-    const sources = await (indexManager.listSyncSources as (
-      options?: { userSub?: string },
-    ) => Promise<any[]>)(userSub ? { userSub } : undefined);
+    const sources = await (
+      indexManager.listSyncSources as (options?: {
+        userSub?: string;
+      }) => Promise<any[]>
+    )(userSub ? { userSub } : undefined);
     return sources.filter((source) => matchesSyncSourceScope(scope, source));
   };
 
@@ -1820,92 +1902,95 @@ export const ragChat = (config: RAGChatPluginConfig) => {
     rawConversationId?: string,
     rawAttachments?: AIAttachment[],
   ) => {
-    const parsed = parseProvider(rawContent);
-    const { content, providerName } = parsed;
-    const userMessageId = generateId();
     const assistantMessageId = generateId();
     const conversationId = rawConversationId ?? generateId();
-    const conversation = await store.getOrCreate(conversationId);
-    const history = buildHistory(conversation);
-    const model = resolveModel(config, parsed);
-    const ragModel = parsed.model ?? model;
+    try {
+      const parsed = parseProvider(rawContent);
+      const { content, providerName } = parsed;
+      const userMessageId = generateId();
+      const conversation = await store.getOrCreate(conversationId);
+      const history = buildHistory(conversation);
+      const model = resolveModel(config, parsed);
 
-    appendMessage(conversation, {
-      attachments: rawAttachments,
-      content,
-      conversationId,
-      id: userMessageId,
-      role: "user",
-      timestamp: Date.now(),
-    });
-    await store.set(conversationId, conversation);
+      appendMessage(conversation, {
+        attachments: rawAttachments,
+        content,
+        conversationId,
+        id: userMessageId,
+        role: "user",
+        timestamp: Date.now(),
+      });
+      await store.set(conversationId, conversation);
 
-    const retrievalStartedAt = Date.now();
-    handleRAGRetrieving(
-      ws,
-      conversationId,
-      assistantMessageId,
-      retrievalStartedAt,
-    );
-    const provider = config.provider(providerName);
-    const rag = await buildRAGContextFromQuery(
-      config,
-      topK,
-      scoreThreshold,
-      content,
-      ragModel,
-      config.embedding,
-      config.embeddingModel,
-    );
+      const retrievalStartedAt = Date.now();
+      handleRAGRetrieving(
+        ws,
+        conversationId,
+        assistantMessageId,
+        retrievalStartedAt,
+      );
+      const provider = config.provider(providerName);
+      const rag = await buildRAGContextFromQuery(
+        config,
+        topK,
+        scoreThreshold,
+        content,
+        config.embedding,
+        config.embeddingModel,
+      );
 
-    const controller = new AbortController();
-    abortControllers.set(conversationId, controller);
-    const { ragContext, sources, trace } = rag;
-    const retrievedAt = Date.now();
-    const retrievalDurationMs = retrievedAt - retrievalStartedAt;
+      const controller = new AbortController();
+      abortControllers.set(conversationId, controller);
+      const { ragContext, sources, trace } = rag;
+      const retrievedAt = Date.now();
+      const retrievalDurationMs = retrievedAt - retrievalStartedAt;
 
-    handleRAGRetrieved(
-      ws,
-      conversationId,
-      assistantMessageId,
-      sources,
-      retrievalStartedAt,
-      retrievedAt,
-      retrievalDurationMs,
-      trace,
-    );
+      handleRAGRetrieved(
+        ws,
+        conversationId,
+        assistantMessageId,
+        sources,
+        retrievalStartedAt,
+        retrievedAt,
+        retrievalDurationMs,
+        trace,
+      );
 
-    await streamAI(ws, conversationId, assistantMessageId, {
-      completeMeta: includeCompleteSources ? { sources } : undefined,
-      maxTurns: config.maxTurns,
-      messages: [
-        ...history,
-        buildUserMessage(content, rawAttachments, ragContext),
-      ],
-      model,
-      provider,
-      signal: controller.signal,
-      systemPrompt: config.systemPrompt,
-      thinking: resolveThinking(config, providerName, model),
-      tools: resolveTools(config, providerName, model),
-      onComplete: async (fullResponse, usage) => {
-        await appendAssistantMessage(
-          conversationId,
-          assistantMessageId,
-          fullResponse,
-          sources,
-          usage,
-          model,
-          retrievalStartedAt,
-          retrievedAt,
-          retrievalDurationMs,
-          trace,
-        );
+      await streamAI(ws, conversationId, assistantMessageId, {
+        completeMeta: includeCompleteSources ? { sources } : undefined,
+        maxTurns: config.maxTurns,
+        messages: [
+          ...history,
+          buildUserMessage(content, rawAttachments, ragContext),
+        ],
+        model,
+        provider,
+        signal: controller.signal,
+        systemPrompt: config.systemPrompt,
+        thinking: resolveThinking(config, providerName, model),
+        tools: resolveTools(config, providerName, model),
+        onComplete: async (fullResponse, usage) => {
+          await appendAssistantMessage(
+            conversationId,
+            assistantMessageId,
+            fullResponse,
+            sources,
+            usage,
+            model,
+            retrievalStartedAt,
+            retrievedAt,
+            retrievalDurationMs,
+            trace,
+          );
 
-        abortControllers.delete(conversationId);
-        config.onComplete?.(conversationId, fullResponse, usage, sources);
-      },
-    });
+          abortControllers.delete(conversationId);
+          config.onComplete?.(conversationId, fullResponse, usage, sources);
+        },
+      });
+    } catch (error) {
+      abortControllers.delete(conversationId);
+      sendWebSocketError(ws, error, conversationId, assistantMessageId);
+    }
   };
 
   const resolveCollection = () =>
@@ -11934,9 +12019,11 @@ export const ragChat = (config: RAGChatPluginConfig) => {
     const action = createAdminAction("sync_all_sources");
 
     try {
-      const result = await (indexManager.syncAllSources as (
-        options?: Record<string, unknown>,
-      ) => Promise<RAGSyncResponse>)({
+      const result = await (
+        indexManager.syncAllSources as (
+          options?: Record<string, unknown>,
+        ) => Promise<RAGSyncResponse>
+      )({
         ...(options ?? {}),
         userSub: resolveRequestUserSub(request),
       });
@@ -12014,10 +12101,12 @@ export const ragChat = (config: RAGChatPluginConfig) => {
     const action = createAdminAction("sync_source", undefined, id);
 
     try {
-      const result = await (indexManager.syncSource as (
-        id: string,
-        options?: Record<string, unknown>,
-      ) => Promise<RAGSyncResponse>)(id, {
+      const result = await (
+        indexManager.syncSource as (
+          id: string,
+          options?: Record<string, unknown>,
+        ) => Promise<RAGSyncResponse>
+      )(id, {
         ...(options ?? {}),
         userSub: resolveRequestUserSub(request),
       });
@@ -12156,7 +12245,6 @@ export const ragChat = (config: RAGChatPluginConfig) => {
           const parsed = parseProvider(lastMessage.content);
           const { content, providerName } = parsed;
           const model = resolveModel(config, parsed);
-          const ragModel = parsed.model ?? model;
           const assistantMessageId = generateId();
           const retrievalStartedAt = Date.now();
           yield {
@@ -12173,7 +12261,6 @@ export const ragChat = (config: RAGChatPluginConfig) => {
             topK,
             scoreThreshold,
             content,
-            ragModel,
             config.embedding,
             config.embeddingModel,
           );
@@ -12266,24 +12353,35 @@ export const ragChat = (config: RAGChatPluginConfig) => {
           return;
         }
 
-        if (message.type === "cancel") {
-          handleCancel(message.conversationId);
+        // Backstop: handleMessage reports its own errors with message IDs; this
+        // catch covers the branch/cancel paths and anything that escapes, so no
+        // handler failure is ever swallowed into a silent socket hang.
+        try {
+          if (message.type === "cancel") {
+            handleCancel(message.conversationId);
 
-          return;
-        }
+            return;
+          }
 
-        if (message.type === "branch") {
-          await handleBranch(ws, message.messageId, message.conversationId);
+          if (message.type === "branch") {
+            await handleBranch(ws, message.messageId, message.conversationId);
 
-          return;
-        }
+            return;
+          }
 
-        if (message.type === "message") {
-          await handleMessage(
+          if (message.type === "message") {
+            await handleMessage(
+              ws,
+              message.content,
+              message.conversationId,
+              message.attachments,
+            );
+          }
+        } catch (error) {
+          sendWebSocketError(
             ws,
-            message.content,
-            message.conversationId,
-            message.attachments,
+            error,
+            "conversationId" in message ? message.conversationId : undefined,
           );
         }
       },

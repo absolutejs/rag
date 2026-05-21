@@ -1,7 +1,4 @@
-import type {
-  RAGConnectorItem,
-  RAGConnectorRuntime,
-} from "@absolutejs/ai";
+import type { RAGConnectorItem, RAGConnectorRuntime } from "@absolutejs/ai";
 
 const defaultFetch = Object.assign(
   (...args: Parameters<typeof fetch>) => fetch(...args),
@@ -111,7 +108,9 @@ const fetchGraphList = async <T>(input: {
   return (await response.json()) as GraphListResponse<T>;
 };
 
-const getCheckpointAfter = (checkpoint: Record<string, unknown> | undefined) => {
+const getCheckpointAfter = (
+  checkpoint: Record<string, unknown> | undefined,
+) => {
   const after = checkpoint?.after;
   return typeof after === "string" && after.trim().length > 0
     ? after.trim()
@@ -136,7 +135,8 @@ const toFacebookPostItem = (
     return null;
   }
 
-  const pageName = getCredentialMetadataString(credential.metadata, "label") ??
+  const pageName =
+    getCredentialMetadataString(credential.metadata, "label") ??
     getCredentialMetadataString(credential.metadata, "pageName") ??
     getCredentialMetadataString(credential.metadata, "parentPageName");
   const message = post.message?.trim() ?? "";
@@ -157,9 +157,7 @@ const toFacebookPostItem = (
     },
     text: message.length > 0 ? message : post.permalink_url,
     title:
-      message.length > 0
-        ? message.slice(0, 120)
-        : `Facebook post ${post.id}`,
+      message.length > 0 ? message.slice(0, 120) : `Facebook post ${post.id}`,
     updatedAt: post.updated_time,
     url: post.permalink_url,
   };
@@ -261,8 +259,10 @@ export const createRAGInstagramBusinessConnector = (input?: {
       requiredScopes: INSTAGRAM_BUSINESS_READ_SCOPES,
     });
     const accessToken =
-      getCredentialMetadataString(credential.metadata, "parentPageAccessToken") ??
-      lease.accessToken;
+      getCredentialMetadataString(
+        credential.metadata,
+        "parentPageAccessToken",
+      ) ?? lease.accessToken;
     const response = await fetchGraphList<InstagramMedia>({
       accessToken,
       after: getCheckpointAfter(checkpoint),

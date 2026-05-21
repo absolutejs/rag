@@ -13,35 +13,34 @@ const createFetch = (
 describe("RAG contact provider adapters", () => {
   it("maps Google contacts into connector items", async () => {
     const runtime = createRAGGoogleContactsConnector({
-      fetch: createFetch(() =>
-        new Response(
-          JSON.stringify({
-            connections: [
-              {
-                biographies: [{ value: "AbsoluteJS client contact" }],
-                emailAddresses: [{ value: "alex@example.com" }],
-                etag: "%EgQBAgMEBQYHCAkKCwwNDg8QERITFA==",
-                names: [
-                  {
-                    displayName: "Alex Kahn",
-                    familyName: "Kahn",
-                    givenName: "Alex",
-                  },
-                ],
-                organizations: [
-                  { name: "AbsoluteJS", title: "Founder" },
-                ],
-                phoneNumbers: [{ value: "+1 555-0100" }],
-                photos: [{ url: "https://cdn.example.com/alex.jpg" }],
-                resourceName: "people/c123",
-                urls: [{ value: "https://absolutejs.com" }],
-              },
-            ],
-            nextPageToken: "contacts-page-2",
-            totalPeople: 1,
-          }),
-          { status: 200 },
-        ),
+      fetch: createFetch(
+        () =>
+          new Response(
+            JSON.stringify({
+              connections: [
+                {
+                  biographies: [{ value: "AbsoluteJS client contact" }],
+                  emailAddresses: [{ value: "alex@example.com" }],
+                  etag: "%EgQBAgMEBQYHCAkKCwwNDg8QERITFA==",
+                  names: [
+                    {
+                      displayName: "Alex Kahn",
+                      familyName: "Kahn",
+                      givenName: "Alex",
+                    },
+                  ],
+                  organizations: [{ name: "AbsoluteJS", title: "Founder" }],
+                  phoneNumbers: [{ value: "+1 555-0100" }],
+                  photos: [{ url: "https://cdn.example.com/alex.jpg" }],
+                  resourceName: "people/c123",
+                  urls: [{ value: "https://absolutejs.com" }],
+                },
+              ],
+              nextPageToken: "contacts-page-2",
+              totalPeople: 1,
+            }),
+            { status: 200 },
+          ),
       ),
     });
 

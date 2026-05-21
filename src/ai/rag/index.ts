@@ -63,9 +63,7 @@ export {
   createRAGGraphEmailSyncClient,
   createRAGIMAPEmailSyncClient,
 } from "./emailProviders";
-export {
-  createRAGGoogleContactsConnector,
-} from "./contactProviders";
+export { createRAGGoogleContactsConnector } from "./contactProviders";
 export {
   createRAGFacebookPageConnector,
   createRAGInstagramBusinessConnector,

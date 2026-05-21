@@ -16,25 +16,27 @@ const createFetch = (
 describe("RAG social provider adapters", () => {
   it("maps Facebook Page posts into connector items", async () => {
     const runtime = createRAGFacebookPageConnector({
-      fetch: createFetch(() =>
-        new Response(
-          JSON.stringify({
-            data: [
-              {
-                created_time: "2026-04-20T12:00:00+0000",
-                from: { id: "page-1", name: "AbsoluteJS" },
-                full_picture: "https://cdn.example.com/post-1.jpg",
-                id: "page-1_post-1",
-                message: "Facebook Page posts should flow through the connector runtime.",
-                permalink_url: "https://facebook.example/page-1/posts/post-1",
-                status_type: "added_photos",
-                updated_time: "2026-04-20T12:30:00+0000",
-              },
-            ],
-            paging: { cursors: { after: "cursor-1" } },
-          }),
-          { status: 200 },
-        ),
+      fetch: createFetch(
+        () =>
+          new Response(
+            JSON.stringify({
+              data: [
+                {
+                  created_time: "2026-04-20T12:00:00+0000",
+                  from: { id: "page-1", name: "AbsoluteJS" },
+                  full_picture: "https://cdn.example.com/post-1.jpg",
+                  id: "page-1_post-1",
+                  message:
+                    "Facebook Page posts should flow through the connector runtime.",
+                  permalink_url: "https://facebook.example/page-1/posts/post-1",
+                  status_type: "added_photos",
+                  updated_time: "2026-04-20T12:30:00+0000",
+                },
+              ],
+              paging: { cursors: { after: "cursor-1" } },
+            }),
+            { status: 200 },
+          ),
       ),
     });
 
@@ -75,8 +77,7 @@ describe("RAG social provider adapters", () => {
             facebookPageName: "AbsoluteJS",
             provider: "facebook",
           },
-          text:
-            "Facebook Page posts should flow through the connector runtime.",
+          text: "Facebook Page posts should flow through the connector runtime.",
           title:
             "Facebook Page posts should flow through the connector runtime.",
           url: "https://facebook.example/page-1/posts/post-1",
@@ -88,24 +89,25 @@ describe("RAG social provider adapters", () => {
 
   it("maps Instagram business media into connector items", async () => {
     const runtime = createRAGInstagramBusinessConnector({
-      fetch: createFetch(() =>
-        new Response(
-          JSON.stringify({
-            data: [
-              {
-                caption: "Instagram business media should be searchable too.",
-                id: "ig-media-1",
-                media_type: "IMAGE",
-                media_url: "https://cdn.example.com/ig-media-1.jpg",
-                permalink: "https://instagram.example/p/ig-media-1",
-                thumbnail_url: "https://cdn.example.com/ig-thumb-1.jpg",
-                timestamp: "2026-04-21T10:15:00+0000",
-                username: "absolutejs",
-              },
-            ],
-          }),
-          { status: 200 },
-        ),
+      fetch: createFetch(
+        () =>
+          new Response(
+            JSON.stringify({
+              data: [
+                {
+                  caption: "Instagram business media should be searchable too.",
+                  id: "ig-media-1",
+                  media_type: "IMAGE",
+                  media_url: "https://cdn.example.com/ig-media-1.jpg",
+                  permalink: "https://instagram.example/p/ig-media-1",
+                  thumbnail_url: "https://cdn.example.com/ig-thumb-1.jpg",
+                  timestamp: "2026-04-21T10:15:00+0000",
+                  username: "absolutejs",
+                },
+              ],
+            }),
+            { status: 200 },
+          ),
       ),
     });
 
