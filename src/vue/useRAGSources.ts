@@ -7,11 +7,11 @@ import {
   buildRAGSectionRetrievalDiagnostics,
   buildRAGSourceGroups,
   buildRAGSourceSummaries,
-} from "../rag/ui";
+} from "../presentation/ui";
 import {
   getLatestAssistantMessage,
   getLatestRAGSources,
-} from "../rag/workflowState";
+} from "../presentation/workflowState";
 
 export const useRAGSources = (messages: Ref<AIMessage[]>) => {
   const latestAssistantMessage = computed(() =>

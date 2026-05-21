@@ -1,6 +1,6 @@
 import { derived, readable } from "svelte/store";
 import type { AIAttachment } from "@absolutejs/ai";
-import { buildRAGAnswerWorkflowState } from "../rag/workflowState";
+import { buildRAGAnswerWorkflowState } from "../presentation/workflowState";
 import { createAIStream } from "@absolutejs/ai/client";
 import { createRAGStreamProgress } from "./createRAGStreamProgress";
 

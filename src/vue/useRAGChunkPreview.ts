@@ -5,7 +5,7 @@ import {
   buildRAGSectionRetrievalDiagnostics,
   buildRAGChunkPreviewNavigation,
   buildRAGChunkPreviewGraph,
-} from "../rag/ui";
+} from "../presentation/ui";
 
 export const useRAGChunkPreview = (path: string) => {
   const client = createRAGClient({ path });

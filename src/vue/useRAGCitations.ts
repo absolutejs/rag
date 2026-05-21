@@ -5,7 +5,7 @@ import {
   buildRAGCitationReferenceMap,
   buildRAGSourceSummaries,
   buildRAGSourceGroups,
-} from "../rag/ui";
+} from "../presentation/ui";
 
 export const useRAGCitations = (sources: Ref<RAGSource[]>) => {
   const citations = computed(() => buildRAGCitations(sources.value));

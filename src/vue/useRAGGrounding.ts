@@ -3,7 +3,7 @@ import type { RAGSource } from "@absolutejs/ai";
 import {
   buildRAGGroundedAnswer,
   buildRAGGroundingReferences,
-} from "../rag/ui";
+} from "../presentation/ui";
 
 export const useRAGGrounding = (
   content: Ref<string>,

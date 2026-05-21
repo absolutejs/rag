@@ -1,6 +1,6 @@
 // Factory option shapes for the retrieval pipeline: collection, reranker, query
 // transform, retrieval strategy, and embedding provider. Implementations in
-// src/rag/{collection,reranking,queryTransforms,retrievalStrategies,embedding}.ts
+// src/retrieval/*.ts
 // import these.
 
 import type {

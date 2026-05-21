@@ -8,7 +8,7 @@ import {
   openaiCompatibleTranscriber,
   openaiOCR,
   openaiTranscriber,
-} from "../../../src/rag/extractorProviders";
+} from "../../../src/providers/extractorProviders";
 
 describe("extractor providers", () => {
   it("builds OpenAI transcription requests and parses text", async () => {

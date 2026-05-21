@@ -5,7 +5,7 @@ import type {
   OpenAICompatibleEmbeddingsConfig,
   OpenAIEmbeddingsConfig,
 } from "../../types/providers";
-import { createRAGEmbeddingProvider } from "./embedding";
+import { createRAGEmbeddingProvider } from "../retrieval/embedding";
 
 const DEFAULT_OPENAI_BASE_URL = "https://api.openai.com";
 const DEFAULT_GEMINI_BASE_URL = "https://generativelanguage.googleapis.com";

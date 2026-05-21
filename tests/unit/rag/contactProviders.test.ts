@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { createRAGGoogleContactsConnector } from "../../../src/rag/contactProviders";
+import { createRAGGoogleContactsConnector } from "../../../src/providers/contactProviders";
 
 const createFetch = (
   handler: (url: string) => Response | Promise<Response>,

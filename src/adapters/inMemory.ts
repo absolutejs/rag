@@ -8,10 +8,10 @@ import type {
   RAGVectorStore,
   RAGVectorStoreStatus,
 } from "@absolutejs/ai";
-import { RAG_VECTOR_DIMENSIONS_DEFAULT } from "../../constants";
-import type { InMemoryRAGStoreOptions } from "../../../types/adapters";
+import { RAG_VECTOR_DIMENSIONS_DEFAULT } from "../constants";
+import type { InMemoryRAGStoreOptions } from "../../types/adapters";
 import { matchesMetadataFilterRecord } from "./filtering";
-import { rankRAGLexicalMatches } from "../lexical";
+import { rankRAGLexicalMatches } from "../retrieval/lexical";
 
 const createInMemoryStatus = (dimensions: number): RAGVectorStoreStatus => ({
   backend: "in_memory",

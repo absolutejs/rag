@@ -47,7 +47,7 @@ import {
   RAG_DOCUMENT_ID_PREVIEW_LENGTH,
   RAG_DOCUMENT_SLUG_MAX_LENGTH,
   RAG_MIN_CHUNK_LENGTH_FLOOR,
-} from "./constants";
+} from "../internal/constants";
 
 const DEFAULT_MAX_CHUNK_LENGTH = 900;
 const DEFAULT_CHUNK_OVERLAP = 120;

@@ -9,7 +9,7 @@ import { createRAGClient } from "../client/ragClient";
 import {
   buildRAGEvaluationLeaderboard,
   runRAGEvaluationSuite,
-} from "../rag/quality";
+} from "../quality/quality";
 
 export const useRAGEvaluate = (path: string) => {
   const client = createRAGClient({ path });

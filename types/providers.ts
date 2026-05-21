@@ -1,6 +1,6 @@
 // Embedding, reranker, extractor (OCR/transcription), and email provider
 // configuration shapes. Definitions live here; the provider implementations in
-// src/rag/*Providers.ts import these. Private vendor wire-format/response types
+// src/providers/*.ts import these. Private vendor wire-format/response types
 // stay colocated with the code that parses them.
 
 type FetchLike = (

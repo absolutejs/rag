@@ -15,13 +15,13 @@ import type {
 import type {
   NativeSQLiteRAGStoreOptions,
   SQLiteRAGStoreOptions,
-} from "../../../types/adapters";
+} from "../../types/adapters";
 import {
   RAG_NATIVE_QUERY_CANDIDATE_LIMIT,
   RAG_VECTOR_DIMENSIONS_DEFAULT,
-} from "../../constants";
-import { rankRAGLexicalMatches } from "../lexical";
-import { resolveAbsoluteSQLiteVec } from "../resolveAbsoluteSQLiteVec";
+} from "../constants";
+import { rankRAGLexicalMatches } from "../retrieval/lexical";
+import { resolveAbsoluteSQLiteVec } from "../internal/resolveAbsoluteSQLiteVec";
 import { matchesMetadataFilterRecord } from "./filtering";
 import {
   planNativeCandidateSearchBackfillK,

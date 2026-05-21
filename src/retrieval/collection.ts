@@ -26,7 +26,7 @@ import {
   resolveRAGEmbeddingProvider,
   validateRAGEmbeddingDimensions,
 } from "./embedding";
-import { buildRAGUpsertInputFromDocuments } from "./ingestion";
+import { buildRAGUpsertInputFromDocuments } from "../ingestion/ingestion";
 
 const DEFAULT_TOP_K = 6;
 const AUTO_BALANCED_NATIVE_ROW_ESTIMATE = 5_000;

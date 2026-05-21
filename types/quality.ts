@@ -1,5 +1,5 @@
 // SQLite-backed quality/governance store option shapes. The store factories in
-// src/rag/quality.ts import these (and re-export them, since "@absolutejs/rag/
+// src/quality/quality.ts import these (and re-export them, since "@absolutejs/rag/
 // quality" is a public entry point). Every per-store option is the same
 // db/path/tableName shape, expressed via a shared base.
 

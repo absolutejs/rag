@@ -1,5 +1,5 @@
 import { Elysia } from "elysia";
-import { ragChat, createInMemoryRAGStore } from "./src/rag";
+import { ragChat, createInMemoryRAGStore } from "./src";
 import type { AIChunk } from "@absolutejs/ai";
 
 const PORT = Number(process.env.RAG_SMOKE_PORT ?? 0) || 49_999;

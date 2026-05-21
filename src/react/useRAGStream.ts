@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from "react";
 import type { AIAttachment } from "@absolutejs/ai";
-import { buildRAGAnswerWorkflowState } from "../rag/workflowState";
+import { buildRAGAnswerWorkflowState } from "../presentation/workflowState";
 import { useAIStream } from "@absolutejs/ai/react";
 
 export const useRAGStream = (path?: string, conversationId?: string) => {

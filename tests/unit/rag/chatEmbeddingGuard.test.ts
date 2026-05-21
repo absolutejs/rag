@@ -1,8 +1,8 @@
 import { describe, expect, it } from "bun:test";
-import { ragChat } from "../../../src/rag/chat";
-import { createInMemoryRAGStore } from "../../../src/rag/adapters/inMemory";
-import { createRAGCollection } from "../../../src/rag/collection";
-import { openaiEmbeddings } from "../../../src/rag/embeddingProviders";
+import { ragChat } from "../../../src/chat/chat";
+import { createInMemoryRAGStore } from "../../../src/adapters/inMemory";
+import { createRAGCollection } from "../../../src/retrieval/collection";
+import { openaiEmbeddings } from "../../../src/providers/embeddingProviders";
 
 const provider = () => ({
   async *stream() {},

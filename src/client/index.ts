@@ -16,4 +16,4 @@ export {
   buildRAGEvaluationLeaderboard,
   createRAGEvaluationSuite,
   runRAGEvaluationSuite,
-} from "../rag/quality";
+} from "../quality/quality";

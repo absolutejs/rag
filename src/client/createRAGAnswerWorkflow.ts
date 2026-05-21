@@ -1,5 +1,5 @@
 import type { AIAttachment, RAGAnswerWorkflowState } from "@absolutejs/ai";
-import { buildRAGAnswerWorkflowState } from "../rag/workflowState";
+import { buildRAGAnswerWorkflowState } from "../presentation/workflowState";
 import { createAIStream } from "@absolutejs/ai/client";
 
 export const createRAGAnswerWorkflow = (

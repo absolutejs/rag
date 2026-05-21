@@ -37,7 +37,7 @@ import {
   loadRAGDocumentFile,
   prepareRAGDirectoryDocuments,
   prepareRAGDocument,
-} from "../../../src/rag/ingestion";
+} from "../../../src/ingestion/ingestion";
 import type { RAGContentFormat } from "@absolutejs/ai";
 import {
   MIXED_MAILBOX_BRANCH_KEYS,

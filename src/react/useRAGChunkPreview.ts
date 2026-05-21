@@ -1,11 +1,11 @@
 import { useCallback, useMemo, useState } from "react";
 import type { RAGDocumentChunkPreview } from "@absolutejs/ai";
-import { createRAGClient } from "../client";
+import { createRAGClient } from "../client/index";
 import {
   buildRAGSectionRetrievalDiagnostics,
   buildRAGChunkPreviewNavigation,
   buildRAGChunkPreviewGraph,
-} from "../rag/ui";
+} from "../presentation/ui";
 
 export const useRAGChunkPreview = (path: string) => {
   const client = useMemo(() => createRAGClient({ path }), [path]);

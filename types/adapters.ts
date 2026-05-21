@@ -1,5 +1,5 @@
 // Vector-store adapter configuration shapes. The implementations in
-// src/rag/adapters/* import these. Private row/wire shapes and the distance/
+// src/adapters/* import these. Private row/wire shapes and the distance/
 // index unions stay colocated with the adapter code that uses them; the small
 // unions are inlined here so this file has no dependency on adapter internals.
 

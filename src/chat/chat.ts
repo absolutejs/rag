@@ -3,7 +3,7 @@ import {
   HTTP_STATUS_BAD_REQUEST,
   HTTP_STATUS_NOT_FOUND,
   HTTP_STATUS_OK,
-} from "./constants";
+} from "../internal/constants";
 import type {
   AIAttachment,
   AIChatPluginConfig,
@@ -119,8 +119,8 @@ import { generateId, parseAIMessage } from "@absolutejs/ai";
 import { streamAI } from "@absolutejs/ai";
 import { streamAIToSSE } from "@absolutejs/ai";
 import { resolveRenderers } from "@absolutejs/ai";
-import { createRAGCollection } from "./collection";
-import { resolveRAGWorkflowRenderers } from "./htmxWorkflowRenderers";
+import { createRAGCollection } from "../retrieval/collection";
+import { resolveRAGWorkflowRenderers } from "../presentation/htmxWorkflowRenderers";
 import {
   buildRAGChunkExcerpts,
   buildRAGExcerptSelection,
@@ -128,7 +128,7 @@ import {
   buildRAGSourceLabels,
   buildRAGEvaluationSuiteSnapshotHistoryPresentation,
   buildRAGRetrievalReleaseGroupHistoryPresentation,
-} from "./presentation";
+} from "../presentation/presentation";
 import {
   buildRAGSearchTraceRecord,
   createRAGAdaptiveNativePlannerBenchmarkSnapshot,
@@ -178,15 +178,15 @@ import {
   pruneRAGSearchTraceStore,
   persistRAGSearchTraceRecord,
   summarizeRAGSearchTraceStore,
-} from "./quality";
+} from "../quality/quality";
 import {
   buildRAGUpsertInputFromDocuments,
   buildRAGUpsertInputFromUploads,
   buildRAGUpsertInputFromURLs,
-} from "./ingestion";
-import { createHeuristicRAGQueryTransform } from "./queryTransforms";
-import { createHeuristicRAGReranker } from "./reranking";
-import { buildRAGContext } from "./types";
+} from "../ingestion/ingestion";
+import { createHeuristicRAGQueryTransform } from "../retrieval/queryTransforms";
+import { createHeuristicRAGReranker } from "../retrieval/reranking";
+import { buildRAGContext } from "../types";
 
 const DEFAULT_PATH = "/rag";
 const DEFAULT_TOP_K = 6;

@@ -3,7 +3,7 @@ import type { AIMessage } from "@absolutejs/ai";
 import {
   getLatestAssistantMessage,
   getLatestRAGSources,
-} from "../rag/workflowState";
+} from "../presentation/workflowState";
 import {
   buildRAGCitationReferenceMap,
   buildRAGChunkGraph,
@@ -11,7 +11,7 @@ import {
   buildRAGSectionRetrievalDiagnostics,
   buildRAGSourceGroups,
   buildRAGSourceSummaries,
-} from "../rag/ui";
+} from "../presentation/ui";
 
 export const createRAGSources = (messages: Readable<AIMessage[]>) => {
   const latestAssistantMessage = derived(messages, ($messages) =>

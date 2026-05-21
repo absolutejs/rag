@@ -1,7 +1,7 @@
 import { S3Client } from "bun";
 import { createHash } from "node:crypto";
 import { mkdir, readFile, readdir } from "node:fs/promises";
-import { writeFileAtomic } from "./atomicWrite";
+import { writeFileAtomic } from "../internal/atomicWrite";
 import { basename, dirname, extname, join, relative, resolve } from "node:path";
 
 // Opportunistic HTTP/2 multiplexing for outbound HTTPS (Bun 1.3.14+).
@@ -70,8 +70,8 @@ import {
   loadRAGDocumentUpload,
   mergeMetadata,
   prepareRAGDocuments,
-} from "./ingestion";
-import { createRAGLinkedGmailEmailSyncClient } from "./emailProviders";
+} from "../ingestion/ingestion";
+import { createRAGLinkedGmailEmailSyncClient } from "../providers/emailProviders";
 import type { RAGLinkedConnectorSyncSourceOptions } from "../../types/sync";
 
 const toSyncError = (caught: unknown) =>

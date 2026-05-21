@@ -1,38 +1,38 @@
-export { ragChat, ragChat as ragPlugin } from "./chat";
+export { ragChat, ragChat as ragPlugin } from "./chat/chat";
 export {
   createRAGHTMXConfig,
   createRAGHTMXWorkflowRenderConfig,
-} from "./htmxConfig";
+} from "./presentation/htmxConfig";
 export {
   createRAGEmbeddingProvider,
   resolveRAGEmbeddingProvider,
   validateRAGEmbeddingDimensions,
-} from "./embedding";
+} from "./retrieval/embedding";
 export {
   applyRAGReranking,
   createHeuristicRAGReranker,
   createRAGReranker,
   resolveRAGReranker,
-} from "./reranking";
+} from "./retrieval/reranking";
 export {
   createCohereRAGReranker,
   createJinaRAGReranker,
   createVoyageRAGReranker,
-} from "./rerankerProviders";
+} from "./providers/rerankerProviders";
 export {
   applyRAGQueryTransform,
   createHeuristicRAGQueryTransform,
   createRAGQueryTransform,
   resolveRAGQueryTransform,
-} from "./queryTransforms";
-export { createHeuristicRAGRetrievalStrategy } from "./retrievalStrategies";
-export { createRAGAccessControl } from "./accessControl";
+} from "./retrieval/queryTransforms";
+export { createHeuristicRAGRetrievalStrategy } from "./retrieval/retrievalStrategies";
+export { createRAGAccessControl } from "./internal/accessControl";
 export {
   buildRAGLexicalHaystack,
   fuseRAGQueryResults,
   resolveRAGHybridSearchOptions,
   scoreRAGLexicalMatch,
-} from "./lexical";
+} from "./retrieval/lexical";
 export {
   alibabaEmbeddings,
   deepseekEmbeddings,
@@ -45,7 +45,7 @@ export {
   openaiCompatibleEmbeddings,
   openaiEmbeddings,
   xaiEmbeddings,
-} from "./embeddingProviders";
+} from "./providers/embeddingProviders";
 export {
   anthropicOCR,
   geminiOCR,
@@ -55,18 +55,18 @@ export {
   openaiCompatibleTranscriber,
   openaiOCR,
   openaiTranscriber,
-} from "./extractorProviders";
+} from "./providers/extractorProviders";
 export {
   createRAGGmailEmailSyncClient,
   createRAGLinkedGmailEmailSyncClient,
   createRAGGraphEmailSyncClient,
   createRAGIMAPEmailSyncClient,
-} from "./emailProviders";
-export { createRAGGoogleContactsConnector } from "./contactProviders";
+} from "./providers/emailProviders";
+export { createRAGGoogleContactsConnector } from "./providers/contactProviders";
 export {
   createRAGFacebookPageConnector,
   createRAGInstagramBusinessConnector,
-} from "./socialProviders";
+} from "./providers/socialProviders";
 export {
   buildRAGUpsertInputFromDirectory,
   buildRAGUpsertInputFromDocuments,
@@ -99,7 +99,7 @@ export {
   prepareRAGDocument,
   prepareRAGDocumentFile,
   prepareRAGDocuments,
-} from "./ingestion";
+} from "./ingestion/ingestion";
 export { buildRAGContext } from "./types";
 export {
   buildRAGEvaluationLeaderboard,
@@ -231,7 +231,7 @@ export {
   buildRAGEvaluationRunDiff,
   buildRAGSearchTraceDiff,
   buildRAGSearchTraceRecord,
-} from "./quality";
+} from "./quality/quality";
 export {
   buildRAGAdminActionPresentation,
   buildRAGAdminActionPresentations,
@@ -281,7 +281,7 @@ export {
   buildRAGSyncOverviewPresentation,
   buildRAGSyncSourcePresentation,
   buildRAGSyncSourcePresentations,
-} from "./ui";
+} from "./presentation/ui";
 export {
   createRAGBunS3SyncClient,
   createRAGDirectorySyncSource,
@@ -302,27 +302,27 @@ export {
   createRAGSyncManager,
   createRAGSyncScheduler,
   createRAGUrlSyncSource,
-} from "./sync";
-export { createRAGFileJobStateStore } from "./jobState";
+} from "./sync/sync";
+export { createRAGFileJobStateStore } from "./internal/jobState";
 export {
   createRAGCollection,
   ingestDocuments,
   ingestRAGDocuments,
   searchDocuments,
-} from "./collection";
+} from "./retrieval/collection";
 export { createInMemoryRAGStore } from "./adapters/inMemory";
 export { createPostgresRAGStore } from "./adapters/postgres";
 export { createSQLiteRAGStore } from "./adapters/sqlite";
 export {
   resolveAbsoluteSQLiteVec,
   resolveAbsoluteSQLiteVecExtensionPath,
-} from "./resolveAbsoluteSQLiteVec";
+} from "./internal/resolveAbsoluteSQLiteVec";
 export {
   createRAGVector,
   normalizeVector,
   querySimilarity,
 } from "./adapters/utils";
-export type { SQLiteRAGSearchTraceStoreOptions } from "./quality";
+export type { SQLiteRAGSearchTraceStoreOptions } from "./quality/quality";
 export type {
   AnthropicOCRConfig,
   CrossEncoderRerankerConfig,
@@ -340,11 +340,11 @@ export type {
   OpenAIEmbeddingsConfig,
   OpenAIOCRConfig,
   OpenAITranscriptionConfig,
-} from "../../types/providers";
+} from "../types/providers";
 export type {
   NativeSQLiteRAGStoreOptions,
   SQLiteRAGStoreOptions,
-} from "../../types/adapters";
+} from "../types/adapters";
 export type {
   AIHTMXRenderConfig,
   RAGAnswerWorkflowState,

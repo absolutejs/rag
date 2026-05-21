@@ -13,7 +13,10 @@ import type {
   OpenAIOCRConfig,
   OpenAITranscriptionConfig,
 } from "../../types/providers";
-import { createRAGMediaTranscriber, createRAGOCRProvider } from "./ingestion";
+import {
+  createRAGMediaTranscriber,
+  createRAGOCRProvider,
+} from "../ingestion/ingestion";
 
 const DEFAULT_OPENAI_BASE_URL = "https://api.openai.com";
 const DEFAULT_GEMINI_BASE_URL = "https://generativelanguage.googleapis.com";

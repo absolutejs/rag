@@ -1,6 +1,6 @@
 import type { RAGQueryResult } from "@absolutejs/ai";
 
-export type { RAGLinkedConnectorSyncSourceOptions } from "../../types/sync";
+export type { RAGLinkedConnectorSyncSourceOptions } from "../types/sync";
 
 export type {
   AIHTMXRenderConfig,
@@ -149,13 +149,13 @@ export type {
   InternalRAGStoredChunk,
   RAGDocumentBatch,
   RAGQueryParams,
-} from "../../types/core";
+} from "../types/core";
 export type {
   GeminiEmbeddingsConfig,
   OllamaEmbeddingsConfig,
   OpenAICompatibleEmbeddingsConfig,
   OpenAIEmbeddingsConfig,
-} from "../../types/providers";
+} from "../types/providers";
 export type {
   RAGReranker,
   RAGRerankerCandidate,

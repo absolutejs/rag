@@ -7,9 +7,9 @@ await rm(DIST, { force: true, recursive: true });
 
 const serverBuild = await Bun.build({
   entrypoints: [
-    "src/rag/index.ts",
-    "src/rag/ui.ts",
-    "src/rag/quality.ts",
+    "src/index.ts",
+    "src/presentation/ui.ts",
+    "src/quality/quality.ts",
     "src/client/index.ts",
     "src/client/ui.ts",
   ],

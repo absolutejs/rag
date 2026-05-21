@@ -3,8 +3,8 @@ import type {
   RAGRetrievalIncidentRemediationExecutionHistoryRecord,
   RAGRetrievalReleaseIncidentRecord,
 } from "@absolutejs/ai";
-import { ragChat } from "./src/rag/chat";
-import { createRAGAccessControl } from "./src/rag/accessControl";
+import { ragChat } from "./src/chat/chat";
+import { createRAGAccessControl } from "./src/internal/accessControl";
 
 const provider = () => ({ async *stream() {} });
 

@@ -4,7 +4,7 @@ import { get, readable, type Readable } from "svelte/store";
 
 const originalFetch = globalThis.fetch;
 
-const aiIndexPath = new URL("../../../src/rag/index.ts", import.meta.url).href;
+const aiIndexPath = new URL("../../../src/index.ts", import.meta.url).href;
 const aiClientIndexPath = new URL(
   "../../../src/client/index.ts",
   import.meta.url,

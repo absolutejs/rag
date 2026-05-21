@@ -8,12 +8,12 @@ import type {
   RAGVectorStore,
   RAGVectorStoreStatus,
 } from "@absolutejs/ai";
-import type { PostgresRAGStoreOptions } from "../../../types/adapters";
+import type { PostgresRAGStoreOptions } from "../../types/adapters";
 import {
   RAG_NATIVE_QUERY_CANDIDATE_LIMIT,
   RAG_VECTOR_DIMENSIONS_DEFAULT,
-} from "../../constants";
-import { rankRAGLexicalMatches } from "../lexical";
+} from "../constants";
+import { rankRAGLexicalMatches } from "../retrieval/lexical";
 import { matchesMetadataFilterRecord } from "./filtering";
 import {
   planNativeCandidateSearchBackfillK,

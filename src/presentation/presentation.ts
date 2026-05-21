@@ -81,11 +81,11 @@ import {
   buildRAGGroundedAnswer,
   buildRAGGroundedAnswerSectionSummaries,
   buildRAGGroundingReferences,
-} from "./grounding";
+} from "../retrieval/grounding";
 import {
   buildRAGAnswerGroundingEntityQualityView,
   buildRAGEvaluationEntityQualityView,
-} from "./quality";
+} from "../quality/quality";
 
 export {
   buildRAGCitationReferenceMap,

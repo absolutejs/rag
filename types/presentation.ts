@@ -1,6 +1,6 @@
 // Presentation-layer shapes. The derived `RAGStreamProgressState`
 // (ReturnType<typeof buildRAGStreamProgress>) stays colocated in
-// src/rag/presentation.ts since it references a local function.
+// src/presentation/presentation.ts since it references a local function.
 
 import type {
   AIMessage,

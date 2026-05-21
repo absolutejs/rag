@@ -5,9 +5,9 @@ export {
   buildRAGStreamProgress,
   getLatestAssistantMessage,
   resolveRAGStreamStage,
-} from "../rag/workflowState";
+} from "../presentation/workflowState";
 
-export { buildRAGStreamProgress as getRAGStreamProgress } from "../rag/workflowState";
+export { buildRAGStreamProgress as getRAGStreamProgress } from "../presentation/workflowState";
 
 export {
   buildRAGCitationReferenceMap,
@@ -20,10 +20,10 @@ export {
   buildRAGGroundedAnswerSectionSummaries,
   buildRAGGroundingReferences,
   buildRAGSectionRetrievalDiagnostics,
-} from "../rag/presentation";
+} from "../presentation/presentation";
 
 export type {
   RAGStreamProgress,
   RAGStreamProgressState,
-} from "../rag/workflowState";
+} from "../presentation/workflowState";
 export type { RAGAnswerWorkflowState } from "@absolutejs/ai";

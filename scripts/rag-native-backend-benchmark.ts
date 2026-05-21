@@ -18,9 +18,9 @@ import {
   loadRAGEvaluationSuiteSnapshotHistory,
   loadRAGRetrievalComparisonHistory,
   persistRAGRetrievalComparisonRun,
-} from "../src/rag";
-import { createPostgresRAGStore } from "../src/rag/adapters/postgres";
-import { createSQLiteRAGStore } from "../src/rag/adapters/sqlite";
+} from "../src";
+import { createPostgresRAGStore } from "../src/adapters/postgres";
+import { createSQLiteRAGStore } from "../src/adapters/sqlite";
 import type { RAGVectorStore } from "@absolutejs/ai";
 
 const DEFAULT_POSTGRES_URL =

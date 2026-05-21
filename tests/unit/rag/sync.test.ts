@@ -4,15 +4,15 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { describe, expect, it, mock } from "bun:test";
 import type { RAGSyncSourceReconciliationSummary } from "@absolutejs/ai";
-import { createInMemoryRAGStore } from "../../../src/rag/adapters/inMemory";
-import { createRAGCollection } from "../../../src/rag/collection";
+import { createInMemoryRAGStore } from "../../../src/adapters/inMemory";
+import { createRAGCollection } from "../../../src/retrieval/collection";
 import {
   createRAGChunkingRegistry,
   createRAGFileExtractor,
   createRAGFileExtractorRegistry,
   loadRAGDocumentsFromDirectory,
   prepareRAGDocuments,
-} from "../../../src/rag/ingestion";
+} from "../../../src/ingestion/ingestion";
 import {
   createRAGStorageSyncSource,
   createRAGDirectorySyncSource,
@@ -31,8 +31,8 @@ import {
   createRAGSyncManager,
   createRAGSyncScheduler,
   createRAGUrlSyncSource,
-} from "../../../src/rag/sync";
-import { createRAGFileJobStateStore } from "../../../src/rag/jobState";
+} from "../../../src/sync/sync";
+import { createRAGFileJobStateStore } from "../../../src/internal/jobState";
 
 const createMockFetch = (response: Response): typeof fetch =>
   Object.assign(

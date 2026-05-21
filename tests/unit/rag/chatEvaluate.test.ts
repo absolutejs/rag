@@ -7,10 +7,10 @@ import type {
   RAGRetrievalReleaseIncidentRecord,
   RAGRetrievalReleaseDecisionRecord,
 } from "@absolutejs/ai";
-import { ragChat } from "../../../src/rag/chat";
-import { createRAGAccessControl } from "../../../src/rag/accessControl";
-import { createRAGCollection } from "../../../src/rag/collection";
-import { createInMemoryRAGStore } from "../../../src/rag/adapters/inMemory";
+import { ragChat } from "../../../src/chat/chat";
+import { createRAGAccessControl } from "../../../src/internal/accessControl";
+import { createRAGCollection } from "../../../src/retrieval/collection";
+import { createInMemoryRAGStore } from "../../../src/adapters/inMemory";
 import {
   createRAGFileRetrievalBaselineStore,
   createRAGFileRetrievalComparisonHistoryStore,
@@ -30,7 +30,7 @@ import {
   createRAGFileSearchTraceStore,
   persistRAGRetrievalComparisonRun,
   persistRAGRetrievalReleaseIncident,
-} from "../../../src/rag/quality";
+} from "../../../src/quality/quality";
 
 describe("ragChat evaluation workflow", () => {
   const provider = () => ({

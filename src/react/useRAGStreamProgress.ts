@@ -3,7 +3,7 @@ import type { AIMessage } from "@absolutejs/ai";
 import {
   buildRAGStreamProgress,
   type RAGStreamProgress,
-} from "../rag/workflowState";
+} from "../presentation/workflowState";
 
 export const useRAGStreamProgress = (params: {
   error: string | null;

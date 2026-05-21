@@ -1,6 +1,6 @@
 import { computed } from "vue";
 import type { AIAttachment } from "@absolutejs/ai";
-import { buildRAGAnswerWorkflowState } from "../rag/workflowState";
+import { buildRAGAnswerWorkflowState } from "../presentation/workflowState";
 import { useAIStream } from "@absolutejs/ai/vue";
 import { useRAGStreamProgress } from "./useRAGStreamProgress";
 

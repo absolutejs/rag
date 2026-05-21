@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { createInMemoryRAGStore } from "../../../src/rag/adapters/inMemory";
+import { createInMemoryRAGStore } from "../../../src/adapters/inMemory";
 
 describe("createInMemoryRAGStore", () => {
   it("counts chunks with filters and chunk-id inputs", async () => {

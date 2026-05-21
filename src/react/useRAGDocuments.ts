@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 import type { RAGDocumentsResponse, RAGIndexedDocument } from "@absolutejs/ai";
-import { createRAGClient } from "../client";
+import { createRAGClient } from "../client/index";
 
 export const useRAGDocuments = (path: string) => {
   const client = useMemo(() => createRAGClient({ path }), [path]);

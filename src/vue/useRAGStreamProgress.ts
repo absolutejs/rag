@@ -1,6 +1,6 @@
 import { computed, type Ref } from "vue";
 import type { AIMessage } from "@absolutejs/ai";
-import { buildRAGStreamProgress } from "../rag/workflowState";
+import { buildRAGStreamProgress } from "../presentation/workflowState";
 
 export const useRAGStreamProgress = (params: {
   error: Ref<string | null>;

@@ -6,7 +6,7 @@ import type {
   RAGSyncResponse,
   RAGSyncRunOptions,
 } from "@absolutejs/ai";
-import { createRAGClient } from "../client";
+import { createRAGClient } from "../client/index";
 
 export const useRAGIndexAdmin = (path: string) => {
   const client = useMemo(() => createRAGClient({ path }), [path]);

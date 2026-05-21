@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import type { RAGQueryResult } from "@absolutejs/ai";
-import { buildRAGContext } from "../../../src/rag/types";
+import { buildRAGContext } from "../../../src/types";
 
 const buildHit = (overrides: Partial<RAGQueryResult> = {}): RAGQueryResult => ({
   chunkId: "chunk-1",

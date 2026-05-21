@@ -7,11 +7,11 @@ import {
   createHeuristicRAGReranker,
   createRAGCollection,
   ingestRAGDocuments,
-} from "../../../src/rag";
-import { createSQLiteRAGStore } from "../../../src/rag/adapters/sqlite";
-import { createPostgresRAGStore } from "../../../src/rag/adapters/postgres";
-import { createRAGEmbeddingProvider } from "../../../src/rag/embedding";
-import { createInMemoryRAGStore } from "../../../src/rag/adapters/inMemory";
+} from "../../../src/index";
+import { createSQLiteRAGStore } from "../../../src/adapters/sqlite";
+import { createPostgresRAGStore } from "../../../src/adapters/postgres";
+import { createRAGEmbeddingProvider } from "../../../src/retrieval/embedding";
+import { createInMemoryRAGStore } from "../../../src/adapters/inMemory";
 import type { RAGQueryInput, RAGVectorStore } from "@absolutejs/ai";
 import {
   MIXED_MAILBOX_BRANCH_KEYS,

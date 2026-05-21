@@ -1,5 +1,5 @@
 // Sync-source configuration shapes. The linked-connector option type is used by
-// src/rag/sync.ts and re-exported on the package's main entry.
+// src/sync/sync.ts and re-exported on the package's main entry.
 
 import type {
   RAGChunkingOptions,

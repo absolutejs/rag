@@ -1,5 +1,5 @@
 import { mkdir, readFile } from "node:fs/promises";
-import { writeFileAtomic } from "./atomicWrite";
+import { writeFileAtomic } from "../internal/atomicWrite";
 import { dirname } from "node:path";
 import type { Database } from "bun:sqlite";
 import type {
@@ -156,8 +156,8 @@ import type {
   RAGSQLiteStoreMigrationResult,
 } from "@absolutejs/ai";
 import { generateId } from "@absolutejs/ai";
-import { buildRAGGroundedAnswer } from "./grounding";
-import { buildRAGSourceLabels } from "./presentation";
+import { buildRAGGroundedAnswer } from "../retrieval/grounding";
+import { buildRAGSourceLabels } from "../presentation/presentation";
 
 const DEFAULT_TOP_K = 6;
 const DEFAULT_HISTORY_LIMIT = 20;

@@ -4,16 +4,16 @@
   "description": "Standalone RAG ingestion, sync, retrieval, evaluation, clients, and framework adapters extracted from AbsoluteJS",
   "license": "BSL-1.1",
   "type": "module",
-  "main": "./dist/rag/index.js",
-  "types": "./dist/src/rag/index.d.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/src/index.d.ts",
   "files": [
     "dist",
     "README.md"
   ],
   "exports": {
     ".": {
-      "import": "./dist/rag/index.js",
-      "types": "./dist/src/rag/index.d.ts"
+      "import": "./dist/index.js",
+      "types": "./dist/src/index.d.ts"
     },
     "./client": {
       "import": "./dist/client/index.js",
@@ -24,12 +24,12 @@
       "types": "./dist/src/client/ui.d.ts"
     },
     "./ui": {
-      "import": "./dist/rag/ui.js",
-      "types": "./dist/src/rag/ui.d.ts"
+      "import": "./dist/presentation/ui.js",
+      "types": "./dist/src/presentation/ui.d.ts"
     },
     "./quality": {
-      "import": "./dist/rag/quality.js",
-      "types": "./dist/src/rag/quality.d.ts"
+      "import": "./dist/quality/quality.js",
+      "types": "./dist/src/quality/quality.d.ts"
     },
     "./react": {
       "import": "./dist/react/index.js",
@@ -111,10 +111,10 @@
         "dist/src/client/ui.d.ts"
       ],
       "ui": [
-        "dist/src/rag/ui.d.ts"
+        "dist/src/presentation/ui.d.ts"
       ],
       "quality": [
-        "dist/src/rag/quality.d.ts"
+        "dist/src/quality/quality.d.ts"
       ],
       "react": [
         "dist/src/react/index.d.ts"

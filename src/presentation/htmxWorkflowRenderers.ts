@@ -27,7 +27,7 @@ import type {
   RAGVectorStoreStatus,
 } from "@absolutejs/ai";
 import type { ResolvedRAGWorkflowRenderers } from "../../types/presentation";
-import { RAG_SEARCH_SCORE_DECIMAL_PLACES } from "./constants";
+import { RAG_SEARCH_SCORE_DECIMAL_PLACES } from "../internal/constants";
 import {
   buildRAGSectionRetrievalDiagnostics,
   buildRAGChunkGraph,
