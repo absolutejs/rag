@@ -67,3 +67,31 @@ export type {
   RAGHTMXRenderConfig,
   ResolvedRAGHTMXRenderers,
 } from "./htmxRenderers";
+export {
+  buildCitationGroups,
+  buildGroundingReferenceGroups,
+  buildSearchTargetId,
+  buildSourceSummarySectionGroups,
+  formatCitationDetails,
+  formatCitationExcerpt,
+  formatCitationLabel,
+  formatCitationSummary,
+  formatSectionDiagnosticAttributionFocus,
+  formatSectionDiagnosticChannels,
+  formatSectionDiagnosticCompetition,
+  formatSectionDiagnosticDistributionRows,
+  formatSectionDiagnosticPipeline,
+  formatSectionDiagnosticReasons,
+  formatSectionDiagnosticStageBounds,
+  formatSectionDiagnosticStageFlow,
+  formatSectionDiagnosticStageWeightReasons,
+  formatSectionDiagnosticStageWeightRows,
+  formatSectionDiagnosticTopEntry,
+  formatSourceSummaryDetails,
+} from "./htmxCitationFragments";
+export type {
+  RAGCitationGroup,
+  RAGGroundingReferenceGroup,
+  RAGSectionDiagnostic,
+  RAGSourceSummaryGroup,
+} from "./htmxCitationFragments";

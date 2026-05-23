@@ -2,10 +2,36 @@ import type {
   RAGAdminActionRecord,
   RAGAdminJobRecord,
   RAGBackendCapabilities,
+  RAGSource,
   RAGVectorStoreStatus,
 } from "@absolutejs/ai";
 
-import { buildRAGRetrievalTracePresentation } from "./presentation";
+import {
+  buildCitationGroups,
+  buildSourceSummarySectionGroups,
+  formatCitationDetails,
+  formatCitationExcerpt,
+  formatCitationLabel,
+  formatCitationSummary,
+  formatSectionDiagnosticAttributionFocus,
+  formatSectionDiagnosticChannels,
+  formatSectionDiagnosticCompetition,
+  formatSectionDiagnosticDistributionRows,
+  formatSectionDiagnosticPipeline,
+  formatSectionDiagnosticReasons,
+  formatSectionDiagnosticStageBounds,
+  formatSectionDiagnosticStageFlow,
+  formatSectionDiagnosticStageWeightReasons,
+  formatSectionDiagnosticStageWeightRows,
+  formatSectionDiagnosticTopEntry,
+  formatSourceSummaryDetails,
+  type RAGSectionDiagnostic,
+} from "./htmxCitationFragments";
+import {
+  buildRAGCitations,
+  buildRAGRetrievalTracePresentation,
+  buildRAGSourceSummaries,
+} from "./presentation";
 
 type RetrievalTrace = Parameters<typeof buildRAGRetrievalTracePresentation>[0];
 
@@ -61,6 +87,9 @@ export type RAGHTMXRenderConfig = {
   detailList?: (lines: string[], fallback: string) => string;
   adminJobCards?: (jobs?: RAGAdminJobRecord[]) => string;
   adminActionCards?: (actions?: RAGAdminActionRecord[]) => string;
+  citations?: (sources: RAGSource[]) => string;
+  sourceSummaries?: (sources: RAGSource[]) => string;
+  sectionDiagnosticCard?: (diagnostic: RAGSectionDiagnostic) => string;
 };
 
 export type ResolvedRAGHTMXRenderers = Required<
@@ -254,6 +283,112 @@ const makeAdminActionCards =
       .join("")}</div>`;
   };
 
+const makeCitations = (prefix: string) => (sources: RAGSource[]) => {
+  const citations = buildRAGCitations(sources);
+  if (citations.length === 0) {
+    return "";
+  }
+
+  return [
+    `<div class="${prefix}-results">`,
+    "<h4>Citation Trail</h4>",
+    `<p class="${prefix}-metadata">Each citation maps a concrete retrieved chunk to a stable reference number you can carry into the answer UI.</p>`,
+    `<div class="${prefix}-result-grid">`,
+    buildCitationGroups(citations)
+      .map(
+        (group) => `
+          <article class="${prefix}-result-item" id="${escapeHtml(group.targetId)}">
+            <h3>${escapeHtml(group.label)}</h3>
+            <p class="${prefix}-result-source">${escapeHtml(group.summary)}</p>
+            <div class="${prefix}-result-grid">
+              ${group.citations
+                .map(
+                  (citation, index) => `
+                    <article class="${prefix}-result-item ${prefix}-citation-card">
+                      <p class="${prefix}-citation-badge">[${index + 1}] ${escapeHtml(formatCitationLabel(citation))}</p>
+                      <p class="${prefix}-result-score">${escapeHtml(formatCitationSummary(citation))}</p>
+                      ${formatCitationDetails(citation)
+                        .map(
+                          (line) =>
+                            `<p class="${prefix}-metadata">${escapeHtml(line)}</p>`,
+                        )
+                        .join("")}
+                      <p class="${prefix}-result-text">${escapeHtml(formatCitationExcerpt(citation))}</p>
+                    </article>`,
+                )
+                .join("")}
+            </div>
+          </article>`,
+      )
+      .join(""),
+    "</div>",
+    "</div>",
+  ].join("");
+};
+
+const makeSourceSummaries = (prefix: string) => (sources: RAGSource[]) => {
+  const summaries = buildRAGSourceSummaries(sources);
+  if (summaries.length === 0) {
+    return `<p class="${prefix}-metadata">Retrieved source groups: 0</p>`;
+  }
+
+  const groups = buildSourceSummarySectionGroups(summaries);
+  return [
+    `<p class="${prefix}-metadata">Retrieved source groups: ${summaries.length}</p>`,
+    `<div class="${prefix}-result-grid">`,
+    groups
+      .map(
+        (group) => `
+          <article class="${prefix}-result-item" id="${escapeHtml(group.targetId)}">
+            <h3>${escapeHtml(group.label)}</h3>
+            <p class="${prefix}-result-source">${escapeHtml(group.summary)}</p>
+            <div class="${prefix}-result-grid">
+              ${group.summaries
+                .map(
+                  (summary) => `
+                    <article class="${prefix}-result-item">
+                      <h4>${escapeHtml(summary.label)}</h4>
+                      ${formatSourceSummaryDetails(summary)
+                        .map(
+                          (line) =>
+                            `<p class="${prefix}-metadata">${escapeHtml(line)}</p>`,
+                        )
+                        .join("")}
+                      <p class="${prefix}-result-text">${escapeHtml(summary.excerpt)}</p>
+                    </article>`,
+                )
+                .join("")}
+            </div>
+          </article>`,
+      )
+      .join(""),
+    "</div>",
+  ].join("");
+};
+
+const makeSectionDiagnosticCard =
+  (prefix: string) => (diagnostic: RAGSectionDiagnostic) =>
+    [
+      `<article class="${prefix}-result-item">`,
+      `<h4>${escapeHtml(diagnostic.label)}</h4>`,
+      `<p class="${prefix}-result-source">${escapeHtml(diagnostic.summary)}</p>`,
+      `<p class="${prefix}-metadata">${escapeHtml(formatSectionDiagnosticChannels(diagnostic))}</p>`,
+      `<p class="${prefix}-metadata">${escapeHtml(formatSectionDiagnosticAttributionFocus(diagnostic))}</p>`,
+      `<p class="${prefix}-metadata">${escapeHtml(formatSectionDiagnosticPipeline(diagnostic))}</p>`,
+      `${formatSectionDiagnosticStageFlow(diagnostic) ? `<p class="${prefix}-metadata">${escapeHtml(formatSectionDiagnosticStageFlow(diagnostic) ?? "")}</p>` : ""}`,
+      `${formatSectionDiagnosticStageBounds(diagnostic) ? `<p class="${prefix}-metadata">${escapeHtml(formatSectionDiagnosticStageBounds(diagnostic) ?? "")}</p>` : ""}`,
+      `${formatSectionDiagnosticStageWeightRows(diagnostic)
+        .map((line) => `<p class="${prefix}-metadata">${escapeHtml(line)}</p>`)
+        .join("")}`,
+      `<p class="${prefix}-metadata">${escapeHtml(formatSectionDiagnosticTopEntry(diagnostic))}</p>`,
+      `${formatSectionDiagnosticCompetition(diagnostic) ? `<p class="${prefix}-metadata">${escapeHtml(formatSectionDiagnosticCompetition(diagnostic) ?? "")}</p>` : ""}`,
+      `${[...formatSectionDiagnosticReasons(diagnostic), ...formatSectionDiagnosticStageWeightReasons(diagnostic)].length > 0 ? `<div class="${prefix}-badge-row">${[...formatSectionDiagnosticReasons(diagnostic), ...formatSectionDiagnosticStageWeightReasons(diagnostic)].map((reason) => `<span class="${prefix}-state-chip">${escapeHtml(reason)}</span>`).join("")}</div>` : ""}`,
+      `${formatSectionDiagnosticDistributionRows(diagnostic)
+        .map((line) => `<p class="${prefix}-metadata">${escapeHtml(line)}</p>`)
+        .join("")}`,
+      `</article>`,
+    ].join("");
+
 export const resolveRAGHTMXRenderers = (
   custom: RAGHTMXRenderConfig = {},
 ): ResolvedRAGHTMXRenderers => {
@@ -263,9 +398,13 @@ export const resolveRAGHTMXRenderers = (
     adminActionCards: custom.adminActionCards ?? makeAdminActionCards(classPrefix),
     adminJobCards: custom.adminJobCards ?? makeAdminJobCards(classPrefix),
     capabilities: custom.capabilities ?? makeCapabilities(classPrefix),
+    citations: custom.citations ?? makeCitations(classPrefix),
     classPrefix,
     detailList: custom.detailList ?? makeDetailList(classPrefix),
     nativeSource: custom.nativeSource ?? defaultNativeSource,
+    sectionDiagnosticCard:
+      custom.sectionDiagnosticCard ?? makeSectionDiagnosticCard(classPrefix),
+    sourceSummaries: custom.sourceSummaries ?? makeSourceSummaries(classPrefix),
     stageRow: custom.stageRow ?? makeStageRow(classPrefix),
     statusMessage: custom.statusMessage ?? defaultStatusMessage,
     statusSummary: custom.statusSummary ?? defaultStatusSummary,
