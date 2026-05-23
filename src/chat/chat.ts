@@ -11,6 +11,7 @@ import type {
   AIConversationStore,
   AIMessage,
   AIUsage,
+  RAGEvaluationCaseResult,
   RAGEvaluationInput,
   RAGEvaluationResponse,
   RAGAdminActionRecord,
@@ -14156,6 +14157,111 @@ export const ragChat = (config: RAGChatPluginConfig) => {
       }
 
       return result;
+    })
+    .post(`${path}/evaluate/stream`, async function* ({ body, request }) {
+      const input = toRAGEvaluationInput(body);
+      if (!input) {
+        yield {
+          data: JSON.stringify({
+            error:
+              "Expected payload shape: { cases: [{ id, query, expectedChunkIds|expectedSources|expectedDocumentIds }] }",
+          }),
+          event: "error",
+        };
+
+        return;
+      }
+
+      const accessScope = await loadAccessScope(request);
+      for (const evaluationCase of input.cases) {
+        if (
+          (evaluationCase.corpusKey &&
+            !matchesAccessScope(accessScope, {
+              corpusKey: evaluationCase.corpusKey,
+            })) ||
+          (evaluationCase.expectedDocumentIds ?? []).some(
+            (documentId) => !matchesAccessScope(accessScope, { documentId }),
+          ) ||
+          (evaluationCase.expectedSources ?? []).some(
+            (source) => !matchesAccessScope(accessScope, { source }),
+          )
+        ) {
+          yield {
+            data: JSON.stringify({
+              error: "Evaluation case is outside the allowed RAG access scope",
+            }),
+            event: "error",
+          };
+
+          return;
+        }
+      }
+
+      const collection = resolveCollection();
+      if (!collection) {
+        yield {
+          data: JSON.stringify({ error: "RAG collection is not configured" }),
+          event: "error",
+        };
+
+        return;
+      }
+
+      yield {
+        data: JSON.stringify({ total: input.cases.length }),
+        event: "start",
+      };
+
+      const pending: Array<{
+        caseIndex: number;
+        total: number;
+        caseResult: RAGEvaluationCaseResult;
+      }> = [];
+      let resolveNext: (() => void) | null = null;
+      let finished = false;
+      const wake = () => {
+        const resolve = resolveNext;
+        resolveNext = null;
+        resolve?.();
+      };
+
+      const resultPromise = evaluateRAGCollection({
+        collection,
+        defaultTopK: topK,
+        input,
+        onCaseSettled: (event) => {
+          pending.push(event);
+          wake();
+        },
+      }).finally(() => {
+        finished = true;
+        wake();
+      });
+
+      while (true) {
+        while (pending.length > 0) {
+          yield { data: JSON.stringify(pending.shift()), event: "case" };
+        }
+        if (finished) {
+          break;
+        }
+        // eslint-disable-next-line no-await-in-loop
+        await new Promise<void>((resolve) => {
+          resolveNext = resolve;
+        });
+      }
+
+      try {
+        const result = await resultPromise;
+        yield { data: JSON.stringify(result), event: "result" };
+      } catch (caught) {
+        yield {
+          data: JSON.stringify({
+            error: caught instanceof Error ? caught.message : String(caught),
+          }),
+          event: "error",
+        };
+      }
     })
     .get(`${path}/status`, async ({ request }) => {
       const result = await handleStatus(request);

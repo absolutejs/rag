@@ -4,6 +4,7 @@ import type {
   RAGBackendMaintenanceRecommendation,
   RAGBackendMaintenanceSummary,
   RAGDocumentChunksResponse,
+  RAGEvaluationCaseResult,
   RAGEvaluationInput,
   RAGEvaluationResponse,
   RAGRetrievalBaselineListResponse,
@@ -317,6 +318,98 @@ export const createRAGClient = (options: RAGClientOptions) => {
       }
 
       return parseJson<RAGEvaluationResponse>(response);
+    },
+    async evaluateStream(
+      input: RAGEvaluationInput,
+      options?: {
+        onStart?: (event: { total: number }) => void;
+        onCase?: (event: {
+          caseIndex: number;
+          total: number;
+          caseResult: RAGEvaluationCaseResult;
+        }) => void;
+        signal?: AbortSignal;
+      },
+    ): Promise<RAGEvaluationResponse> {
+      const response = await fetchImpl(`${basePath}/evaluate/stream`, {
+        body: JSON.stringify(input),
+        headers: jsonHeaders,
+        method: "POST",
+        signal: options?.signal,
+      });
+
+      if (!response.ok || !response.body) {
+        throw new Error(await toErrorMessage(response));
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let result: RAGEvaluationResponse | null = null;
+      let streamError: string | null = null;
+
+      const handleEvent = (rawEvent: string) => {
+        let eventName = "message";
+        const dataLines: string[] = [];
+        for (const line of rawEvent.split("\n")) {
+          if (line.startsWith("event:")) {
+            eventName = line.slice("event:".length).trim();
+          } else if (line.startsWith("data:")) {
+            dataLines.push(line.slice("data:".length).trim());
+          }
+        }
+        if (dataLines.length === 0) {
+          return;
+        }
+        const payload = JSON.parse(dataLines.join("\n")) as unknown;
+        if (eventName === "start") {
+          options?.onStart?.(payload as { total: number });
+        } else if (eventName === "case") {
+          options?.onCase?.(
+            payload as {
+              caseIndex: number;
+              total: number;
+              caseResult: RAGEvaluationCaseResult;
+            },
+          );
+        } else if (eventName === "result") {
+          result = payload as RAGEvaluationResponse;
+        } else if (eventName === "error") {
+          streamError =
+            (payload as { error?: string }).error ??
+            "RAG evaluation stream failed";
+        }
+      };
+
+      for (;;) {
+        // eslint-disable-next-line no-await-in-loop
+        const { done, value } = await reader.read();
+        if (done) {
+          break;
+        }
+        buffer += decoder.decode(value, { stream: true });
+        let separator = buffer.indexOf("\n\n");
+        while (separator !== -1) {
+          const rawEvent = buffer.slice(0, separator);
+          buffer = buffer.slice(separator + 2);
+          if (rawEvent.trim().length > 0) {
+            handleEvent(rawEvent);
+          }
+          separator = buffer.indexOf("\n\n");
+        }
+      }
+      if (buffer.trim().length > 0) {
+        handleEvent(buffer);
+      }
+
+      if (streamError) {
+        throw new Error(streamError);
+      }
+      if (!result) {
+        throw new Error("RAG evaluation stream ended without a result");
+      }
+
+      return result;
     },
     async compareRetrievals(input: RAGRetrievalComparisonRequest) {
       const response = await fetchImpl(`${basePath}/compare/retrieval`, {

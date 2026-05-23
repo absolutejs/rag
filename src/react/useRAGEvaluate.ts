@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 import type {
+  RAGEvaluationCaseResult,
   RAGEvaluationInput,
   RAGEvaluationResponse,
   RAGEvaluationSuite,
@@ -22,6 +23,10 @@ export const useRAGEvaluate = (path: string) => {
   );
   const [lastResponse, setLastResponse] =
     useState<RAGEvaluationResponse | null>(null);
+  const [streamProgress, setStreamProgress] = useState<{
+    done: number;
+    total: number;
+  } | null>(null);
 
   const evaluate = useCallback(
     async (input: RAGEvaluationInput) => {
@@ -31,6 +36,50 @@ export const useRAGEvaluate = (path: string) => {
 
       try {
         const response = await client.evaluate(input);
+        setLastResponse(response);
+
+        return response;
+      } catch (caught) {
+        const message =
+          caught instanceof Error ? caught.message : String(caught);
+        setError(message);
+        throw caught;
+      } finally {
+        setIsEvaluating(false);
+      }
+    },
+    [client],
+  );
+
+  const evaluateStream = useCallback(
+    async (
+      input: RAGEvaluationInput,
+      options?: {
+        onCase?: (event: {
+          caseIndex: number;
+          total: number;
+          caseResult: RAGEvaluationCaseResult;
+        }) => void;
+        signal?: AbortSignal;
+      },
+    ) => {
+      setIsEvaluating(true);
+      setError(null);
+      setLastRequest(input);
+      setStreamProgress({ done: 0, total: input.cases.length });
+
+      try {
+        const response = await client.evaluateStream(input, {
+          onCase: (event) => {
+            setStreamProgress((current) => ({
+              done: (current?.done ?? 0) + 1,
+              total: event.total,
+            }));
+            options?.onCase?.(event);
+          },
+          onStart: ({ total }) => setStreamProgress({ done: 0, total }),
+          signal: options?.signal,
+        });
         setLastResponse(response);
 
         return response;
@@ -114,6 +163,7 @@ export const useRAGEvaluate = (path: string) => {
     clearRuns,
     error,
     evaluate,
+    evaluateStream,
     isEvaluating,
     lastRequest,
     lastResponse,
@@ -122,6 +172,7 @@ export const useRAGEvaluate = (path: string) => {
     reset,
     runSuite,
     saveSuite,
+    streamProgress,
     suiteRuns,
     suites,
   };

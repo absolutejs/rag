@@ -2224,12 +2224,18 @@ const evaluateRAGCollectionCases = async ({
   defaultTopK = DEFAULT_TOP_K,
   rerank,
   includeTrace = false,
+  onCaseSettled,
 }: {
   collection: RAGCollection;
   input: RAGEvaluationInput;
   defaultTopK?: number;
   rerank?: RAGRerankerProviderLike;
   includeTrace?: boolean;
+  onCaseSettled?: (event: {
+    caseIndex: number;
+    total: number;
+    caseResult: RAGEvaluationCaseResult;
+  }) => void;
 }): Promise<
   Array<{
     caseResult: RAGEvaluationCaseResult;
@@ -2305,18 +2311,21 @@ const evaluateRAGCollectionCases = async ({
         sources.map((source) => extractExpectedId(source, mode)),
       );
 
+      const caseResult = summarizeRAGEvaluationCase({
+        caseIndex,
+        caseInput: { ...caseInput, topK },
+        elapsedMs,
+        expectedIds,
+        mode,
+        query,
+        retrievedIds,
+        retrievedSources: sources,
+        trace: searchOutcome.trace,
+      });
+      onCaseSettled?.({ caseIndex, caseResult, total: input.cases.length });
+
       return {
-        caseResult: summarizeRAGEvaluationCase({
-          caseIndex,
-          caseInput: { ...caseInput, topK },
-          elapsedMs,
-          expectedIds,
-          mode,
-          query,
-          retrievedIds,
-          retrievedSources: sources,
-          trace: searchOutcome.trace,
-        }),
+        caseResult,
         trace: searchOutcome.trace,
         filter: searchInput.filter,
         retrieval: searchInput.retrieval,
@@ -11237,17 +11246,24 @@ export const evaluateRAGCollection = async ({
   input,
   defaultTopK = DEFAULT_TOP_K,
   rerank,
+  onCaseSettled,
 }: {
   collection: RAGCollection;
   input: RAGEvaluationInput;
   defaultTopK?: number;
   rerank?: RAGRerankerProviderLike;
+  onCaseSettled?: (event: {
+    caseIndex: number;
+    total: number;
+    caseResult: RAGEvaluationCaseResult;
+  }) => void;
 }) => {
   const evaluated = await evaluateRAGCollectionCases({
     collection,
     defaultTopK,
     includeTrace: false,
     input,
+    onCaseSettled,
     rerank,
   });
 
