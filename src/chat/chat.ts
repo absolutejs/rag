@@ -1,4 +1,4 @@
-import { Elysia } from "elysia";
+import { Elysia, sse } from "elysia";
 import {
   HTTP_STATUS_BAD_REQUEST,
   HTTP_STATUS_NOT_FOUND,
@@ -14161,13 +14161,13 @@ export const ragChat = (config: RAGChatPluginConfig) => {
     .post(`${path}/evaluate/stream`, async function* ({ body, request }) {
       const input = toRAGEvaluationInput(body);
       if (!input) {
-        yield {
+        yield sse({
           data: JSON.stringify({
             error:
               "Expected payload shape: { cases: [{ id, query, expectedChunkIds|expectedSources|expectedDocumentIds }] }",
           }),
           event: "error",
-        };
+        });
 
         return;
       }
@@ -14186,12 +14186,12 @@ export const ragChat = (config: RAGChatPluginConfig) => {
             (source) => !matchesAccessScope(accessScope, { source }),
           )
         ) {
-          yield {
+          yield sse({
             data: JSON.stringify({
               error: "Evaluation case is outside the allowed RAG access scope",
             }),
             event: "error",
-          };
+          });
 
           return;
         }
@@ -14199,18 +14199,18 @@ export const ragChat = (config: RAGChatPluginConfig) => {
 
       const collection = resolveCollection();
       if (!collection) {
-        yield {
+        yield sse({
           data: JSON.stringify({ error: "RAG collection is not configured" }),
           event: "error",
-        };
+        });
 
         return;
       }
 
-      yield {
+      yield sse({
         data: JSON.stringify({ total: input.cases.length }),
         event: "start",
-      };
+      });
 
       const pending: Array<{
         caseIndex: number;
@@ -14240,7 +14240,7 @@ export const ragChat = (config: RAGChatPluginConfig) => {
 
       while (true) {
         while (pending.length > 0) {
-          yield { data: JSON.stringify(pending.shift()), event: "case" };
+          yield sse({ data: JSON.stringify(pending.shift()), event: "case" });
         }
         if (finished) {
           break;
@@ -14253,14 +14253,14 @@ export const ragChat = (config: RAGChatPluginConfig) => {
 
       try {
         const result = await resultPromise;
-        yield { data: JSON.stringify(result), event: "result" };
+        yield sse({ data: JSON.stringify(result), event: "result" });
       } catch (caught) {
-        yield {
+        yield sse({
           data: JSON.stringify({
             error: caught instanceof Error ? caught.message : String(caught),
           }),
           event: "error",
-        };
+        });
       }
     })
     .get(`${path}/status`, async ({ request }) => {

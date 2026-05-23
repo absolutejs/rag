@@ -1,6 +1,6 @@
 {
   "name": "@absolutejs/rag",
-  "version": "0.0.18",
+  "version": "0.0.19",
   "description": "Standalone RAG ingestion, sync, retrieval, evaluation, clients, and framework adapters extracted from AbsoluteJS",
   "license": "BSL-1.1",
   "type": "module",
