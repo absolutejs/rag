@@ -10,4 +10,3 @@ export type * from "./presentation";
 export type * from "./providers";
 export type * from "./quality";
 export type * from "./retrieval";
-export type * from "./sync";

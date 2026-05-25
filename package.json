@@ -1,6 +1,6 @@
 {
   "name": "@absolutejs/rag",
-  "version": "0.0.19",
+  "version": "0.0.20",
   "description": "Standalone RAG ingestion, sync, retrieval, evaluation, clients, and framework adapters extracted from AbsoluteJS",
   "license": "BSL-1.1",
   "type": "module",
@@ -14,6 +14,10 @@
     ".": {
       "import": "./dist/index.js",
       "types": "./dist/src/index.d.ts"
+    },
+    "./adapter-kit": {
+      "import": "./dist/adapter-kit/index.js",
+      "types": "./dist/src/adapter-kit/index.d.ts"
     },
     "./client": {
       "import": "./dist/client/index.js",
@@ -49,7 +53,7 @@
     }
   },
   "dependencies": {
-    "@absolutejs/ai": "0.0.5",
+    "@absolutejs/ai": "^0.0.9",
     "@absolutejs/linked-providers": "0.0.2"
   },
   "peerDependencies": {
@@ -106,6 +110,9 @@
   },
   "typesVersions": {
     "*": {
+      "adapter-kit": [
+        "dist/src/adapter-kit/index.d.ts"
+      ],
       "client": [
         "dist/src/client/index.d.ts"
       ],

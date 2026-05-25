@@ -311,12 +311,6 @@ export {
   searchDocuments,
 } from "./retrieval/collection";
 export { createInMemoryRAGStore } from "./adapters/inMemory";
-export { createPostgresRAGStore } from "./adapters/postgres";
-export { createSQLiteRAGStore } from "./adapters/sqlite";
-export {
-  resolveAbsoluteSQLiteVec,
-  resolveAbsoluteSQLiteVecExtensionPath,
-} from "./internal/resolveAbsoluteSQLiteVec";
 export {
   createRAGVector,
   normalizeVector,
@@ -341,10 +335,6 @@ export type {
   OpenAIOCRConfig,
   OpenAITranscriptionConfig,
 } from "../types/providers";
-export type {
-  NativeSQLiteRAGStoreOptions,
-  SQLiteRAGStoreOptions,
-} from "../types/adapters";
 export type {
   AIHTMXRenderConfig,
   RAGAnswerWorkflowState,
