@@ -3,3 +3,6 @@ dist/
 .rag/
 .absolute/
 .DS_Store
+
+# Local absolute dev certs/config
+.absolutejs/

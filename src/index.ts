@@ -311,6 +311,8 @@ export {
   searchDocuments,
 } from "./retrieval/collection";
 export { createInMemoryRAGStore } from "./adapters/inMemory";
+export { createSyncRAGStore } from "./adapters/sync";
+export type { SyncRAGStore } from "./adapters/sync";
 export {
   createRAGVector,
   normalizeVector,
