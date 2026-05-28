@@ -147,7 +147,7 @@ describe("vendor cross-encoder rerankers", () => {
     expect(out.map((r) => r.chunkId)).toEqual(["a"]);
   });
 
-  it("returns empty for no candidates and throws on HTTP error", async () => {
+  it("returns empty for no candidates and includes provider detail on HTTP error", async () => {
     const empty = createCohereRAGReranker({
       apiKey: "key",
       fetch: createFetch({ results: [] }, []),
@@ -156,10 +156,10 @@ describe("vendor cross-encoder rerankers", () => {
 
     const failing = createCohereRAGReranker({
       apiKey: "key",
-      fetch: createFetch({}, [], false),
+      fetch: createFetch({ message: "monthly rerank quota exceeded" }, [], false),
     });
     await expect(failing.rerank(input([candidate("a", "x")]))).rejects.toThrow(
-      /cohere rerank failed/i,
+      /monthly rerank quota exceeded/i,
     );
   });
 

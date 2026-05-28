@@ -41,6 +41,14 @@ const limitCandidates = (input: RAGRerankerInput): RAGQueryResult[] => {
   return input.results.slice(0, Math.max(0, cap));
 };
 
+const readHttpErrorDetail = async (response: Response): Promise<string> => {
+  const text = await response
+    .clone()
+    .text()
+    .catch(() => "");
+  return text.trim();
+};
+
 type HttpCrossEncoderRerankerOptions = {
   config: CrossEncoderRerankerConfig;
   providerName: string;
@@ -81,8 +89,9 @@ const createHttpCrossEncoderReranker = (
         method: "POST",
       });
       if (!response.ok) {
+        const detail = await readHttpErrorDetail(response);
         throw new Error(
-          `${options.providerName} rerank failed: HTTP ${response.status}`,
+          `${options.providerName} rerank failed: HTTP ${response.status}${detail ? `: ${detail}` : ""}`,
         );
       }
       const payload = (await response.json()) as VendorRerankResponse;

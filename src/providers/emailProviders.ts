@@ -192,6 +192,13 @@ type GmailErrorBody = {
   };
 };
 
+type GraphErrorBody = {
+  error?: {
+    code?: string;
+    message?: string;
+  };
+};
+
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const getRetryDelayMs = (response: Response, attempt: number) => {
@@ -236,6 +243,29 @@ const createGmailHttpError = async (label: string, response: Response) => {
   return new Error(
     `${label}: ${response.status} ${response.statusText}${suffix ? ` (${suffix})` : ""}`,
   );
+};
+
+const readGraphErrorDetail = async (response: Response) => {
+  try {
+    const body = (await response.clone().json()) as GraphErrorBody;
+    const parts = [body.error?.code, body.error?.message].filter(
+      (value, index, values): value is string =>
+        typeof value === "string" &&
+        value.length > 0 &&
+        values.indexOf(value) === index,
+    );
+    if (parts.length > 0) {
+      return parts.join(" | ");
+    }
+  } catch {
+    const text = await response
+      .clone()
+      .text()
+      .catch(() => "");
+    return text.trim().length > 0 ? text.trim() : undefined;
+  }
+
+  return undefined;
 };
 
 const fetchGmailWithRetry = async (
@@ -509,8 +539,9 @@ export const createRAGGraphEmailSyncClient = (
       },
     });
     if (!listResponse.ok) {
+      const detail = await readGraphErrorDetail(listResponse);
       throw new Error(
-        `Graph message list failed: ${listResponse.status} ${listResponse.statusText}`,
+        `Graph message list failed: ${listResponse.status} ${listResponse.statusText}${detail ? ` (${detail})` : ""}`,
       );
     }
 

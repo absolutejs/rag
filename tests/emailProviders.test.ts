@@ -494,4 +494,25 @@ describe("RAG email provider adapters", () => {
       to: ["support@example.com"],
     });
   });
+
+  it("includes Microsoft Graph error details on message list failures", async () => {
+    const client = createRAGGraphEmailSyncClient({
+      accessToken: "token",
+      fetch: createFetch(() =>
+        new Response(
+          JSON.stringify({
+            error: {
+              code: "ErrorAccessDenied",
+              message: "Access is denied. Check mailbox permissions.",
+            },
+          }),
+          { status: 403, statusText: "Forbidden" },
+        ),
+      ),
+    });
+
+    await expect(client.listMessages()).rejects.toThrow(
+      /ErrorAccessDenied.*Check mailbox permissions/,
+    );
+  });
 });
