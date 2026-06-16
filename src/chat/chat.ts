@@ -12345,7 +12345,7 @@ export const ragChat = (config: RAGChatPluginConfig) => {
       );
   };
 
-  return new Elysia()
+  const app = new Elysia()
     .ws(path, {
       message: async (ws, raw) => {
         const message = parseAIMessage(raw);
@@ -15130,4 +15130,11 @@ export const ragChat = (config: RAGChatPluginConfig) => {
       return { ok: true };
     })
     .use(htmxRoutes());
+
+  // ragChat mounts chat/SSE/WS routes whose paths are CONFIGURABLE (config.path
+  // → Elysia keys them by `string`) and the htmx branch is a conditional union
+  // — the inferred return both can't be precisely typed and explodes a
+  // consumer's server type. It exposes no global context, so the honest public
+  // type is a base Elysia (routes reached by path at runtime).
+  return app as unknown as Elysia;
 };
