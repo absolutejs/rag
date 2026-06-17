@@ -848,14 +848,14 @@ const resolveTools = (
     ? config.tools(providerName, model)
     : config.tools;
 
-const resolveThinking = (
+const resolveReasoning = (
   config: AIChatPluginConfig,
   providerName: string,
   model: string,
 ) =>
-  typeof config.thinking === "function"
-    ? config.thinking(providerName, model)
-    : config.thinking;
+  typeof config.reasoning === "function"
+    ? config.reasoning(providerName, model)
+    : config.reasoning;
 
 const resolveModel = (
   config: AIChatPluginConfig,
@@ -1970,7 +1970,7 @@ export const ragChat = (config: RAGChatPluginConfig) => {
         provider,
         signal: controller.signal,
         systemPrompt: config.systemPrompt,
-        thinking: resolveThinking(config, providerName, model),
+        reasoning: resolveReasoning(config, providerName, model),
         tools: resolveTools(config, providerName, model),
         onComplete: async (fullResponse, usage) => {
           await appendAssistantMessage(
@@ -12314,7 +12314,7 @@ export const ragChat = (config: RAGChatPluginConfig) => {
               provider,
               signal: controller.signal,
               systemPrompt: config.systemPrompt,
-              thinking: resolveThinking(config, providerName, model),
+              reasoning: resolveReasoning(config, providerName, model),
               tools: resolveTools(config, providerName, model),
               onComplete: async (fullResponse, usage) => {
                 await appendAssistantMessage(
