@@ -105,5 +105,37 @@ roots if needed.
 ## Status log
 
 - 2026-06-17: investigation complete; worktrees created; plan committed (a395080).
-- 2026-06-17: step 1 (closure analysis) DONE — 11 keep / 440 move, validated airtight.
-  Next: step 2 (carve `rag/src/types/rag.ts` with the 440, importing the 11 + `AI*` from ai).
+- 2026-06-17: step 1 (closure analysis) DONE — 11 keep / 440 move (446 incl. non-prefixed
+  CreateRAG*/SQLiteVec*), validated airtight (b970e4a).
+- 2026-06-17: steps 2-4 DONE + VERIFIED.
+  - ai: `types/ai.ts` trimmed 6032→678 lines (61 keep: AI* + 11 RAG + Reasoning*/StreamAI*).
+    ai typechecks clean. Committed in ai worktree `09b1b6d`.
+  - rag: 446 engine types → `types/engine.ts` (NOT `src/types/` — rag uses a root `types/`
+    barrel: `types/index.ts` re-exports per-domain files + `@absolutejs/ai`). Wired
+    `types/index.ts` + `src/index.ts` to re-export `./engine`. Codemod repointed 58 `src/`
+    + 5 `types/` import sites from `@absolutejs/ai` → `./engine`. Committed `df5793f`.
+  - VERIFICATION: typechecked rag against the trimmed ai via a `tsconfig.verify.json` with
+    `paths` mapping `@absolutejs/ai*` → the ai worktree `src/`. Type extraction is CLEAN.
+    (The harness emits ~36 TS6059 "not under rootDir" — pure artifact of mapping paths to
+    ai *source* outside rag's rootDir; gone once ai is consumed as a built/linked package.)
+
+### REMAINING (next session)
+
+- **5 residual real errors — `thinking`→`reasoning` skew in `src/chat/chat.ts`** (lines
+  ~856-858 `config.thinking`, ~1973 + ~12317 `thinking:` in StreamAIOptions). This is the
+  separate **bump rag → ai@0.0.18** step: ai 0.0.18 removed the legacy `thinking` field for
+  the portable `reasoning: ReasoningConfig` knob. Rename `resolveThinking`→`resolveReasoning`,
+  read `config.reasoning`, pass `reasoning:` to streamAI. Verify `AIChatPluginConfig`'s new
+  shape in `ai/types/ai.ts` first. Watch for other renamed/removed types from the 0.0.9→0.0.18
+  jump (e.g. `RAGQueryTransformer`/`RAGReranker`/`RAGStreamStage` appeared then resolved after
+  the types/ repoint — re-verify none are truly gone).
+- **Build/link for a real verify**: `bun link` the ai worktree into rag (replace the cached
+  0.0.9), bump `rag` package.json `@absolutejs/ai` → `0.0.18`, `bun run build` both. The
+  `tsconfig.verify.json` paths-hack was only to confirm the extraction without a publish.
+- **rag-adapters sweep**: `@absolutejs/rag-adapters` (pinecone/postgres/sqlite) likely imports
+  moved RAG types from `@absolutejs/ai` — repoint to `@absolutejs/rag`.
+- **dealroom + consumers**: update `@absolutejs/rag`/`@absolutejs/ai` import surface,
+  typecheck + lint. dealroom canonical clone: `~/onspark/absolutejs/dealroom`.
+- **Release**: version-bump ai then rag (BSL, keep carveout); publish in dep order.
+- Regenerate helpers if needed: `/tmp/dr-migrate/gen-engine.js`, `codemod-rag3.js`,
+  `move-names.json`, `ai-types-backup.ts` (original untrimmed types/ai.ts).
