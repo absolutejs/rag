@@ -1,6 +1,6 @@
 {
   "name": "@absolutejs/rag",
-  "version": "0.0.26",
+  "version": "0.0.27",
   "homepage": "https://github.com/absolutejs/rag",
   "bugs": {
     "url": "https://github.com/absolutejs/rag/issues"
@@ -57,7 +57,7 @@
     }
   },
   "dependencies": {
-    "@absolutejs/ai": "^0.0.9",
+    "@absolutejs/ai": "^0.0.19",
     "@absolutejs/linked-providers": "0.0.2",
     "@absolutejs/sync": "^1.8.1"
   },
