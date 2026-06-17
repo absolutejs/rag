@@ -1,4 +1,9 @@
-import type { AIAttachment, RAGAnswerWorkflowState } from "@absolutejs/ai";
+import type {
+  AIAttachment,
+} from "@absolutejs/ai";
+import type {
+  RAGAnswerWorkflowState,
+} from "../../types/engine";
 import { buildRAGAnswerWorkflowState } from "../presentation/workflowState";
 import { createAIStream } from "@absolutejs/ai/client";
 

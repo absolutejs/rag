@@ -1,5 +1,7 @@
 import { derived, writable } from "svelte/store";
-import type { RAGDocumentChunkPreview } from "@absolutejs/ai";
+import type {
+  RAGDocumentChunkPreview,
+} from "../../types/engine";
 import { createRAGClient } from "../client/ragClient";
 import {
   buildRAGSectionRetrievalDiagnostics,

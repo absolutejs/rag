@@ -1,10 +1,12 @@
 import type {
+  RAGSource,
+} from "@absolutejs/ai";
+import type {
   RAGAdminActionRecord,
   RAGAdminJobRecord,
   RAGBackendCapabilities,
-  RAGSource,
   RAGVectorStoreStatus,
-} from "@absolutejs/ai";
+} from "../../types/engine";
 
 import {
   buildCitationGroups,

@@ -6,7 +6,7 @@ import type {
   RAGAdminJobRecord,
   RAGIngestJobRecord,
   RAGJobStateStore,
-} from "@absolutejs/ai";
+} from "../../types/engine";
 
 const parseJobState = (content: string) => {
   try {

@@ -4,7 +4,7 @@ import type {
   RAGEvaluationResponse,
   RAGEvaluationSuite,
   RAGEvaluationSuiteRun,
-} from "@absolutejs/ai";
+} from "../../types/engine";
 import { createRAGClient } from "../client/ragClient";
 import {
   buildRAGEvaluationLeaderboard,

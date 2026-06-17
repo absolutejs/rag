@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type {
   RAGBackendCapabilities,
   RAGVectorStoreStatus,
-} from "@absolutejs/ai";
+} from "../../types/engine";
 import { createRAGClient } from "../client/ragClient";
 
 export const useRAGStatus = (path: string, autoLoad = true) => {

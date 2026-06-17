@@ -6,7 +6,7 @@ import type {
   RAGEmailSyncListResult,
   RAGEmailSyncMessage,
   RAGGmailLinkedEmailSyncClientOptions,
-} from "@absolutejs/ai";
+} from "../../types/engine";
 import type {
   GmailEmailSyncConfig,
   GraphEmailSyncConfig,

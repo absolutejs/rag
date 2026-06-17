@@ -27,6 +27,14 @@ import type {
 // Re-exported so `@absolutejs/rag/quality` consumers keep these option types.
 export type * from "../../types/quality";
 import type {
+  RAGHybridRetrievalMode,
+  RAGSourceBalanceStrategy,
+  RAGRetrievalTrace,
+  RAGRetrievalTraceStep,
+  RAGRetrievalTraceStage,
+  RAGSource,
+} from "@absolutejs/ai";
+import type {
   RAGAnswerGroundingCaseDifficultyDiffEntry,
   RAGAnswerGroundingCaseDifficultyHistory,
   RAGAnswerGroundingCaseDifficultyHistoryStore,
@@ -80,8 +88,6 @@ import type {
   RAGAnswerGroundingEntityQualitySummary,
   RAGAnswerGroundingEntityQualityView,
   RAGRetrievalTraceSummaryRun,
-  RAGHybridRetrievalMode,
-  RAGSourceBalanceStrategy,
   RAGRetrievalCandidate,
   RAGRetrievalComparison,
   RAGRetrievalBaselineGatePolicy,
@@ -115,11 +121,8 @@ import type {
   RAGRetrievalReleaseIncidentStore,
   RAGRetrievalComparisonRun,
   RAGRetrievalComparisonEntry,
-  RAGRetrievalTrace,
   RAGRetrievalTraceComparisonSummary,
   RAGRetrievalTraceComparisonSummaryDiff,
-  RAGRetrievalTraceStep,
-  RAGRetrievalTraceStage,
   RAGQueryResult,
   RAGTraceSummaryListTrend,
   RAGTraceSummaryTrendDirection,
@@ -149,12 +152,11 @@ import type {
   RAGSearchTraceStats,
   RAGSearchTraceStore,
   RAGRemediationAction,
-  RAGSource,
   RAGCollectionSearchParams,
   RAGSQLiteStoreMigrationInspection,
   RAGSQLiteStoreMigrationIssue,
   RAGSQLiteStoreMigrationResult,
-} from "@absolutejs/ai";
+} from "../../types/engine";
 import { generateId } from "@absolutejs/ai";
 import { buildRAGGroundedAnswer } from "../retrieval/grounding";
 import { buildRAGSourceLabels } from "../presentation/presentation";

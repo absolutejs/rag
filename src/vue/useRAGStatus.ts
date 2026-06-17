@@ -2,7 +2,7 @@ import { onMounted, ref } from "vue";
 import type {
   RAGBackendCapabilities,
   RAGVectorStoreStatus,
-} from "@absolutejs/ai";
+} from "../../types/engine";
 import { createRAGClient } from "../client/ragClient";
 
 export const useRAGStatus = (path: string, autoLoad = true) => {

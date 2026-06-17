@@ -63,7 +63,7 @@ import type {
   RAGIngestDocument,
   RAGSyncSourceRecord,
   RAGUrlSyncSourceOptions,
-} from "@absolutejs/ai";
+} from "../../types/engine";
 import {
   loadRAGDocumentFile,
   loadRAGDocumentFromURL,
@@ -72,7 +72,9 @@ import {
   prepareRAGDocuments,
 } from "../ingestion/ingestion";
 import { createRAGLinkedGmailEmailSyncClient } from "../providers/emailProviders";
-import type { RAGLinkedConnectorSyncSourceOptions } from "@absolutejs/ai";
+import type {
+  RAGLinkedConnectorSyncSourceOptions,
+} from "../../types/engine";
 
 const toSyncError = (caught: unknown) =>
   caught instanceof Error ? caught.message : String(caught);

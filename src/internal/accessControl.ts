@@ -1,7 +1,7 @@
 import type {
   CreateRAGAccessControlOptions,
   RAGChatPluginConfig,
-} from "@absolutejs/ai";
+} from "../../types/engine";
 
 export const createRAGAccessControl = <TContext = unknown>(
   options: CreateRAGAccessControlOptions<TContext>,

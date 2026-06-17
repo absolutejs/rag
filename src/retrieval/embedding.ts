@@ -3,7 +3,7 @@ import type {
   RAGEmbeddingInput,
   RAGEmbeddingProvider,
   RAGEmbeddingProviderLike,
-} from "@absolutejs/ai";
+} from "../../types/engine";
 import type { CreateRAGEmbeddingProviderOptions } from "../../types/retrieval";
 
 const isEmbeddingProvider = (

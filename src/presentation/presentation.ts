@@ -1,9 +1,18 @@
 import type {
+  AIMessage,
+  RAGChunkStructure,
+  RAGRetrievalTraceStep,
+  RAGRetrievalTrace,
+  RAGHybridRetrievalMode,
+  RAGSourceBalanceStrategy,
+  RAGSource,
+  RAGSourceLabels,
+} from "@absolutejs/ai";
+import type {
   RAGAdminActionPresentation,
   RAGAdminActionRecord,
   RAGAdminJobPresentation,
   RAGAdminJobRecord,
-  AIMessage,
   RAGAnswerGroundingCaseSnapshotPresentation,
   RAGAnswerGroundingEvaluationCaseDiff,
   RAGAnswerGroundingEvaluationHistory,
@@ -29,7 +38,6 @@ import type {
   RAGChunkGraphNavigation,
   RAGChunkGraphNode,
   RAGChunkGraphSectionGroup,
-  RAGChunkStructure,
   RAGDocumentChunkPreview,
   RAGLabelValueRow,
   RAGRerankerComparisonEntry,
@@ -40,10 +48,6 @@ import type {
   RAGRetrievalReleaseHistoryRunPresentation,
   RAGRetrievalReleaseTimelineSummary,
   RAGRetrievalTraceHistoryWindow,
-  RAGRetrievalTraceStep,
-  RAGRetrievalTrace,
-  RAGHybridRetrievalMode,
-  RAGSourceBalanceStrategy,
   RAGQualityOverviewPresentation,
   RAGSectionRetrievalDiagnostic,
   RAGEvaluationCaseDiff,
@@ -63,15 +67,13 @@ import type {
   RAGRerankerComparison,
   RAGAnswerWorkflowState,
   RAGRetrievalTracePresentation,
-  RAGSource,
-  RAGSourceLabels,
   RAGSourceGroup,
   RAGSourceSummary,
   RAGSyncOverviewPresentation,
   RAGSyncSourcePresentation,
   RAGSyncSourceRecord,
   RAGSyncSourceRunPresentation,
-} from "@absolutejs/ai";
+} from "../../types/engine";
 import type { RAGStreamProgress } from "../../types/presentation";
 // Re-exported so workflowState (and `@absolutejs/rag/client/ui`) keep this type.
 export type { RAGStreamProgress } from "../../types/presentation";

@@ -1,4 +1,6 @@
-import type { RAGEmbeddingProvider } from "@absolutejs/ai";
+import type {
+  RAGEmbeddingProvider,
+} from "../../types/engine";
 import type {
   GeminiEmbeddingsConfig,
   OllamaEmbeddingsConfig,

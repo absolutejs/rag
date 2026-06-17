@@ -1,5 +1,10 @@
 import { ref } from "vue";
-import type { RAGSearchRequest, RAGSource } from "@absolutejs/ai";
+import type {
+  RAGSource,
+} from "@absolutejs/ai";
+import type {
+  RAGSearchRequest,
+} from "../../types/engine";
 import { createRAGClient } from "../client/ragClient";
 import type { RAGDetailedSearchResponse } from "../../types/client";
 

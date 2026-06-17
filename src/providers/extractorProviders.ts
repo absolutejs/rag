@@ -2,7 +2,7 @@ import type {
   RAGFileExtractionInput,
   RAGMediaTranscriber,
   RAGOCRProvider,
-} from "@absolutejs/ai";
+} from "../../types/engine";
 import type {
   AnthropicOCRConfig,
   GeminiOCRConfig,

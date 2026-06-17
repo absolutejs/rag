@@ -4,7 +4,7 @@ import type {
   RAGDocumentChunk,
   RAGQueryInput,
   RAGUpsertInput,
-} from "@absolutejs/ai";
+} from "./engine";
 
 export type InternalRAGStoredChunk = RAGDocumentChunk & {
   vector: number[];

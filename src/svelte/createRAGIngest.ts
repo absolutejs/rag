@@ -5,7 +5,7 @@ import type {
   RAGDocumentUploadIngestInput,
   RAGDocumentUrlIngestInput,
   RAGIngestResponse,
-} from "@absolutejs/ai";
+} from "../../types/engine";
 import { createRAGClient } from "../client/ragClient";
 
 export const createRAGIngest = (path: string) => {

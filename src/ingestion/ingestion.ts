@@ -40,7 +40,7 @@ import type {
   RAGPDFOCRExtractorOptions,
   RAGOCRProvider,
   RAGPreparedDocument,
-} from "@absolutejs/ai";
+} from "../../types/engine";
 import {
   EXCLUDE_LAST_OFFSET,
   RAG_CHUNK_ID_PAD_LENGTH,

@@ -1,9 +1,11 @@
 import type {
-  RAGHybridFusionMode,
   RAGHybridRetrievalMode,
+} from "@absolutejs/ai";
+import type {
+  RAGHybridFusionMode,
   RAGHybridSearchOptions,
   RAGQueryResult,
-} from "@absolutejs/ai";
+} from "../../types/engine";
 
 const DEFAULT_FUSION_CONSTANT = 60;
 const STOP_WORDS = new Set([

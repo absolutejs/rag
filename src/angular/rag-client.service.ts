@@ -17,7 +17,7 @@ import type {
   RAGRetrievalIncidentRemediationExecutionRequest,
   RAGSearchRequest,
   RAGSyncRunOptions,
-} from "@absolutejs/ai";
+} from "../../types/engine";
 import { createRAGClient } from "../client/ragClient";
 
 @Injectable({ providedIn: "root" })

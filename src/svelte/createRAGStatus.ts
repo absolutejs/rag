@@ -2,7 +2,7 @@ import { writable } from "svelte/store";
 import type {
   RAGBackendCapabilities,
   RAGVectorStoreStatus,
-} from "@absolutejs/ai";
+} from "../../types/engine";
 import { createRAGClient } from "../client/ragClient";
 
 export const createRAGStatus = (path: string, autoLoad = true) => {

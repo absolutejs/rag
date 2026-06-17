@@ -4,14 +4,16 @@
 // createRAGClient>) stays colocated in ragClient.ts.
 
 import type {
+  RAGSource,
+} from "@absolutejs/ai";
+import type {
   RAGBackendMaintenanceRecommendation,
   RAGBackendMaintenanceSummary,
   RAGMutationResponse,
   RAGOperationsResponse,
   RAGSearchResponse,
-  RAGSource,
   RAGStatusResponse,
-} from "@absolutejs/ai";
+} from "./engine";
 
 export type RAGClientOptions = {
   path: string;

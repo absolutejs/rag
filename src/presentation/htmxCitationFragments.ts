@@ -3,7 +3,7 @@ import type {
   RAGGroundingReference,
   RAGSectionRetrievalDiagnostic,
   RAGSourceSummary,
-} from "@absolutejs/ai";
+} from "../../types/engine";
 
 const formatScore = (value: number) =>
   Number.isFinite(value) ? value.toFixed(3) : "0.000";

@@ -12,7 +12,7 @@ import type {
   RAGRerankerProviderLike,
   RAGRetrievalStrategyProviderLike,
   RAGVectorStore,
-} from "@absolutejs/ai";
+} from "./engine";
 
 export type CreateRAGCollectionOptions = {
   store: RAGVectorStore;

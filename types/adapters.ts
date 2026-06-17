@@ -3,7 +3,9 @@
 // adapter packages (@absolutejs/rag-postgres, @absolutejs/rag-sqlite); only the
 // zero-dependency in-memory default store ships with the core.
 
-import type { RAGEmbeddingFunction } from "@absolutejs/ai";
+import type {
+  RAGEmbeddingFunction,
+} from "./engine";
 import type { SyncEngine } from "@absolutejs/sync/engine";
 
 export type InMemoryRAGStoreOptions = {

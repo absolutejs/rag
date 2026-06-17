@@ -1,5 +1,7 @@
 import { useCallback, useMemo, useState } from "react";
-import type { RAGDocumentChunkPreview } from "@absolutejs/ai";
+import type {
+  RAGDocumentChunkPreview,
+} from "../../types/engine";
 import { createRAGClient } from "../client/index";
 import {
   buildRAGSectionRetrievalDiagnostics,

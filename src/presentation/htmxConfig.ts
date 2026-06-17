@@ -1,7 +1,7 @@
 import type {
   RAGHTMXConfig,
   RAGHTMXWorkflowRenderConfig,
-} from "@absolutejs/ai";
+} from "../../types/engine";
 
 export const createRAGHTMXConfig = (config: RAGHTMXConfig) => config;
 

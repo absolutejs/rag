@@ -26,4 +26,6 @@ export type {
   RAGStreamProgress,
   RAGStreamProgressState,
 } from "../presentation/workflowState";
-export type { RAGAnswerWorkflowState } from "@absolutejs/ai";
+export type {
+  RAGAnswerWorkflowState,
+} from "../../types/engine";

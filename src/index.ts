@@ -493,5 +493,6 @@ export type {
   RAGSearchTraceRetentionSchedule,
   RAGSearchTraceStats,
   RAGSearchTraceStatsResponse,
-} from "@absolutejs/ai";
+} from "../types/engine";
 export type * from "@absolutejs/ai";
+export type * from "../types/engine";

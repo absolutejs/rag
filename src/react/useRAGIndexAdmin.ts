@@ -5,7 +5,7 @@ import type {
   RAGMutationResponse,
   RAGSyncResponse,
   RAGSyncRunOptions,
-} from "@absolutejs/ai";
+} from "../../types/engine";
 import { createRAGClient } from "../client/index";
 
 export const useRAGIndexAdmin = (path: string) => {

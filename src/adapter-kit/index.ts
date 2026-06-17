@@ -32,4 +32,4 @@ export type {
   RAGVectorStore,
   RAGVectorStoreStatus,
   SQLiteVecResolution,
-} from "@absolutejs/ai";
+} from "../../types/engine";

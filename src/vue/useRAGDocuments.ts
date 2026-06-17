@@ -1,5 +1,8 @@
 import { ref } from "vue";
-import type { RAGDocumentsResponse, RAGIndexedDocument } from "@absolutejs/ai";
+import type {
+  RAGDocumentsResponse,
+  RAGIndexedDocument,
+} from "../../types/engine";
 import { createRAGClient } from "../client/ragClient";
 
 export const useRAGDocuments = (path: string) => {

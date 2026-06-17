@@ -3,7 +3,7 @@ import type {
   RAGRerankerInput,
   RAGRerankerProvider,
   RAGRerankerProviderLike,
-} from "@absolutejs/ai";
+} from "../../types/engine";
 import type {
   CreateRAGRerankerOptions,
   HeuristicRAGRerankerOptions,

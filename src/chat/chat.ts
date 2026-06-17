@@ -11,6 +11,10 @@ import type {
   AIConversationStore,
   AIMessage,
   AIUsage,
+  RAGRetrievalTrace,
+  RAGSource,
+} from "@absolutejs/ai";
+import type {
   RAGEvaluationCaseResult,
   RAGEvaluationInput,
   RAGEvaluationResponse,
@@ -94,7 +98,6 @@ import type {
   RAGRetrievalPromotionCandidate,
   RAGRetrievalPromotionCandidateListResponse,
   RAGRetrievalReleaseDecisionListResponse,
-  RAGRetrievalTrace,
   RAGRetrievalComparisonResponse,
   RAGRetrievalComparisonDecisionDelta,
   RAGRetrievalComparisonHistoryResponse,
@@ -112,9 +115,8 @@ import type {
   RAGSearchTraceHistoryResponse,
   RAGCollectionSearchParams,
   RAGSyncResponse,
-  RAGSource,
   RAGVectorStoreStatus,
-} from "@absolutejs/ai";
+} from "../../types/engine";
 import { createMemoryStore } from "@absolutejs/ai";
 import { generateId, parseAIMessage } from "@absolutejs/ai";
 import { streamAI } from "@absolutejs/ai";

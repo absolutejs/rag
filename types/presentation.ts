@@ -4,9 +4,11 @@
 
 import type {
   AIMessage,
+} from "@absolutejs/ai";
+import type {
   RAGHTMXWorkflowRenderConfig,
   RAGStreamStage,
-} from "@absolutejs/ai";
+} from "./engine";
 
 export type RAGStreamProgress = {
   stage: RAGStreamStage;

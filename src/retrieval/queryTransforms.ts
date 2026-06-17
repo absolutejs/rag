@@ -3,7 +3,7 @@ import type {
   RAGQueryTransformProvider,
   RAGQueryTransformProviderLike,
   RAGQueryTransformResult,
-} from "@absolutejs/ai";
+} from "../../types/engine";
 import type {
   CreateRAGQueryTransformOptions,
   HeuristicRAGQueryTransformOptions,

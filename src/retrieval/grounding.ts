@@ -1,4 +1,7 @@
 import type {
+  RAGSource,
+} from "@absolutejs/ai";
+import type {
   RAGCitation,
   RAGCitationReferenceMap,
   RAGExcerptModeCounts,
@@ -6,8 +9,7 @@ import type {
   RAGGroundedAnswerCitationDetail,
   RAGGroundedAnswerSectionSummary,
   RAGGroundingReference,
-  RAGSource,
-} from "@absolutejs/ai";
+} from "../../types/engine";
 
 const getContextString = (value: unknown) =>
   typeof value === "string" && value.trim().length > 0

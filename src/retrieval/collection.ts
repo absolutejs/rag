@@ -1,7 +1,9 @@
 import type {
+  RAGHybridRetrievalMode,
+} from "@absolutejs/ai";
+import type {
   RAGCollection,
   RAGCollectionSearchResult,
-  RAGHybridRetrievalMode,
   RAGCollectionSearchParams,
   RAGDocumentChunk,
   RAGNativeQueryProfile,
@@ -14,7 +16,7 @@ import type {
   RAGRetrievalStrategyProviderLike,
   RAGUpsertInput,
   RAGVectorStore,
-} from "@absolutejs/ai";
+} from "../../types/engine";
 import type { CreateRAGCollectionOptions } from "../../types/retrieval";
 import { fuseRAGQueryResults, resolveRAGHybridSearchOptions } from "./lexical";
 import {

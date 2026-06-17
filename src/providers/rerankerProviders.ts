@@ -2,7 +2,7 @@ import type {
   RAGQueryResult,
   RAGRerankerInput,
   RAGRerankerProvider,
-} from "@absolutejs/ai";
+} from "../../types/engine";
 import type { CrossEncoderRerankerConfig } from "../../types/providers";
 
 /** A vendor rerank API response row: an index into the submitted documents + a score. */

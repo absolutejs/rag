@@ -1,4 +1,8 @@
 import type {
+  RAGChunkStructure,
+  RAGSource,
+} from "@absolutejs/ai";
+import type {
   RAGAdminActionRecord,
   RAGAdminJobRecord,
   RAGAdaptiveNativePlannerBenchmarkResponse,
@@ -8,7 +12,6 @@ import type {
   RAGEvaluationSummary,
   RAGBackendCapabilities,
   RAGExcerptSelection,
-  RAGChunkStructure,
   RAGDocumentChunkPreview,
   RAGDocumentSummary,
   RAGHTMXWorkflowRenderConfig,
@@ -23,9 +26,8 @@ import type {
   RAGMutationResponse,
   RAGOperationsResponse,
   RAGSearchResponse,
-  RAGSource,
   RAGVectorStoreStatus,
-} from "@absolutejs/ai";
+} from "../../types/engine";
 import type { ResolvedRAGWorkflowRenderers } from "../../types/presentation";
 import { RAG_SEARCH_SCORE_DECIMAL_PLACES } from "../internal/constants";
 import {

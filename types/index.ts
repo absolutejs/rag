@@ -3,6 +3,7 @@
 // ReturnType-derived results stay colocated with their implementations.
 
 export type * from "@absolutejs/ai";
+export type * from "./engine";
 export type * from "./adapters";
 export type * from "./client";
 export type * from "./core";

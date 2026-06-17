@@ -1,7 +1,7 @@
 import type {
   RAGRetrievalStrategyProvider,
   RAGRetrievalStrategyInput,
-} from "@absolutejs/ai";
+} from "../../types/engine";
 import type { HeuristicRAGRetrievalStrategyOptions } from "../../types/retrieval";
 
 const tokenize = (value: string) =>

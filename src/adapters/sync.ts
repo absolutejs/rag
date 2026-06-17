@@ -16,7 +16,7 @@ import type {
   RAGVectorDeleteInput,
   RAGVectorStore,
   RAGVectorStoreStatus,
-} from "@absolutejs/ai";
+} from "../../types/engine";
 import { RAG_VECTOR_DIMENSIONS_DEFAULT } from "../constants";
 import type { SyncRAGStoreOptions } from "../../types/adapters";
 import { createRAGVector, normalizeVector, querySimilarity } from "./utils";

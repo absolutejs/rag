@@ -1,4 +1,7 @@
 import type {
+  RAGSource,
+} from "@absolutejs/ai";
+import type {
   RAGAdminCapabilities,
   RAGBackendsResponse,
   RAGBackendMaintenanceRecommendation,
@@ -64,11 +67,10 @@ import type {
   RAGSearchTraceGroupHistoryResponse,
   RAGSearchTraceHistoryResponse,
   RAGSearchTraceStatsResponse,
-  RAGSource,
   RAGStatusResponse,
   RAGSyncRunOptions,
   RAGSyncResponse,
-} from "@absolutejs/ai";
+} from "../../types/engine";
 import type {
   RAGClientOptions,
   RAGDetailedSearchResponse,

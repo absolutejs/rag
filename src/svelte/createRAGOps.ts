@@ -12,7 +12,7 @@ import type {
   RAGOperationsResponse,
   RAGSyncSourceRecord,
   RAGVectorStoreStatus,
-} from "@absolutejs/ai";
+} from "../../types/engine";
 import { createRAGClient } from "../client/ragClient";
 
 export const createRAGOps = (path: string, autoLoad = true) => {

@@ -8,7 +8,7 @@ import type {
   RAGUpsertInput,
   RAGVectorStore,
   RAGVectorStoreStatus,
-} from "@absolutejs/ai";
+} from "../../types/engine";
 import { RAG_VECTOR_DIMENSIONS_DEFAULT } from "../constants";
 import type { InMemoryRAGStoreOptions } from "../../types/adapters";
 import { matchesMetadataFilterRecord } from "./filtering";

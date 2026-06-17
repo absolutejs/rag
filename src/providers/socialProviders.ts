@@ -1,4 +1,7 @@
-import type { RAGConnectorItem, RAGConnectorRuntime } from "@absolutejs/ai";
+import type {
+  RAGConnectorItem,
+  RAGConnectorRuntime,
+} from "../../types/engine";
 
 const defaultFetch = Object.assign(
   (...args: Parameters<typeof fetch>) => fetch(...args),

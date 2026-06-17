@@ -1,5 +1,8 @@
 import { useCallback, useMemo, useState } from "react";
-import type { RAGDocumentsResponse, RAGIndexedDocument } from "@absolutejs/ai";
+import type {
+  RAGDocumentsResponse,
+  RAGIndexedDocument,
+} from "../../types/engine";
 import { createRAGClient } from "../client/index";
 
 export const useRAGDocuments = (path: string) => {

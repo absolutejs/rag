@@ -1,4 +1,6 @@
-import type { RAGQueryResult } from "@absolutejs/ai";
+import type {
+  RAGQueryResult,
+} from "../../types/engine";
 
 const getContextNumber = (value: unknown) =>
   typeof value === "number" && Number.isFinite(value) ? value : undefined;
