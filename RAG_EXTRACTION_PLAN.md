@@ -85,7 +85,25 @@ the cached `0.0.9`. Do NOT point the main trees at the worktree.
 - **rag-adapters** — `@absolutejs/rag-adapters` (pinecone/postgres/sqlite) may also import
   RAG types from ai; include it in the rewire sweep.
 
+## Closure analysis result (step 1, DONE 2026-06-17)
+
+`ai/src` imports exactly TWO RAG types directly: `RAGSource`, `RAGRetrievalTrace` (verified
+across all of `ai/src`). Transitive closure over `ai/types/ai.ts` from those two roots =
+**11 types that MUST stay in `ai`** (0 non-RAG deps — clean):
+
+```
+RAGChunkSection, RAGChunkSequence, RAGChunkStructure, RAGDiversityStrategy,
+RAGHybridRetrievalMode, RAGRetrievalTrace, RAGRetrievalTraceStage, RAGRetrievalTraceStep,
+RAGSource, RAGSourceBalanceStrategy, RAGSourceLabels
+```
+
+**→ Keep 11 in `ai`, move the other 440 RAG decls to `rag`.** No circular-dependency risk
+once those 11 remain. (Re-run the closure script before the move in case `ai/src` grows new
+RAG usage.) Closure script lives in this commit's shell history / regenerate from the two
+roots if needed.
+
 ## Status log
 
-- 2026-06-17: investigation complete, worktrees created, this plan committed. No code moved
-  yet. Next: step 1 (closure analysis).
+- 2026-06-17: investigation complete; worktrees created; plan committed (a395080).
+- 2026-06-17: step 1 (closure analysis) DONE — 11 keep / 440 move, validated airtight.
+  Next: step 2 (carve `rag/src/types/rag.ts` with the 440, importing the 11 + `AI*` from ai).
