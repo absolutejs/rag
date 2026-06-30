@@ -360,10 +360,20 @@ export type RAGDocumentChunkEmbeddingVariant = {
   embedding?: number[];
 };
 
+export type RAGEmbeddingKind = "query" | "passage";
+
 export type RAGEmbeddingInput = {
   text: string;
   model?: string;
   signal?: AbortSignal;
+  /**
+   * Asymmetric-embedding hint for providers that distinguish how the input is
+   * used (e.g. Pinecone Inference `input_type`, Cohere `input_type`, voyage
+   * `input_type`). The collection passes `"query"` when embedding a search
+   * query and `"passage"` when embedding a chunk/document for ingestion.
+   * Providers that do not support asymmetric embedding ignore this field.
+   */
+  kind?: RAGEmbeddingKind;
 };
 
 export type RAGEmbeddingFunction = (
@@ -5151,6 +5161,75 @@ export type RAGRetrievalComparisonRuntime = {
   relatedPruneRun?: RAGSearchTracePruneRun;
 };
 
+export type RAGIngestSourceInput = {
+  /**
+   * Stable identifier the consumer owns for this document/source. All chunk ids
+   * are derived deterministically from it (`${sourceId}#${index}`) and it is
+   * stamped into every chunk's metadata as `sourceId`, so the whole set can be
+   * deleted or replaced later without the consumer tracking individual ids.
+   */
+  sourceId: string;
+  /** Ingest from in-memory file bytes (any extractor-supported type). */
+  upload?: RAGDocumentUploadInput;
+  /** Ingest from a URL (fetched + extracted by content type). */
+  url?: RAGDocumentUrlInput;
+  /** Ingest from an already-extracted text document. */
+  document?: RAGIngestDocument;
+  /** Extra metadata merged into every chunk (alongside `sourceId`). */
+  metadata?: Record<string, unknown>;
+  /** Chunking options applied to this source. */
+  chunking?: RAGChunkingOptions;
+  chunkingRegistry?: RAGChunkingRegistryLike;
+  /** Custom file extractors (for upload/url ingest). */
+  extractors?: RAGFileExtractor[];
+  extractorRegistry?: RAGFileExtractorRegistryLike;
+  /**
+   * Override the embedding `kind` used for the chunks. Defaults to `"passage"`
+   * so asymmetric embedders index document text with the document/passage
+   * embedding while search continues to use the query embedding.
+   */
+  embedKind?: RAGEmbeddingKind;
+  /**
+   * Whether to remove any existing chunks for this sourceId before ingesting
+   * (idempotent replace). Defaults to `true`.
+   */
+  replace?: boolean;
+  /**
+   * Chunk count from a prior ingest of this sourceId. Used when replacing on
+   * stores that cannot metadata-filter-delete, so the previous deterministic id
+   * set is removed even if the new ingest produces fewer chunks.
+   */
+  previousChunkCount?: number;
+};
+
+export type RAGIngestSourceResult = {
+  sourceId: string;
+  chunkCount: number;
+  chunkIds: string[];
+};
+
+export type RAGRemoveSourceInput = {
+  sourceId: string;
+  /**
+   * Number of chunks the source produced (from `RAGIngestSourceResult`).
+   * Required to delete by deterministic id on stores that cannot
+   * metadata-filter-delete (e.g. Pinecone serverless).
+   */
+  chunkCount?: number;
+  /** Explicit chunk ids to delete (takes precedence over `chunkCount`). */
+  chunkIds?: string[];
+  /**
+   * Also issue a metadata-filter delete on `{ sourceId }`. Defaults to `true`;
+   * harmless (and cheap) on filter-capable stores, ignored when unsupported.
+   */
+  filterDelete?: boolean;
+};
+
+export type RAGRemoveSourceResult = {
+  sourceId: string;
+  deleted: number;
+};
+
 export type RAGCollection = {
   store: RAGVectorStore;
   search: (input: RAGCollectionSearchParams) => Promise<RAGQueryResult[]>;
@@ -5158,6 +5237,14 @@ export type RAGCollection = {
     input: RAGCollectionSearchParams,
   ) => Promise<RAGCollectionSearchResult>;
   ingest: (input: RAGUpsertInput) => Promise<void>;
+  /**
+   * Ingest a single document as a tracked source: extract → chunk → embed with
+   * the passage/document kind → upsert with deterministic, source-derived chunk
+   * ids. Returns the ids/count so the set is deletable via `removeSource`.
+   */
+  ingestSource: (input: RAGIngestSourceInput) => Promise<RAGIngestSourceResult>;
+  /** Delete every chunk previously ingested under `sourceId`. */
+  removeSource: (input: RAGRemoveSourceInput) => Promise<RAGRemoveSourceResult>;
   clear?: () => Promise<void> | void;
   getStatus?: () => RAGVectorStoreStatus;
   getCapabilities?: () => RAGBackendCapabilities;

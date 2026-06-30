@@ -10,9 +10,14 @@ import type {
   RAGRerankerProviderLike,
   RAGDocumentIngestInput,
   RAGEmbeddingInput,
+  RAGEmbeddingKind,
   RAGEmbeddingProviderLike,
+  RAGIngestSourceInput,
+  RAGIngestSourceResult,
   RAGQueryResult,
   RAGQueryTransformProviderLike,
+  RAGRemoveSourceInput,
+  RAGRemoveSourceResult,
   RAGRetrievalStrategyProviderLike,
   RAGUpsertInput,
   RAGVectorStore,
@@ -28,7 +33,11 @@ import {
   resolveRAGEmbeddingProvider,
   validateRAGEmbeddingDimensions,
 } from "./embedding";
-import { buildRAGUpsertInputFromDocuments } from "../ingestion/ingestion";
+import {
+  buildRAGUpsertInputFromDocuments,
+  buildRAGUpsertInputFromUploads,
+  buildRAGUpsertInputFromURLs,
+} from "../ingestion/ingestion";
 
 const DEFAULT_TOP_K = 6;
 const AUTO_BALANCED_NATIVE_ROW_ESTIMATE = 5_000;
@@ -1960,7 +1969,10 @@ export const createRAGCollection = (
     input: RAGEmbeddingInput,
     context: "query" | "chunk",
   ) => {
-    const vector = await embeddingProvider.embed(input);
+    const vector = await embeddingProvider.embed({
+      ...input,
+      kind: input.kind ?? (context === "query" ? "query" : "passage"),
+    });
     validateRAGEmbeddingDimensions(vector, getExpectedDimensions(), context);
 
     return vector;
@@ -2570,6 +2582,155 @@ export const createRAGCollection = (
     await options.store.upsert({ chunks });
   };
 
+  const buildSourceUpsertInput = async (
+    sourceId: string,
+    input: RAGIngestSourceInput,
+  ): Promise<RAGUpsertInput> => {
+    const sharedMetadata = input.metadata;
+    if (input.document) {
+      return buildRAGUpsertInputFromDocuments({
+        chunkingRegistry: input.chunkingRegistry,
+        defaultChunking: input.chunking,
+        documents: [
+          {
+            ...input.document,
+            chunking: input.document.chunking ?? input.chunking,
+            metadata: { ...(input.document.metadata ?? {}), ...sharedMetadata },
+            source: input.document.source ?? sourceId,
+          },
+        ],
+      });
+    }
+    if (input.upload) {
+      return buildRAGUpsertInputFromUploads({
+        chunkingRegistry: input.chunkingRegistry,
+        extractorRegistry: input.extractorRegistry,
+        extractors: input.extractors,
+        uploads: [
+          {
+            ...input.upload,
+            chunking: input.upload.chunking ?? input.chunking,
+            metadata: { ...(input.upload.metadata ?? {}), ...sharedMetadata },
+            source: input.upload.source ?? sourceId,
+          },
+        ],
+      });
+    }
+    if (input.url) {
+      return buildRAGUpsertInputFromURLs({
+        chunkingRegistry: input.chunkingRegistry,
+        extractorRegistry: input.extractorRegistry,
+        extractors: input.extractors,
+        urls: [
+          {
+            ...input.url,
+            chunking: input.url.chunking ?? input.chunking,
+            extractorRegistry:
+              input.url.extractorRegistry ?? input.extractorRegistry,
+            extractors: input.url.extractors ?? input.extractors,
+            metadata: { ...(input.url.metadata ?? {}), ...sharedMetadata },
+            source: input.url.source ?? sourceId,
+          },
+        ],
+      });
+    }
+
+    throw new Error(
+      "ingestSource requires one of upload, url, or document to be provided.",
+    );
+  };
+
+  const removeSource = async (
+    input: RAGRemoveSourceInput,
+  ): Promise<RAGRemoveSourceResult> => {
+    const sourceId = input.sourceId?.trim();
+    if (!sourceId) {
+      throw new Error("removeSource requires a non-empty sourceId.");
+    }
+    const deleteFromStore = options.store.delete;
+    if (typeof deleteFromStore !== "function") {
+      throw new Error(
+        "removeSource requires a store that implements delete().",
+      );
+    }
+
+    let deleted = 0;
+    const chunkIds =
+      input.chunkIds ??
+      (typeof input.chunkCount === "number" && input.chunkCount > 0
+        ? Array.from(
+            { length: input.chunkCount },
+            (_unused, index) => `${sourceId}#${index}`,
+          )
+        : undefined);
+    if (chunkIds && chunkIds.length > 0) {
+      deleted += await deleteFromStore({ chunkIds });
+    }
+    if (input.filterDelete !== false) {
+      try {
+        deleted += await deleteFromStore({ filter: { sourceId } });
+      } catch {
+        // Stores that cannot metadata-filter-delete (e.g. Pinecone serverless)
+        // rely on the deterministic id set above; ignore filter-delete failure.
+      }
+    }
+
+    return { deleted, sourceId };
+  };
+
+  const ingestSource = async (
+    input: RAGIngestSourceInput,
+  ): Promise<RAGIngestSourceResult> => {
+    const sourceId = input.sourceId?.trim();
+    if (!sourceId) {
+      throw new Error("ingestSource requires a non-empty sourceId.");
+    }
+
+    if (input.replace !== false) {
+      await removeSource({
+        chunkCount: input.previousChunkCount,
+        sourceId,
+      });
+    }
+
+    const built = await buildSourceUpsertInput(sourceId, input);
+    const embedKind: RAGEmbeddingKind = input.embedKind ?? "passage";
+    const chunks: RAGDocumentChunk[] = await Promise.all(
+      built.chunks.map(async (chunk, index) => {
+        const chunkId = `${sourceId}#${index}`;
+        const embedding =
+          chunk.embedding ??
+          (await embed(
+            {
+              kind: embedKind,
+              model: options.defaultModel,
+              text: chunk.text,
+            },
+            "chunk",
+          ));
+
+        return {
+          ...chunk,
+          chunkId,
+          embedding,
+          metadata: {
+            ...(chunk.metadata ?? {}),
+            sourceId,
+          },
+          source: chunk.source ?? sourceId,
+        };
+      }),
+    );
+
+    await ingest({ chunks });
+
+    return {
+      chunkCount: chunks.length,
+      chunkIds: chunks.map((chunk) => chunk.chunkId),
+      sourceId,
+    };
+  };
+
   return {
     clear:
       typeof options.store.clear === "function"
@@ -2584,6 +2745,8 @@ export const createRAGCollection = (
     search,
     store: options.store,
     ingest,
+    ingestSource,
+    removeSource,
   };
 };
 export const ingestDocuments = async (
@@ -2598,3 +2761,11 @@ export const searchDocuments = async (
   collection: RAGCollection,
   input: RAGCollectionSearchParams,
 ) => collection.search(input);
+export const ingestRAGSource = async (
+  collection: RAGCollection,
+  input: RAGIngestSourceInput,
+) => collection.ingestSource(input);
+export const removeRAGSource = async (
+  collection: RAGCollection,
+  input: RAGRemoveSourceInput,
+) => collection.removeSource(input);

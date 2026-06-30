@@ -308,6 +308,8 @@ export {
   createRAGCollection,
   ingestDocuments,
   ingestRAGDocuments,
+  ingestRAGSource,
+  removeRAGSource,
   searchDocuments,
 } from "./retrieval/collection";
 export { createInMemoryRAGStore } from "./adapters/inMemory";
