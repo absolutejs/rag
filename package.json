@@ -54,12 +54,22 @@
     "./angular": {
       "import": "./dist/angular/index.js",
       "types": "./dist/src/angular/index.d.ts"
-    }
+    },
+    "./manifest": {
+      "import": "./dist/manifest.js",
+      "types": "./dist/src/manifest.d.ts"
+    },
+    "./manifest.json": "./dist/manifest.json"
+  },
+  "absolutejs": {
+    "manifestContract": 1
   },
   "dependencies": {
     "@absolutejs/ai": "^0.0.19",
     "@absolutejs/linked-providers": "0.0.2",
-    "@absolutejs/sync": "^1.8.1"
+    "@absolutejs/manifest": "^0.1.0",
+    "@absolutejs/sync": "^1.8.1",
+    "@sinclair/typebox": "^0.34.0"
   },
   "peerDependencies": {
     "@angular/core": "^21.0.0",
@@ -104,7 +114,7 @@
     "vue": "3.5.27"
   },
   "scripts": {
-    "build": "bun run scripts/build.ts",
+    "build": "bun run scripts/build.ts && absolute-manifest emit",
     "config": "absolute config",
     "typecheck": "tsc --noEmit --project tsconfig.json",
     "lint": "eslint . --max-warnings 0",
@@ -143,6 +153,9 @@
       ],
       "angular": [
         "dist/src/angular/index.d.ts"
+      ],
+      "manifest": [
+        "dist/src/manifest.d.ts"
       ]
     }
   }
