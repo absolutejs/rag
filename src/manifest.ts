@@ -28,7 +28,7 @@ export const manifest = defineManifest<
   CreateRAGCollectionOptions,
   RAGCollection
 >()({
-  contract: 1,
+  contract: 2,
   identity: {
     accent: "#10b981",
     category: "ai",
@@ -352,6 +352,12 @@ export const manifest = defineManifest<
   tools: {
     ingest_status: tool.runtime({
       annotations: { readOnlyHint: true },
+      authorization: {
+        approval: "never",
+        audience: "owner",
+        effects: ["read"],
+        requiredScopes: ["rag:read"],
+      },
       description:
         "Report the vector store backing this collection: backend, vector mode, dimensions, and capabilities (persistence, native vector search, server-side filtering). Not every store reports status.",
       handler: (_input, collection) => {
@@ -368,6 +374,16 @@ export const manifest = defineManifest<
     }),
     ingest_text: tool.runtime({
       annotations: { idempotentHint: true },
+      authorization: {
+        approval: "policy",
+        audience: "owner",
+        destinations: ["configured-embedding-provider", "configured-vector-store"],
+        effects: ["write", "external-network"],
+        idempotency: { mode: "resource" },
+        requiredScopes: ["rag:write"],
+        resource: { idField: "sourceId", type: "rag-source" },
+        reversible: false,
+      },
       description:
         "Add (or replace) one text document in the search index under a stable sourceId. Re-ingesting the same sourceId replaces its previous chunks, so it is safe to repeat.",
       handler: async ({ sourceId, text, title }, collection) => {
@@ -390,6 +406,16 @@ export const manifest = defineManifest<
     }),
     remove_source: tool.runtime({
       annotations: { destructiveHint: true, idempotentHint: true },
+      authorization: {
+        approval: "always",
+        audience: "owner",
+        destinations: ["configured-vector-store"],
+        effects: ["delete", "external-network"],
+        idempotency: { mode: "resource" },
+        requiredScopes: ["rag:delete"],
+        resource: { idField: "sourceId", type: "rag-source" },
+        reversible: false,
+      },
       description:
         "Delete every indexed chunk previously ingested under a sourceId. Removing an unknown sourceId deletes nothing and succeeds.",
       handler: async ({ chunkCount, sourceId }, collection) => {
@@ -412,7 +438,16 @@ export const manifest = defineManifest<
       }),
     }),
     search_content: tool.runtime({
-      annotations: { readOnlyHint: true },
+      annotations: { idempotentHint: true, openWorldHint: true },
+      authorization: {
+        approval: "policy",
+        audience: "owner",
+        destinations: ["configured-embedding-provider", "configured-vector-store"],
+        effects: ["read", "external-network"],
+        idempotency: { mode: "host" },
+        requiredScopes: ["rag:read"],
+        reversible: false,
+      },
       description:
         "Search the indexed content and return the best-matching passages with scores, titles, and sources. Use this to ground answers in the site's own content.",
       handler: async ({ query, scoreThreshold, topK }, collection) => {
