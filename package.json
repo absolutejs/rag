@@ -1,6 +1,6 @@
 {
   "name": "@absolutejs/rag",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "homepage": "https://github.com/absolutejs/rag",
   "bugs": {
     "url": "https://github.com/absolutejs/rag/issues"
@@ -62,10 +62,86 @@
     "./manifest.json": "./dist/manifest.json"
   },
   "absolutejs": {
-    "manifestContract": 2
+    "manifestContract": 2,
+    "runtimePeers": {
+      "@absolutejs/ai": {
+        "artifactImports": [
+          "@absolutejs/ai",
+          "@absolutejs/ai/angular",
+          "@absolutejs/ai/client",
+          "@absolutejs/ai/react",
+          "@absolutejs/ai/vue"
+        ],
+        "artifactReferences": [],
+        "buildExternals": [],
+        "optional": false,
+        "range": ">=0.0.46 <0.1",
+        "tested": "0.0.47"
+      },
+      "@absolutejs/sync": {
+        "artifactImports": [
+          "@absolutejs/sync/engine"
+        ],
+        "artifactReferences": [],
+        "buildExternals": [],
+        "optional": false,
+        "range": ">=2.9.1 <3",
+        "tested": "2.11.0"
+      },
+      "@angular/core": {
+        "artifactImports": [
+          "@angular/core"
+        ],
+        "artifactReferences": [],
+        "buildExternals": [],
+        "optional": true,
+        "range": "^21.0.0",
+        "tested": "21.2.6"
+      },
+      "elysia": {
+        "artifactImports": [
+          "elysia"
+        ],
+        "artifactReferences": [],
+        "buildExternals": [],
+        "optional": false,
+        "range": "^1.4.18",
+        "tested": "1.4.29"
+      },
+      "react": {
+        "artifactImports": [
+          "react"
+        ],
+        "artifactReferences": [],
+        "buildExternals": [],
+        "optional": true,
+        "range": "^19.2.0",
+        "tested": "19.2.1"
+      },
+      "svelte": {
+        "artifactImports": [
+          "svelte/store"
+        ],
+        "artifactReferences": [],
+        "buildExternals": [],
+        "optional": true,
+        "range": "^5.35.2",
+        "tested": "5.55.0"
+      },
+      "vue": {
+        "artifactImports": [
+          "vue"
+        ],
+        "artifactReferences": [],
+        "buildExternals": [],
+        "optional": true,
+        "range": "^3.5.27",
+        "tested": "3.5.27"
+      }
+    }
   },
   "dependencies": {
-    "@absolutejs/manifest": "^0.4.0",
+    "@absolutejs/manifest": "^0.7.2",
     "@sinclair/typebox": "^0.34.0"
   },
   "peerDependencies": {
@@ -92,14 +168,14 @@
     }
   },
   "devDependencies": {
-    "@absolutejs/absolute": "^0.19.0-beta.1051",
-    "@absolutejs/rag-postgres": "0.0.6",
-    "@absolutejs/rag-sqlite": "0.0.6",
-    "@angular/core": "^21.0.0",
+    "@absolutejs/absolute": "0.19.0-beta.1115",
+    "@absolutejs/rag-postgres": "0.0.11",
+    "@absolutejs/rag-sqlite": "0.0.11",
+    "@angular/core": "21.2.6",
     "@eslint/js": "^10.0.1",
-    "@types/bun": "1.3.9",
+    "@types/bun": "1.3.14",
     "@types/react": "19.2.0",
-    "elysia": "1.4.18",
+    "elysia": "1.4.29",
     "eslint": "^10.0.3",
     "eslint-plugin-absolute": "^0.2.6",
     "eslint-plugin-promise": "^7.2.1",
@@ -108,11 +184,11 @@
     "react": "19.2.1",
     "react-dom": "19.2.1",
     "svelte": "5.55.0",
-    "typescript": "^5.9.3",
+    "typescript": "5.9.3",
     "typescript-eslint": "^8.56.1",
     "vue": "3.5.27",
-    "@absolutejs/sync": "2.9.1",
-    "@absolutejs/ai": "0.0.46"
+    "@absolutejs/sync": "2.11.0",
+    "@absolutejs/ai": "0.0.47"
   },
   "scripts": {
     "build": "bun run scripts/build.ts && absolute-manifest emit",
