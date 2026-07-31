@@ -1,6 +1,6 @@
 {
   "name": "@absolutejs/rag",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "homepage": "https://github.com/absolutejs/rag",
   "bugs": {
     "url": "https://github.com/absolutejs/rag/issues"
@@ -197,7 +197,7 @@
     "lint": "eslint . --max-warnings 0",
     "format": "prettier --write .",
     "test": "bun test",
-    "release": "bun publish --access public"
+    "release": "bun run build && bun publish --access public"
   },
   "publishConfig": {
     "access": "public"
