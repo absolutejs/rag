@@ -77,6 +77,7 @@ export {
   createRAGInstagramBusinessConnector,
 } from "./providers/socialProviders";
 export {
+  authoredEmailText,
   buildRAGUpsertInputFromDirectory,
   buildRAGUpsertInputFromDocuments,
   buildRAGUpsertInputFromUploads,

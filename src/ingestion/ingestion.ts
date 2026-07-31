@@ -885,7 +885,7 @@ type StructuredChunkUnit = {
   pdfTableRowCount?: number;
   pdfTableSignature?: string;
   pdfTextKind?: "paragraph" | "table_like";
-  emailSectionKind?: "authored_text" | "forwarded_headers" | "quoted_history";
+  emailSectionKind?: EmailBodySection["kind"];
   emailForwardedBccAddresses?: string[];
   emailForwardedCcAddresses?: string[];
   emailForwardedDate?: string;
@@ -919,7 +919,7 @@ type StructuredChunkUnit = {
 };
 
 type EmailBodySection = {
-  kind: "authored_text" | "forwarded_headers" | "quoted_history";
+  kind: "authored_text" | "forwarded_headers" | "quoted_history" | "signature";
   text: string;
   forwardedHeaderFields?: Record<string, string>;
   forwardedFromAddress?: string;
@@ -2509,6 +2509,8 @@ const emailStructureUnits = (
         return "Forwarded Headers";
       case "quoted_history":
         return "Quoted History";
+      case "signature":
+        return "Signature";
     }
   };
 
@@ -6094,6 +6096,27 @@ const EMAIL_FORWARDED_SEPARATOR_PATTERN =
 const EMAIL_HTML_QUOTE_OPEN_TOKEN = "[[ABS_EMAIL_QUOTE_OPEN]]";
 const EMAIL_HTML_QUOTE_CLOSE_TOKEN = "[[ABS_EMAIL_QUOTE_CLOSE]]";
 
+// Attribution lines that open a quoted reply, across the clients and locales
+// that actually appear in mail. Promoted from a host implementation that had
+// grown these cases in production; the previous single `on .+wrote:` pattern
+// missed the "at <time>" variant, Original Message rules, underscore rules and
+// every non-English client.
+const EMAIL_ATTRIBUTION_PATTERNS = [
+  /^on\s.+\bwrote:$/iu,
+  /^on\s.+\bat\s.+\bwrote:$/iu,
+  /^-+\s*original message\s*-+$/iu,
+  // NB: no "---- Forwarded message ----" rule here. The host implementation
+  // this was promoted from lumped that in with quoted history, but the
+  // forwarded-separator handling below classifies it as forwarded_headers,
+  // which is strictly more precise — claiming it here would regress that.
+  /^_{5,}$/u,
+  /^el\s.+\bescribió:$/iu,
+  /^le\s.+\ba écrit\s*:$/iu,
+];
+
+// RFC 3676 §4.3: a line of exactly "-- " opens the sender's signature block.
+const EMAIL_SIGNATURE_DELIMITER = /^--\s?$/u;
+
 const classifyEmailBodyLine = (
   line: string,
   currentKind?: EmailBodySection["kind"],
@@ -6102,10 +6125,17 @@ const classifyEmailBodyLine = (
   if (!trimmed) {
     return currentKind;
   }
+  // Both are terminal: everything after the delimiter belongs to the block.
+  if (currentKind === "signature") {
+    return "signature";
+  }
+  if (EMAIL_SIGNATURE_DELIMITER.test(line)) {
+    return "signature";
+  }
   if (/^>+/.test(trimmed)) {
     return "quoted_history";
   }
-  if (/^on .+wrote:$/i.test(trimmed)) {
+  if (EMAIL_ATTRIBUTION_PATTERNS.some((pattern) => pattern.test(trimmed))) {
     return "quoted_history";
   }
   if (EMAIL_FORWARDED_SEPARATOR_PATTERN.test(trimmed)) {
@@ -6348,18 +6378,17 @@ const scoreEmailBodyCandidate = (candidate: string | undefined) => {
   }
 
   const sections = parseEmailBodySections(candidate);
-  const structuralScore = sections.reduce((score, section) => {
-    if (section.kind === "forwarded_headers") {
-      return score + 8;
-    }
-    if (section.kind === "quoted_history") {
-      return score + 6 + (section.quotedDepth ?? 0);
-    }
+  // Rank by how much the candidate says that is NEW. This used to be inverted —
+  // +8 per forwarded block and +6 per quoted block against +1 for authored text
+  // — so for multipart/alternative the HTML part, which carries the whole
+  // <blockquote> chain, always beat a clean text/plain part. That is backwards
+  // for retrieval and for an embedding bill: it selected the copy with the most
+  // duplicated history in it.
+  const authoredChars = sections
+    .filter((section) => section.kind === "authored_text")
+    .reduce((total, section) => total + section.text.trim().length, 0);
 
-    return score + 1;
-  }, 0);
-
-  return structuralScore * 10 + Math.min(candidate.length, 5_000) / 100;
+  return authoredChars * 10 + Math.min(candidate.length, 5_000) / 1_000;
 };
 
 const choosePreferredEmailBodyText = (
@@ -6524,6 +6553,31 @@ const parseEmailMimeParts = (
     bodyHtml,
     bodyText,
   };
+};
+
+/**
+ * The part of a mail body that this message ADDS — authored text only, with
+ * quoted history, forwarded headers and the signature block dropped.
+ *
+ * Exposed rather than applied by default, deliberately. The extractor's own
+ * output is a faithful reconstruction of the message (thread lineage and
+ * forwarded chains are built from it), so stripping there would break that
+ * contract. Embedding is the case that wants only the new content: in a thread,
+ * the full text means message N re-embeds the whole of 1..N-1 plus a signature
+ * and a confidentiality footer, every time — quadratic in thread length.
+ *
+ * A message that is nothing but a forward is kept whole rather than reduced to
+ * nothing.
+ */
+export const authoredEmailText = (text: string) => {
+  const authored = parseEmailBodySections(text)
+    .filter((section) => section.kind === "authored_text")
+    .map((section) => section.text.trim())
+    .filter(Boolean)
+    .join("\n\n")
+    .trim();
+
+  return authored || text;
 };
 
 const extractEmailText = (raw: string) => {
