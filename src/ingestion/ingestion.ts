@@ -5784,6 +5784,40 @@ const parseMaildirMetadata = (source: string | undefined) => {
   };
 };
 
+// RFC 2047 encoded-words: =?charset?B|Q?text?=. Undecoded, these poison every
+// header they appear in — subject, display names, and (because threadKey is
+// derived from the subject) thread grouping itself, which is how two unrelated
+// encoded subjects can collide or one thread can split.
+const RFC2047_WORD = /=\?([^?]+)\?([BbQq])\?([^?]*)\?=/g;
+
+const decodeEncodedWord = (charset: string, encoding: string, text: string) => {
+  const bytes =
+    encoding.toUpperCase() === "B"
+      ? Buffer.from(text, "base64")
+      : // Q differs from plain quoted-printable in exactly one way: `_` is a
+        // space. latin1 for the same reason as decodeEmailPartBody.
+        Buffer.from(decodeQuotedPrintable(text.replace(/_/g, " ")), "latin1");
+
+  try {
+    return new TextDecoder(charset.trim().toLowerCase()).decode(bytes);
+  } catch {
+    // Unknown charset — utf8 is the best available guess, and still beats
+    // leaving the raw =?...?= in place.
+    return bytes.toString("utf8");
+  }
+};
+
+const decodeRfc2047 = (value: string) =>
+  value.includes("=?")
+    ? value
+        // Whitespace separating two adjacent encoded-words is not content
+        // (RFC 2047 s6.2), so it must go before decoding splits them apart.
+        .replace(/\?=\s+=\?/g, "?==?")
+        .replace(RFC2047_WORD, (_match, charset: string, enc: string, text: string) =>
+          decodeEncodedWord(charset, enc, text),
+        )
+    : value;
+
 const parseHeaderBlock = (headerBlock: string) => {
   const unfolded = headerBlock.replace(/\n[ \t]+/g, " ");
   const headers = new Map<string, string>();
@@ -5796,7 +5830,7 @@ const parseHeaderBlock = (headerBlock: string) => {
 
     headers.set(
       line.slice(0, separator).trim().toLowerCase(),
-      line.slice(separator + 1).trim(),
+      decodeRfc2047(line.slice(separator + 1).trim()),
     );
   }
 
@@ -5819,7 +5853,11 @@ const decodeEmailPartBody = (body: string, encoding: string | undefined) => {
   }
 
   if (normalizedEncoding === "quoted-printable") {
-    return new Uint8Array(Buffer.from(decodeQuotedPrintable(body), "utf8"));
+    // latin1, NOT utf8. decodeQuotedPrintable turns each =XX into a char whose
+    // code IS that byte, so the string is a byte sequence, not text. Reading it
+    // back as utf8 re-encoded every char above 0x7F a second time: =C3=A9 ("é")
+    // became U+00C3 U+00A9 and embedded as "Ã©".
+    return new Uint8Array(Buffer.from(decodeQuotedPrintable(body), "latin1"));
   }
 
   return new Uint8Array(Buffer.from(body, "utf8"));
@@ -6418,6 +6456,7 @@ const chooseEmailBodyCandidate = (
 const parseEmailMimeParts = (
   body: string,
   contentType: string | undefined,
+  transferEncoding?: string,
 ): {
   bodyHtml?: string;
   bodyText?: string;
@@ -6546,7 +6585,15 @@ const parseEmailMimeParts = (
     }
   };
 
-  collectMimeParts(body, contentType);
+  // A single-part message has no boundary, so its body never reaches the
+  // per-part loop below — which is the ONLY place content-transfer-encoding was
+  // read. A base64 top-level body was therefore embedded as raw base64 text.
+  // Decode it here, where the top-level header is still in scope.
+  const topLevelBody =
+    transferEncoding && !parseMimeBoundary(contentType)
+      ? decodeUtf8(decodeEmailPartBody(body, transferEncoding))
+      : body;
+  collectMimeParts(topLevelBody, contentType);
 
   return {
     attachments,
@@ -6583,7 +6630,11 @@ export const authoredEmailText = (text: string) => {
 const extractEmailText = (raw: string) => {
   const { body, headerBlock } = splitEmailMessage(raw);
   const headers = parseHeaderBlock(headerBlock);
-  const parsed = parseEmailMimeParts(body, headers.get("content-type"));
+  const parsed = parseEmailMimeParts(
+    body,
+    headers.get("content-type"),
+    headers.get("content-transfer-encoding"),
+  );
   const htmlText = parsed.bodyHtml
     ? stripEmailHtml(parsed.bodyHtml)
     : undefined;
@@ -6647,6 +6698,7 @@ const parseEmailHeaders = (raw: string) => {
     ccAddressEntries: ccParsed.entries,
     ccAddresses: ccParsed.addresses,
     contentType: getHeader("Content-Type"),
+    contentTransferEncoding: getHeader("Content-Transfer-Encoding"),
     from,
     fromAddress: fromParsed.addresses[0],
     fromAddressEntries: fromParsed.entries,
@@ -6680,7 +6732,11 @@ const extractEmailDocumentsFromRawMessage = async (
 ) => {
   const headers = parseEmailHeaders(raw);
   const { body } = splitEmailMessage(raw);
-  const parsed = parseEmailMimeParts(body, headers.contentType);
+  const parsed = parseEmailMimeParts(
+    body,
+    headers.contentType,
+    headers.contentTransferEncoding,
+  );
   const source =
     options?.source ??
     input.source ??
@@ -7057,7 +7113,10 @@ const extractEmailDocumentsFromRawMessage = async (
 const normalizeEmailThreadKey = (value: string | undefined) => {
   const normalized = normalizeWhitespace(
     value
-      ?.replace(/^(re|fw|fwd)\s*:\s*/gi, "")
+      // Repeat the anchor: /g does NOT re-apply an ^-anchored pattern, so
+      // "Re: Fwd: Re: Pilot" only lost its first "Re:" and became a different
+      // key from "Pilot" — the same conversation split across several threads.
+      ?.replace(/^(?:(?:re|fw|fwd|aw|sv|vs|antw)\s*:\s*)+/i, "")
       ?.replace(/[<>]/g, "")
       ?.toLowerCase() ?? "",
   );
