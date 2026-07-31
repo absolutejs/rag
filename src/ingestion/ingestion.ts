@@ -9281,8 +9281,16 @@ const sourceAwareUnits = (
   }
 };
 
+// The carry text prepended to the next chunk. Two cases used to return the
+// WHOLE chunk: an overlap of 0 (which must mean "no carry" — chunkSourceAwareUnit
+// passes 0, so every structure-aware chunk carried its full predecessor and the
+// document was embedded ~5x over), and a chunk shorter than the overlap (which
+// then got embedded twice in full).
 const overlapTail = (value: string, overlap: number) => {
-  if (overlap <= 0 || value.length <= overlap) {
+  if (overlap <= 0) {
+    return "";
+  }
+  if (value.length <= overlap) {
     return value;
   }
 
@@ -9303,15 +9311,26 @@ const chunkFromUnits = (
   const appendChunk = (chunk: string) => {
     chunks.push(chunk);
   };
+  // Folding a runt chunk into its predecessor must not push that predecessor
+  // past the limit — the structure-aware path already guards this, this one
+  // did not. Unbounded, it also collapsed everything into a single chunk
+  // whenever maxChunkLength was configured below minChunkLength (80), because
+  // then EVERY chunk counts as small.
   const mergeSmallChunk = (merged: string[], chunk: string) => {
     const last = merged[merged.length - 1];
-    if (!(last && chunk.length < minChunkLength)) {
+    if (last === undefined || chunk.length >= minChunkLength) {
+      merged.push(chunk);
+
+      return;
+    }
+    const candidate = normalizeWhitespace(`${last} ${chunk}`);
+    if (candidate.length > maxChunkLength) {
       merged.push(chunk);
 
       return;
     }
 
-    merged[merged.length - 1] = normalizeWhitespace(`${last} ${chunk}`);
+    merged[merged.length - 1] = candidate;
   };
   const appendUnitToChunk = (trimmed: string) => {
     if (!current) {
@@ -9334,10 +9353,28 @@ const chunkFromUnits = (
     current = carry.length > 0 ? `${carry} ${trimmed}`.trim() : trimmed;
   };
 
+  // A unit can itself exceed maxChunkLength — `paragraphUnits` splits only on
+  // BLANK lines, so a PDF/HTML/Office extraction that emits single-newline line
+  // breaks is one enormous unit, and `appendUnitToChunk` accepted it whole when
+  // `current` was empty. maxChunkLength was silently ignored: a 6,249-char
+  // document produced exactly one 6,249-char chunk, blowing embedding limits
+  // and destroying retrieval granularity. Split oversized units down by
+  // sentence, then by hard slice; both terminate because sentenceUnits returns
+  // a single-element array when it cannot split further.
+  const explodeOversized = (unit: string): string[] => {
+    if (unit.length <= maxChunkLength) return [unit];
+    const sentences = sentenceUnits(unit);
+    if (sentences.length > 1) return sentences.flatMap(explodeOversized);
+
+    return fixedUnits(unit, maxChunkLength);
+  };
+
   for (const unit of units) {
-    const trimmed = unit.trim();
-    if (!trimmed) continue;
-    appendUnitToChunk(trimmed);
+    for (const piece of explodeOversized(unit.trim())) {
+      const trimmed = piece.trim();
+      if (!trimmed) continue;
+      appendUnitToChunk(trimmed);
+    }
   }
 
   if (current) {
