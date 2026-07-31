@@ -9,6 +9,15 @@ export {
   validateRAGEmbeddingDimensions,
 } from "./retrieval/embedding";
 export {
+  embeddingCacheKey,
+  isEmbeddingQuotaError,
+  withEmbeddingBudget,
+  type RAGBudgetedEmbedding,
+  type RAGEmbeddingCache,
+  type RAGEmbeddingHealth,
+  type WithEmbeddingBudgetOptions,
+} from "./retrieval/embeddingBudget";
+export {
   applyRAGReranking,
   createHeuristicRAGReranker,
   createRAGReranker,
