@@ -3818,6 +3818,18 @@ const readUInt32LE = (data: Uint8Array, offset: number) =>
 
 const decodeUtf8 = (data: Uint8Array) => Buffer.from(data).toString("utf8");
 
+/**
+ * Byte-preserving decode: each byte becomes the char with that code.
+ *
+ * A raw message must NOT be read as utf8 before its parts are parsed — a
+ * part declaring iso-8859-1 or shift_jis has already been corrupted into
+ * replacement characters by then, and no later decode can recover it. Holding
+ * the message as latin1 keeps every byte addressable until the part's own
+ * charset is known, at which point decodeWithCharset does the real decode.
+ */
+const decodeLatin1 = (data: Uint8Array) =>
+  Buffer.from(data).toString("latin1");
+
 const isZipData = (data: Uint8Array) =>
   data.length >= 4 &&
   data[0] === 0x50 &&
@@ -5860,7 +5872,35 @@ const decodeEmailPartBody = (body: string, encoding: string | undefined) => {
     return new Uint8Array(Buffer.from(decodeQuotedPrintable(body), "latin1"));
   }
 
-  return new Uint8Array(Buffer.from(body, "utf8"));
+  // latin1 to match decodeLatin1 above: the body string holds bytes, not text,
+  // so utf8 here would re-encode everything above 0x7F a second time.
+  return new Uint8Array(Buffer.from(body, "latin1"));
+};
+
+// Content-Type: text/plain; charset="iso-8859-1"
+const parseMimeCharset = (contentType: string | undefined) =>
+  contentType?.match(/charset\s*=\s*"?([^";\s]+)"?/i)?.[1];
+
+/**
+ * Decode a part's bytes using the charset it DECLARED, not utf8.
+ *
+ * Every part body was read as utf8 regardless, so a Shift-JIS, ISO-8859-1 or
+ * windows-1252 message decoded into replacement characters and mojibake and was
+ * embedded that way — unsearchable, and worse than useless in a vector.
+ * Unknown or unsupported labels fall back to utf8, which is what the code did
+ * unconditionally before, so this can only improve on the previous behaviour.
+ */
+const decodeWithCharset = (data: Uint8Array, contentType: string | undefined) => {
+  const charset = parseMimeCharset(contentType)?.trim().toLowerCase();
+  if (!charset || charset === "utf-8" || charset === "utf8") {
+    return decodeUtf8(data);
+  }
+
+  try {
+    return new TextDecoder(charset).decode(data);
+  } catch {
+    return decodeUtf8(data);
+  }
 };
 
 const parseMimeBoundary = (contentType: string | undefined) => {
@@ -6516,7 +6556,7 @@ const parseEmailMimeParts = (
         disposition?.match(/filename="?([^";]+)"?/i)?.[1] ??
         nestedContentType?.match(/name="?([^";]+)"?/i)?.[1];
       const decodedBytes = decodeEmailPartBody(nestedBody, transferEncoding);
-      const decodedText = Buffer.from(decodedBytes).toString("utf8");
+      const decodedText = decodeWithCharset(decodedBytes, nestedContentType);
       const normalizedContentType = nestedContentType?.toLowerCase() ?? "";
       const isMultipart = normalizedContentType.startsWith("multipart/");
       const isHtml = normalizedContentType.includes("text/html");
@@ -6591,7 +6631,10 @@ const parseEmailMimeParts = (
   // Decode it here, where the top-level header is still in scope.
   const topLevelBody =
     transferEncoding && !parseMimeBoundary(contentType)
-      ? decodeUtf8(decodeEmailPartBody(body, transferEncoding))
+      ? decodeWithCharset(
+          decodeEmailPartBody(body, transferEncoding),
+          contentType,
+        )
       : body;
   collectMimeParts(topLevelBody, contentType);
 
@@ -7735,7 +7778,7 @@ export const createEmailExtractor = (): RAGFileExtractor => ({
     const extension = inferExtensionFromInput(input);
     const emlx =
       extension === ".emlx" ? decodeEmlxMessageData(input.data) : undefined;
-    const raw = emlx?.raw ?? decodeUtf8(input.data);
+    const raw = emlx?.raw ?? decodeLatin1(input.data);
     if (extension === ".emlx") {
       return extractEmailDocumentsFromRawMessage(input, raw, {
         metadata: {
