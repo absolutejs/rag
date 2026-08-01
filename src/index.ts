@@ -508,3 +508,16 @@ export type {
 } from "../types/engine";
 export type * from "@absolutejs/ai";
 export type * from "../types/engine";
+export {
+  corpusTextHash,
+  planRAGCorpus,
+  reconcileRAGCorpus,
+} from "./retrieval/corpus";
+export type {
+  RAGCorpusApply,
+  RAGCorpusDocument,
+  RAGCorpusPlan,
+  RAGCorpusRecord,
+  RAGCorpusResult,
+  RAGCorpusStore,
+} from "./retrieval/corpus";
