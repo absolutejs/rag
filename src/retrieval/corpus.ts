@@ -148,6 +148,17 @@ export type RAGCorpusResult = {
  * ever find. Embedding records its digests after the write for the same reason,
  * so an interrupted run never claims to have embedded something it did not.
  */
+/** Hoisted out of the filter predicate: building the set per document turned a
+ *  full re-embed into an O(n^2) blocking loop on the hottest path there is. */
+const filterToWritten = (
+  planned: RAGCorpusDocument[],
+  written: readonly string[],
+) => {
+  const ids = new Set(written);
+
+  return planned.filter((doc) => ids.has(doc.chunkId));
+};
+
 export const reconcileRAGCorpus = async <Owner = string>(
   store: RAGCorpusStore<Owner>,
   owner: Owner,
@@ -170,7 +181,7 @@ export const reconcileRAGCorpus = async <Owner = string>(
     const written =
       typeof outcome === "number"
         ? plan.embed.slice(0, Math.max(0, Math.min(outcome, plan.embed.length)))
-        : plan.embed.filter((doc) => new Set(outcome).has(doc.chunkId));
+        : filterToWritten(plan.embed, outcome);
     embedded = written.length;
     if (written.length > 0) {
       await store.remember(
