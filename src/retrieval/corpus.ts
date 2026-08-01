@@ -111,8 +111,23 @@ export const planRAGCorpus = async <Owner = string>(
 };
 
 export type RAGCorpusApply<Owner = string> = {
-  /** Embed + upsert these chunks. Returns how many were written. */
-  embed: (docs: RAGCorpusDocument[], owner: Owner) => Promise<number> | number;
+  /**
+   * Embed + upsert these chunks.
+   *
+   * Return a COUNT only when the whole plan was written — the count is then
+   * taken at its word and every planned chunk is recorded as embedded. If the
+   * pass can stop early (a budget ceiling, an abort signal, a partial failure
+   * it chooses to swallow), return the chunk ids actually written instead.
+   *
+   * Getting this wrong is silent and permanent: a chunk recorded as embedded
+   * that was not will match `unchanged` on every later pass, so it is never
+   * embedded again until its source text happens to change. Reporting ids is
+   * always safe; reporting a count is a promise the caller cannot verify.
+   */
+  embed: (
+    docs: RAGCorpusDocument[],
+    owner: Owner,
+  ) => Promise<number | readonly string[]> | number | readonly string[];
   /** Delete these chunk ids from the vector store. */
   remove: (chunkIds: string[], owner: Owner) => Promise<void> | void;
 };
@@ -148,16 +163,26 @@ export const reconcileRAGCorpus = async <Owner = string>(
 
   let embedded = 0;
   if (plan.embed.length > 0) {
-    embedded = await apply.embed(plan.embed, owner);
-    await store.remember(
-      owner,
-      await Promise.all(
-        plan.embed.map(async (doc) => ({
-          chunkId: doc.chunkId,
-          textHash: await corpusTextHash(doc.text),
-        })),
-      ),
-    );
+    const outcome = await apply.embed(plan.embed, owner);
+    // Only what was actually written gets recorded. Remembering the whole plan
+    // regardless of outcome is how a partial pass turns into a permanent hole:
+    // the unwritten chunks look `unchanged` forever after.
+    const written =
+      typeof outcome === "number"
+        ? plan.embed.slice(0, Math.max(0, Math.min(outcome, plan.embed.length)))
+        : plan.embed.filter((doc) => new Set(outcome).has(doc.chunkId));
+    embedded = written.length;
+    if (written.length > 0) {
+      await store.remember(
+        owner,
+        await Promise.all(
+          written.map(async (doc) => ({
+            chunkId: doc.chunkId,
+            textHash: await corpusTextHash(doc.text),
+          })),
+        ),
+      );
+    }
   }
 
   return { embedded, removed: plan.remove.length, unchanged: plan.unchanged };

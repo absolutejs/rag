@@ -130,6 +130,59 @@ describe("reconcileRAGCorpus", () => {
     expect(byOwner.get("alice")?.has("fresh")).toBe(true);
   });
 
+  test("a partial embed records ONLY what it reports, so the rest stays due", async () => {
+    const { byOwner, store } = memoryStore();
+    // A pass that stops early — a budget ceiling, an abort — and reports the
+    // ids it actually wrote. Recording the rest would mark them embedded, and
+    // every later pass would then see `unchanged` and skip them forever.
+    const result = await reconcileRAGCorpus(
+      store,
+      "alice",
+      [
+        { chunkId: "wrote", text: "a" },
+        { chunkId: "never", text: "b" },
+      ],
+      { embed: () => ["wrote"], remove: () => undefined },
+    );
+
+    expect(result.embedded).toBe(1);
+    expect(byOwner.get("alice")?.has("wrote")).toBe(true);
+    expect(byOwner.get("alice")?.has("never")).toBe(false);
+  });
+
+  test("a short count records only that many, never the whole plan", async () => {
+    const { byOwner, store } = memoryStore();
+    await reconcileRAGCorpus(
+      store,
+      "alice",
+      [
+        { chunkId: "one", text: "a" },
+        { chunkId: "two", text: "b" },
+        { chunkId: "three", text: "c" },
+      ],
+      { embed: () => 2, remove: () => undefined },
+    );
+
+    expect(byOwner.get("alice")?.has("one")).toBe(true);
+    expect(byOwner.get("alice")?.has("two")).toBe(true);
+    expect(byOwner.get("alice")?.has("three")).toBe(false);
+  });
+
+  test("a chunk left unrecorded is re-planned on the next pass", async () => {
+    const { store } = memoryStore();
+    const desired = [
+      { chunkId: "wrote", text: "a" },
+      { chunkId: "never", text: "b" },
+    ];
+    await reconcileRAGCorpus(store, "alice", desired, {
+      embed: () => ["wrote"],
+      remove: () => undefined,
+    });
+    const plan = await planRAGCorpus(store, "alice", desired);
+
+    expect(plan.embed.map((doc) => doc.chunkId)).toEqual(["never"]);
+  });
+
   test("deleting happens BEFORE forgetting, so a crash cannot strand a vector", async () => {
     const order: string[] = [];
     const { store } = memoryStore({ alice: [{ chunkId: "x", textHash: "h" }] });
