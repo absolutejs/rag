@@ -384,6 +384,8 @@ export type RAGEmbeddingProvider = {
   embed: RAGEmbeddingFunction;
   dimensions?: number;
   defaultModel?: string;
+  /** Stable provider/model revision identity used by embedding caches. */
+  cacheNamespace?: string;
 };
 
 export type RAGEmbeddingProviderLike =
@@ -792,6 +794,9 @@ export type RAGHybridSearchOptions = {
 
 export type RAGUpsertInput = {
   chunks: RAGDocumentChunk[];
+  signal?: AbortSignal;
+  embeddingConcurrency?: number;
+  upsertBatchSize?: number;
 };
 
 export type RAGDocumentIngestInput = {
@@ -5200,6 +5205,9 @@ export type RAGIngestSourceInput = {
    * set is removed even if the new ingest produces fewer chunks.
    */
   previousChunkCount?: number;
+  signal?: AbortSignal;
+  embeddingConcurrency?: number;
+  upsertBatchSize?: number;
 };
 
 export type RAGIngestSourceResult = {

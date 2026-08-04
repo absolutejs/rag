@@ -39,6 +39,7 @@ export const resolveRAGEmbeddingProvider = (
   const resolvedDefaultModel = provider.defaultModel ?? defaultModel;
 
   return {
+    cacheNamespace: provider.cacheNamespace,
     defaultModel: resolvedDefaultModel,
     dimensions: provider.dimensions,
     embed: (input: RAGEmbeddingInput) =>

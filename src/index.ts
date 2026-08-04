@@ -9,12 +9,17 @@ export {
   validateRAGEmbeddingDimensions,
 } from "./retrieval/embedding";
 export {
+  classifyEmbeddingError,
+  createRAGEmbeddingError,
   embeddingCacheKey,
   isEmbeddingQuotaError,
+  isRetryableEmbeddingError,
   withEmbeddingBudget,
   type RAGBudgetedEmbedding,
   type RAGEmbeddingCache,
   type RAGEmbeddingHealth,
+  type RAGEmbeddingError,
+  type RAGEmbeddingErrorKind,
   type WithEmbeddingBudgetOptions,
 } from "./retrieval/embeddingBudget";
 export {

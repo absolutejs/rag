@@ -77,9 +77,8 @@ export const corpusTextHash = async (text: string) => {
  * Diff desired against stored. Pure — no embedding, no deletion, no I/O beyond
  * the store's `list`, so a host can show the cost of a pass before paying it.
  *
- * A duplicate chunkId in `desired` is a host bug that would otherwise embed the
- * same id twice and leave whichever landed last; the first occurrence wins and
- * the rest are dropped.
+ * Identical duplicate chunk ids are collapsed. Conflicting text for the same
+ * id is rejected because silently choosing either value corrupts reconciliation.
  */
 export const planRAGCorpus = async <Owner = string>(
   store: RAGCorpusStore<Owner>,
@@ -88,7 +87,13 @@ export const planRAGCorpus = async <Owner = string>(
 ): Promise<RAGCorpusPlan> => {
   const wanted = new Map<string, RAGCorpusDocument>();
   for (const doc of desired) {
-    if (!wanted.has(doc.chunkId)) wanted.set(doc.chunkId, doc);
+    const existing = wanted.get(doc.chunkId);
+    if (existing && existing.text !== doc.text) {
+      throw new Error(
+        `Conflicting RAG corpus documents share chunkId "${doc.chunkId}".`,
+      );
+    }
+    if (!existing) wanted.set(doc.chunkId, doc);
   }
 
   const stored = new Map(
@@ -178,9 +183,14 @@ export const reconcileRAGCorpus = async <Owner = string>(
     // Only what was actually written gets recorded. Remembering the whole plan
     // regardless of outcome is how a partial pass turns into a permanent hole:
     // the unwritten chunks look `unchanged` forever after.
+    if (typeof outcome === "number" && outcome !== plan.embed.length) {
+      throw new Error(
+        `A numeric RAG corpus embed result must equal the full plan length (${plan.embed.length}); received ${outcome}. Return exact chunk ids for partial writes.`,
+      );
+    }
     const written =
       typeof outcome === "number"
-        ? plan.embed.slice(0, Math.max(0, Math.min(outcome, plan.embed.length)))
+        ? plan.embed
         : filterToWritten(plan.embed, outcome);
     embedded = written.length;
     if (written.length > 0) {

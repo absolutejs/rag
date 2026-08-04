@@ -56,4 +56,5 @@ export type CreateRAGEmbeddingProviderOptions = {
   embed: RAGEmbeddingFunction;
   dimensions?: number;
   defaultModel?: string;
+  cacheNamespace?: string;
 };

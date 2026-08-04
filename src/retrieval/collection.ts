@@ -1978,6 +1978,39 @@ export const createRAGCollection = (
     return vector;
   };
 
+  const throwIfAborted = (signal?: AbortSignal) => {
+    if (signal?.aborted) {
+      throw signal.reason ?? new DOMException("The operation was aborted", "AbortError");
+    }
+  };
+
+  const mapConcurrentSettled = async <Input, Output>(
+    values: readonly Input[],
+    concurrency: number,
+    mapper: (value: Input, index: number) => Promise<Output>,
+  ): Promise<PromiseSettledResult<Output>[]> => {
+    const results = new Array<PromiseSettledResult<Output>>(values.length);
+    let nextIndex = 0;
+    const workers = Array.from(
+      { length: Math.min(values.length, Math.max(1, Math.floor(concurrency))) },
+      async () => {
+        while (nextIndex < values.length) {
+          const index = nextIndex++;
+          try {
+            results[index] = {
+              status: "fulfilled",
+              value: await mapper(values[index]!, index),
+            };
+          } catch (reason) {
+            results[index] = { reason, status: "rejected" };
+          }
+        }
+      },
+    );
+    await Promise.all(workers);
+    return results;
+  };
+
   const searchWithTrace = async (
     input: RAGCollectionSearchParams,
   ): Promise<RAGCollectionSearchResult> => {
@@ -2064,22 +2097,25 @@ export const createRAGCollection = (
         stage: "input",
       },
     ];
+    const queryVectors = new Map<string, Promise<number[]>>();
+    if (runVector) {
+      for (const query of searchQueries) {
+        queryVectors.set(
+          query,
+          embed({ model, signal: input.signal, text: query }, "query"),
+        );
+      }
+    }
+    const primarySearchQuery = searchQueries[0] ?? input.query;
     const queryVector = runVector
-      ? await embed(
-          {
-            model,
-            signal: input.signal,
-            text: input.query,
-          },
-          "query",
-        )
+      ? await queryVectors.get(primarySearchQuery)!
       : [];
     if (runVector) {
       steps.push({
         label: "Embedded primary query",
         metadata: {
           dimensions: queryVector.length,
-          query: input.query,
+          query: primarySearchQuery,
         },
         stage: "embed",
       });
@@ -2152,14 +2188,7 @@ export const createRAGCollection = (
       searchQueries.map(async (query, queryIndex) => {
         const [vectorResults, lexicalResults] = await Promise.all([
           runVector
-            ? embed(
-                {
-                  model,
-                  signal: input.signal,
-                  text: query,
-                },
-                "query",
-              ).then((nextQueryVector) =>
+            ? queryVectors.get(query)!.then((nextQueryVector) =>
                 options.store.query({
                   filter: input.filter,
                   candidateLimit:
@@ -2523,9 +2552,16 @@ export const createRAGCollection = (
   };
 
   const ingest = async (input: RAGUpsertInput) => {
-    const chunks = (
-      await Promise.all(
-        input.chunks.map(async (chunk) => {
+    const batchSize = Math.max(1, Math.floor(input.upsertBatchSize ?? 32));
+    const concurrency = Math.max(1, Math.floor(input.embeddingConcurrency ?? 4));
+    for (let start = 0; start < input.chunks.length; start += batchSize) {
+      throwIfAborted(input.signal);
+      const batch = input.chunks.slice(start, start + batchSize);
+      const settled = await mapConcurrentSettled(
+        batch,
+        concurrency,
+        async (chunk) => {
+          throwIfAborted(input.signal);
           const normalizedEmbedding = chunk.embedding
             ? (validateRAGEmbeddingDimensions(
                 chunk.embedding,
@@ -2536,6 +2572,7 @@ export const createRAGCollection = (
             : await embed(
                 {
                   model: options.defaultModel,
+                  signal: input.signal,
                   text: chunk.text,
                 },
                 "chunk",
@@ -2553,6 +2590,7 @@ export const createRAGCollection = (
                     : await embed(
                         {
                           model: options.defaultModel,
+                          signal: input.signal,
                           text: variant.text ?? chunk.text,
                         },
                         "chunk",
@@ -2575,11 +2613,20 @@ export const createRAGCollection = (
               [MULTIVECTOR_PRIMARY]: true,
             },
           });
-        }),
-      )
-    ).flat();
-
-    await options.store.upsert({ chunks });
+        },
+      );
+      const chunks = settled
+        .filter(
+          (result): result is PromiseFulfilledResult<RAGDocumentChunk[]> =>
+            result.status === "fulfilled",
+        )
+        .flatMap((result) => result.value);
+      if (chunks.length > 0) await options.store.upsert({ chunks });
+      const failed = settled.find(
+        (result): result is PromiseRejectedResult => result.status === "rejected",
+      );
+      if (failed) throw failed.reason;
+    }
   };
 
   const buildSourceUpsertInput = async (
@@ -2686,43 +2733,44 @@ export const createRAGCollection = (
       throw new Error("ingestSource requires a non-empty sourceId.");
     }
 
-    if (input.replace !== false) {
-      await removeSource({
-        chunkCount: input.previousChunkCount,
-        sourceId,
-      });
-    }
-
     const built = await buildSourceUpsertInput(sourceId, input);
     const embedKind: RAGEmbeddingKind = input.embedKind ?? "passage";
-    const chunks: RAGDocumentChunk[] = await Promise.all(
-      built.chunks.map(async (chunk, index) => {
+    const chunks: RAGDocumentChunk[] = built.chunks.map((chunk, index) => {
         const chunkId = `${sourceId}#${index}`;
-        const embedding =
-          chunk.embedding ??
-          (await embed(
-            {
-              kind: embedKind,
-              model: options.defaultModel,
-              text: chunk.text,
-            },
-            "chunk",
-          ));
 
         return {
           ...chunk,
           chunkId,
-          embedding,
           metadata: {
             ...(chunk.metadata ?? {}),
+            embeddingKind: embedKind,
             sourceId,
           },
           source: chunk.source ?? sourceId,
         };
-      }),
-    );
+      });
 
-    await ingest({ chunks });
+    await ingest({
+      chunks,
+      embeddingConcurrency: input.embeddingConcurrency,
+      signal: input.signal,
+      upsertBatchSize: input.upsertBatchSize,
+    });
+
+    if (
+      input.replace !== false &&
+      typeof input.previousChunkCount === "number" &&
+      input.previousChunkCount > chunks.length
+    ) {
+      await removeSource({
+        chunkIds: Array.from(
+          { length: input.previousChunkCount - chunks.length },
+          (_unused, index) => `${sourceId}#${chunks.length + index}`,
+        ),
+        filterDelete: false,
+        sourceId,
+      });
+    }
 
     return {
       chunkCount: chunks.length,

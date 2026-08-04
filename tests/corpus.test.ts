@@ -87,15 +87,21 @@ describe("planRAGCorpus", () => {
     expect(plan.remove).toEqual(["a1"]);
   });
 
-  test("a duplicate chunkId in desired is collapsed, first wins", async () => {
+  test("identical duplicate chunk ids collapse but conflicting text is rejected", async () => {
     const { store } = memoryStore();
     const plan = await planRAGCorpus(store, "alice", [
       { chunkId: "dup", text: "first" },
-      { chunkId: "dup", text: "second" },
+      { chunkId: "dup", text: "first" },
     ]);
 
     expect(plan.embed.length).toBe(1);
     expect(plan.embed[0]?.text).toBe("first");
+    await expect(
+      planRAGCorpus(store, "alice", [
+        { chunkId: "dup", text: "first" },
+        { chunkId: "dup", text: "second" },
+      ]),
+    ).rejects.toThrow("Conflicting RAG corpus documents");
   });
 
   test("planning is pure — it neither embeds nor forgets", async () => {
@@ -150,22 +156,24 @@ describe("reconcileRAGCorpus", () => {
     expect(byOwner.get("alice")?.has("never")).toBe(false);
   });
 
-  test("a short count records only that many, never the whole plan", async () => {
+  test("rejects ambiguous short numeric outcomes", async () => {
     const { byOwner, store } = memoryStore();
-    await reconcileRAGCorpus(
-      store,
-      "alice",
-      [
-        { chunkId: "one", text: "a" },
-        { chunkId: "two", text: "b" },
-        { chunkId: "three", text: "c" },
-      ],
-      { embed: () => 2, remove: () => undefined },
-    );
+    await expect(
+      reconcileRAGCorpus(
+        store,
+        "alice",
+        [
+          { chunkId: "one", text: "a" },
+          { chunkId: "two", text: "b" },
+          { chunkId: "three", text: "c" },
+        ],
+        { embed: () => 2, remove: () => undefined },
+      ),
+    ).rejects.toThrow("Return exact chunk ids for partial writes");
 
-    expect(byOwner.get("alice")?.has("one")).toBe(true);
-    expect(byOwner.get("alice")?.has("two")).toBe(true);
-    expect(byOwner.get("alice")?.has("three")).toBe(false);
+    expect(byOwner.get("alice")?.has("one")).toBeFalsy();
+    expect(byOwner.get("alice")?.has("two")).toBeFalsy();
+    expect(byOwner.get("alice")?.has("three")).toBeFalsy();
   });
 
   test("a chunk left unrecorded is re-planned on the next pass", async () => {

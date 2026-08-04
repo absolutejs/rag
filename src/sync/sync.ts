@@ -71,6 +71,7 @@ import {
   mergeMetadata,
   prepareRAGDocuments,
 } from "../ingestion/ingestion";
+import { isRetryableEmbeddingError } from "../retrieval/embeddingBudget";
 import { createRAGLinkedGmailEmailSyncClient } from "../providers/emailProviders";
 import type {
   RAGLinkedConnectorSyncSourceOptions,
@@ -584,13 +585,35 @@ const parseSyncState = (content: string) => {
   }
 };
 
+const canonicalSyncValue = (value: unknown): unknown => {
+  if (Array.isArray(value)) return value.map(canonicalSyncValue);
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>)
+        .filter(([key, entry]) => !key.startsWith("sync") && entry !== undefined)
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([key, entry]) => [key, canonicalSyncValue(entry)]),
+    );
+  }
+  return value;
+};
+
 const createSyncFingerprint = (document: RAGIngestDocument) =>
-  createHash("sha1")
-    .update(document.source ?? "")
-    .update("\n")
-    .update(document.title ?? "")
-    .update("\n")
-    .update(document.text)
+  createHash("sha256")
+    .update(
+      JSON.stringify(
+        canonicalSyncValue({
+          chunking: document.chunking,
+          corpusKey: document.corpusKey,
+          format: document.format,
+          id: document.id,
+          metadata: document.metadata,
+          source: document.source,
+          text: document.text,
+          title: document.title,
+        }),
+      ),
+    )
     .digest("hex");
 
 const toManagedSyncDocument = (
@@ -3513,7 +3536,7 @@ export const createRAGSyncManager = (
     Math.max(0, source.retryAttempts ?? options.retryAttempts ?? 0);
 
   const resolveRetryDelayMs = (source: RAGSyncSourceDefinition) =>
-    Math.max(0, source.retryDelayMs ?? options.retryDelayMs ?? 0);
+    Math.max(0, source.retryDelayMs ?? options.retryDelayMs ?? 1_000);
 
   const setSourceState = async (record: RAGSyncSourceRecord) => {
     state.set(record.id, record);
@@ -3587,7 +3610,20 @@ export const createRAGSyncManager = (
         } catch (caught) {
           const message = toSyncError(caught);
           const finishedAt = Date.now();
-          const hasRetriesRemaining = attempt < retryAttempts;
+          const hasRetriesRemaining =
+            attempt < retryAttempts && isRetryableEmbeddingError(caught);
+          const retryAfterMs =
+            caught &&
+            typeof caught === "object" &&
+            "retryAfterMs" in caught &&
+            typeof caught.retryAfterMs === "number"
+              ? caught.retryAfterMs
+              : undefined;
+          const exponentialDelay = retryDelayMs * 2 ** attempt;
+          const nextDelayMs = Math.max(
+            retryAfterMs ?? 0,
+            Math.round(exponentialDelay * (0.8 + Math.random() * 0.4)),
+          );
           const consecutiveFailures =
             (previous?.consecutiveFailures ?? 0) + attempt + 1;
           const failed = toSourceRecord(source, {
@@ -3600,7 +3636,7 @@ export const createRAGSyncManager = (
             lastSyncedAt: finishedAt,
             lastSyncDurationMs: finishedAt - startedAt,
             nextRetryAt: hasRetriesRemaining
-              ? finishedAt + retryDelayMs
+              ? finishedAt + nextDelayMs
               : undefined,
             reconciliation: previous?.reconciliation,
             retryAttempts,
@@ -3612,7 +3648,7 @@ export const createRAGSyncManager = (
             return failed;
           }
 
-          await wait(retryDelayMs);
+          await wait(nextDelayMs);
         }
       }
 

@@ -408,12 +408,22 @@ describe("RAG sync helpers", () => {
         })),
       });
       const preparedGuide = prepared[0]!;
-      const syncFingerprint = createHash("sha1")
-        .update(loaded.documents[0]?.source ?? "")
-        .update("\n")
-        .update(loaded.documents[0]?.title ?? "")
-        .update("\n")
-        .update(loaded.documents[0]?.text ?? "")
+      const syncDocument = loaded.documents[0]!;
+      const syncFingerprint = createHash("sha256")
+        .update(
+          JSON.stringify({
+            format: syncDocument.format,
+            id: syncDocument.id,
+            metadata: Object.fromEntries(
+              Object.entries(syncDocument.metadata ?? {}).sort(([left], [right]) =>
+                left.localeCompare(right),
+              ),
+            ),
+            source: syncDocument.source,
+            text: syncDocument.text,
+            title: syncDocument.title,
+          }),
+        )
         .digest("hex");
       const noopSyncManager = createRAGSyncManager({
         collection,

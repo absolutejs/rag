@@ -8,6 +8,10 @@ import type {
   OpenAIEmbeddingsConfig,
 } from "../../types/providers";
 import { createRAGEmbeddingProvider } from "../retrieval/embedding";
+import {
+  classifyEmbeddingError,
+  createRAGEmbeddingError,
+} from "../retrieval/embeddingBudget";
 
 const DEFAULT_OPENAI_BASE_URL = "https://api.openai.com";
 const DEFAULT_GEMINI_BASE_URL = "https://generativelanguage.googleapis.com";
@@ -34,6 +38,36 @@ const toErrorMessage = async (response: Response) => {
   const text = await response.text();
 
   return text || `Request failed with status ${response.status}`;
+};
+
+const parseRetryAfterMs = (response: Response) => {
+  const value = response.headers.get("retry-after");
+  if (!value) return undefined;
+  const seconds = Number(value);
+  if (Number.isFinite(seconds)) return Math.max(0, seconds * 1_000);
+  const date = Date.parse(value);
+  return Number.isFinite(date) ? Math.max(0, date - Date.now()) : undefined;
+};
+
+const embeddingResponseError = async (provider: string, response: Response) => {
+  const message = `${provider} embeddings API error ${response.status}: ${await toErrorMessage(response)}`;
+  const inferred = classifyEmbeddingError(message);
+  const kind =
+    inferred !== "unknown"
+      ? inferred
+      : response.status === 429
+        ? "rate_limit"
+        : response.status >= 500
+          ? "transient"
+          : response.status >= 400 && response.status < 500
+            ? "input"
+            : "unknown";
+  return createRAGEmbeddingError({
+    kind,
+    message,
+    retryAfterMs: parseRetryAfterMs(response),
+    status: response.status,
+  });
 };
 
 const readOpenAIEmbedding = (payload: unknown) => {
@@ -90,6 +124,7 @@ export const geminiEmbeddings = (
   const fetchImpl = config.fetch ?? fetch;
 
   return createRAGEmbeddingProvider({
+    cacheNamespace: `gemini:${baseUrl}:${config.defaultModel ?? "model-required"}:${config.dimensions ?? "dimensions-default"}`,
     defaultModel: config.defaultModel,
     dimensions: config.dimensions,
     embed: async ({ model, signal, text }) => {
@@ -123,9 +158,7 @@ export const geminiEmbeddings = (
       );
 
       if (!response.ok) {
-        throw new Error(
-          `Gemini embeddings API error ${response.status}: ${await toErrorMessage(response)}`,
-        );
+        throw await embeddingResponseError("Gemini", response);
       }
 
       return readGeminiEmbedding(await parseJsonResponse(response));
@@ -167,6 +200,7 @@ export const ollamaEmbeddings = (
   const fetchImpl = config.fetch ?? fetch;
 
   return createRAGEmbeddingProvider({
+    cacheNamespace: `ollama:${baseUrl}:${config.defaultModel ?? "model-required"}`,
     defaultModel: config.defaultModel,
     embed: async ({ model, signal, text }) => {
       const resolvedModel = model ?? config.defaultModel;
@@ -189,9 +223,7 @@ export const ollamaEmbeddings = (
       });
 
       if (!response.ok) {
-        throw new Error(
-          `Ollama embeddings API error ${response.status}: ${await toErrorMessage(response)}`,
-        );
+        throw await embeddingResponseError("Ollama", response);
       }
 
       return readOllamaEmbedding(await parseJsonResponse(response));
@@ -212,6 +244,7 @@ export const openaiEmbeddings = (
   const fetchImpl = config.fetch ?? fetch;
 
   return createRAGEmbeddingProvider({
+    cacheNamespace: `openai:${baseUrl}:${config.defaultModel ?? "model-required"}:${config.dimensions ?? "dimensions-default"}`,
     defaultModel: config.defaultModel,
     dimensions: config.dimensions,
     embed: async ({ model, signal, text }) => {
@@ -243,9 +276,7 @@ export const openaiEmbeddings = (
       });
 
       if (!response.ok) {
-        throw new Error(
-          `OpenAI embeddings API error ${response.status}: ${await toErrorMessage(response)}`,
-        );
+        throw await embeddingResponseError("OpenAI", response);
       }
 
       return readOpenAIEmbedding(await parseJsonResponse(response));

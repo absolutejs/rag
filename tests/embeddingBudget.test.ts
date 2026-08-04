@@ -76,6 +76,68 @@ describe("withEmbeddingBudget caching", () => {
     expect(calls).toBe(2);
     expect(embedder.health().reused).toBe(0);
   });
+
+  test("coalesces concurrent cache misses into one provider call", async () => {
+    let calls = 0;
+    const embedder = withEmbeddingBudget(
+      async () => {
+        calls += 1;
+        await Promise.resolve();
+        return [1];
+      },
+      { cache: memoryCache() },
+    );
+    await Promise.all(
+      Array.from({ length: 10 }, () => embedder.embed({ text: "same" })),
+    );
+    expect(calls).toBe(1);
+    expect(embedder.health()).toMatchObject({ embedded: 1, reused: 9 });
+  });
+
+  test("cache failures are observable but never turn a paid success into a retry", async () => {
+    let calls = 0;
+    let cacheErrors = 0;
+    const embedder = withEmbeddingBudget(
+      async () => {
+        calls += 1;
+        return [1];
+      },
+      {
+        cache: {
+          get: () => {
+            throw new Error("cache down");
+          },
+          set: () => {
+            throw new Error("cache down");
+          },
+        },
+        onCacheError: () => {
+          cacheErrors += 1;
+        },
+      },
+    );
+    await embedder.embed({ text: "same" });
+    await embedder.embed({ text: "same" });
+    expect(calls).toBe(1);
+    expect(cacheErrors).toBe(2);
+    expect(embedder.health().cacheFailures).toBe(2);
+  });
+
+  test("cache identity includes provider namespace and resolved default model", async () => {
+    const cache = memoryCache();
+    let calls = 0;
+    const first = withEmbeddingBudget(
+      { cacheNamespace: "provider:a", defaultModel: "model:1", embed: async () => (++calls, [1]) },
+      { cache },
+    );
+    const second = withEmbeddingBudget(
+      { cacheNamespace: "provider:b", defaultModel: "model:1", embed: async () => (++calls, [2]) },
+      { cache },
+    );
+    await first.embed({ text: "same" });
+    await second.embed({ text: "same" });
+    expect(calls).toBe(2);
+  });
 });
 
 describe("quota exhaustion", () => {

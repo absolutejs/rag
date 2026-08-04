@@ -7886,4 +7886,92 @@ describe("createRAGCollection", () => {
     expect((spreadsheet.variants ?? []).length).toBeGreaterThan(0);
     expect(media.variants ?? []).toHaveLength(0);
   });
+
+  it("embeds each unique vector search query exactly once", async () => {
+    let calls = 0;
+    const collection = createRAGCollection({
+      embedding: async () => {
+        calls += 1;
+        return [1, 0];
+      },
+      store: createInMemoryRAGStore({ dimensions: 2 }),
+    });
+    await collection.ingest({
+      chunks: [{ chunkId: "hit", embedding: [1, 0], text: "needle" }],
+    });
+
+    await collection.search({ query: "needle", retrieval: "vector" });
+
+    expect(calls).toBe(1);
+  });
+
+  it("bounds ingestion concurrency and persists paid successes before surfacing a peer failure", async () => {
+    let active = 0;
+    let maximumActive = 0;
+    const written: string[] = [];
+    const baseStore = createInMemoryRAGStore({ dimensions: 2 });
+    const store: RAGVectorStore = {
+      ...baseStore,
+      upsert: async (input) => {
+        written.push(...input.chunks.map((chunk) => chunk.chunkId));
+        await baseStore.upsert(input);
+      },
+    };
+    const collection = createRAGCollection({
+      embedding: async ({ text }) => {
+        active += 1;
+        maximumActive = Math.max(maximumActive, active);
+        await Promise.resolve();
+        active -= 1;
+        if (text === "broken") throw new Error("provider rejected chunk");
+        return [1, 0];
+      },
+      store,
+    });
+
+    await expect(
+      collection.ingest({
+        chunks: [
+          { chunkId: "one", text: "one" },
+          { chunkId: "broken", text: "broken" },
+          { chunkId: "three", text: "three" },
+        ],
+        embeddingConcurrency: 2,
+        upsertBatchSize: 3,
+      }),
+    ).rejects.toThrow("provider rejected chunk");
+
+    expect(maximumActive).toBeLessThanOrEqual(2);
+    expect(written.sort()).toEqual(["one", "three"]);
+  });
+
+  it("keeps the previous source intact when replacement embedding fails", async () => {
+    const store = createInMemoryRAGStore({ dimensions: 2 });
+    await store.upsert({
+      chunks: [
+        { chunkId: "source#0", embedding: [1, 0], text: "old zero" },
+        { chunkId: "source#1", embedding: [1, 0], text: "old one" },
+      ],
+    });
+    const collection = createRAGCollection({
+      embedding: async () => {
+        throw new Error("replacement failed");
+      },
+      store,
+    });
+
+    await expect(
+      collection.ingestSource({
+        document: { text: "new content" },
+        previousChunkCount: 2,
+        sourceId: "source",
+      }),
+    ).rejects.toThrow("replacement failed");
+
+    const old = await store.query({ queryVector: [1, 0], topK: 10 });
+    expect(old.map((result) => result.chunkId).sort()).toEqual([
+      "source#0",
+      "source#1",
+    ]);
+  });
 });
