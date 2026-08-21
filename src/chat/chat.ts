@@ -1,4 +1,5 @@
 import { Elysia, sse } from "elysia";
+import { websocket } from "elysia/websocket";
 import {
   HTTP_STATUS_BAD_REQUEST,
   HTTP_STATUS_NOT_FOUND,
@@ -12348,6 +12349,9 @@ export const ragChat = (config: RAGChatPluginConfig) => {
   };
 
   const app = new Elysia()
+    // Elysia 2 no longer bundles WebSocket support; without this the
+    // chat socket below type-checks and is simply never served.
+    .use(websocket())
     .ws(path, {
       message: async (ws, raw) => {
         const message = parseAIMessage(raw);
