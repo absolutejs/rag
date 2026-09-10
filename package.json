@@ -11,8 +11,10 @@
 	"main": "./dist/index.js",
 	"types": "./dist/src/index.d.ts",
 	"files": [
-		"dist",
-		"README.md"
+		"CHANGELOG.md",
+		"README.md",
+		"changelog.json",
+		"dist"
 	],
 	"exports": {
 		".": {
@@ -93,8 +95,11 @@
 	},
 	"devDependencies": {
 		"@absolutejs/absolute": "0.20.0-beta.0",
+		"@absolutejs/ai": "0.0.47",
+		"@absolutejs/changelog": "^0.1.2",
 		"@absolutejs/rag-postgres": "0.0.11",
 		"@absolutejs/rag-sqlite": "0.0.11",
+		"@absolutejs/sync": "2.11.0",
 		"@angular/core": "21.2.6",
 		"@eslint/js": "^10.0.1",
 		"@types/bun": "1.3.14",
@@ -110,9 +115,7 @@
 		"svelte": "5.55.0",
 		"typescript": "5.9.3",
 		"typescript-eslint": "^8.56.1",
-		"vue": "3.5.27",
-		"@absolutejs/sync": "2.11.0",
-		"@absolutejs/ai": "0.0.47"
+		"vue": "3.5.27"
 	},
 	"scripts": {
 		"build": "bun run scripts/build.ts && absolute-manifest emit",
@@ -121,7 +124,8 @@
 		"lint": "eslint . --max-warnings 0",
 		"format": "prettier --write .",
 		"test": "bun test",
-		"release": "bun run build && bun publish --access public"
+		"release": "bun run build && bun publish --access public",
+		"check:package": "absolute-changelog check"
 	},
 	"publishConfig": {
 		"access": "public"

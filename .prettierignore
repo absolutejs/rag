@@ -5,3 +5,5 @@ build
 .rag
 *.tgz
 bun.lock
+changelog.json
+CHANGELOG.md

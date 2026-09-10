@@ -7,7 +7,11 @@
     "forceConsistentCasingInFileNames": true,
     "incremental": true,
     "jsx": "react-jsx",
-    "lib": ["DOM", "DOM.Iterable", "ESNext"],
+    "lib": [
+      "DOM",
+      "DOM.Iterable",
+      "ESNext"
+    ],
     "module": "ESNext",
     "moduleResolution": "bundler",
     "noImplicitAny": true,
@@ -19,6 +23,13 @@
     "target": "ESNext",
     "tsBuildInfoFile": ".rag/tsconfig.tsbuildinfo"
   },
-  "include": ["src/**/*", "types/**/*"],
-  "exclude": ["dist", "node_modules"]
+  "include": [
+    "src/**/*",
+    "types/**/*",
+    "changelog/**/*"
+  ],
+  "exclude": [
+    "dist",
+    "node_modules"
+  ]
 }
