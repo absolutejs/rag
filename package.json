@@ -96,7 +96,7 @@
 	"devDependencies": {
 		"@absolutejs/absolute": "0.20.0-beta.0",
 		"@absolutejs/ai": "0.0.47",
-		"@absolutejs/changelog": "^0.1.2",
+		"@absolutejs/changelog": "^0.2.0",
 		"@absolutejs/rag-postgres": "0.0.11",
 		"@absolutejs/rag-sqlite": "0.0.11",
 		"@absolutejs/sync": "2.11.0",
@@ -125,7 +125,8 @@
 		"format": "prettier --write .",
 		"test": "bun test",
 		"release": "bun run build && bun publish --access public",
-		"check:package": "absolute-changelog check"
+		"check:package": "absolute-changelog check",
+		"prepublishOnly": "absolute-changelog check"
 	},
 	"publishConfig": {
 		"access": "public"
