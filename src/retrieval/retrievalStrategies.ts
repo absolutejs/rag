@@ -56,17 +56,14 @@ export const createHeuristicRAGRetrievalStrategy = (
     const scopedDocumentId =
       typeof input.filter?.documentId === "string" &&
       input.filter.documentId.trim().length > 0;
-    if (
-      (scopedSource || scopedDocumentId) &&
-      input.retrieval.mode !== "vector"
-    ) {
+    if (scopedSource || scopedDocumentId) {
       return {
-        label: "Scoped direct route",
-        mode: "vector",
+        label: "Scoped retrieval route",
+        mode: input.retrieval.mode,
         reason: scopedDocumentId
-          ? "documentId filter narrows retrieval to one target document"
-          : "source filter narrows retrieval to one source family",
-        metadata: buildSelectorMetadata("scoped_direct_route"),
+          ? "documentId filter preserves the requested retrieval channels within one document"
+          : "source filter preserves the requested retrieval channels within one source family",
+        metadata: buildSelectorMetadata("scoped_retrieval_route"),
       };
     }
 

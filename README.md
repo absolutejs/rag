@@ -41,6 +41,19 @@ const results = await searchDocuments(collection, {
 
 The built-in memory store supports development and tests. Published adapters provide PostgreSQL with pgvector, SQLite with optional vec0 acceleration, and Pinecone behind the same `RAGVectorStore` contract. Lexical and vector results can be fused, transformed, and reranked with provider or heuristic rerankers.
 
+### Retrieval channel requirements
+
+Lexical and hybrid retrieval require a store implementing `queryLexical`.
+A backend without that capability raises an actionable error before vector
+embedding/search instead of silently returning vector-only or empty results.
+Explicit vector retrieval remains supported on vector-only backends. Configure
+a lexical-capable adapter before requesting hybrid retrieval; a mode flag does
+not add a missing backend capability.
+
+The built-in heuristic strategy preserves the requested retrieval mode when a
+query is scoped by source or document ID. Scope narrows the searchable corpus;
+it does not remove the need for exact keyword matches within that corpus.
+
 ## Ingestion and source sync
 
 The ingestion pipeline handles files, directories, uploads, URLs, PDFs, office documents, archives, images, and media transcripts. Scheduled connectors can keep collections synchronized from email, GitHub, sitemaps, feeds, directories, and S3-compatible storage.

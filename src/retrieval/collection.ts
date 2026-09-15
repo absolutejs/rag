@@ -1793,7 +1793,14 @@ const shouldRunVectorRetrieval = (mode: RAGHybridRetrievalMode) =>
 const shouldRunLexicalRetrieval = (
   mode: RAGHybridRetrievalMode,
   store: RAGVectorStore,
-) => mode === "lexical" || (mode === "hybrid" && Boolean(store.queryLexical));
+) => {
+  if (mode === "vector") return false;
+  if (!store.queryLexical)
+    throw new Error(
+      `Retrieval mode "${mode}" requires a store with queryLexical. Configure a lexical-capable adapter or explicitly request vector retrieval.`,
+    );
+  return true;
+};
 
 const resolveRAGRetrievalStrategy = (
   retrievalStrategy: RAGRetrievalStrategyProviderLike | undefined,

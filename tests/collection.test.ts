@@ -1858,7 +1858,7 @@ describe("createRAGCollection", () => {
     expect(traced.trace.routingProvider).toBe("heuristic_retrieval_strategy");
   });
 
-  it("uses the built-in heuristic retrieval strategy for scoped direct routes", async () => {
+  it("preserves hybrid retrieval in built-in scoped routes", async () => {
     const seenModes: string[] = [];
     const store = createInMemoryRAGStore({
       dimensions: 2,
@@ -1896,10 +1896,10 @@ describe("createRAGCollection", () => {
       retrieval: "hybrid",
     });
 
-    expect(seenModes).toEqual(["vector"]);
+    expect(seenModes.toSorted()).toEqual(["lexical", "vector"]);
     expect(traced.trace.requestedMode).toBe("hybrid");
-    expect(traced.trace.mode).toBe("vector");
-    expect(traced.trace.routingLabel).toBe("Scoped direct route");
+    expect(traced.trace.mode).toBe("hybrid");
+    expect(traced.trace.routingLabel).toBe("Scoped retrieval route");
   });
 
   it("uses the built-in heuristic retrieval strategy for exact phrase hybrid routes", async () => {
