@@ -526,3 +526,11 @@ export type {
   RAGCorpusResult,
   RAGCorpusStore,
 } from "./retrieval/corpus";
+
+export {
+  chunkRAGOriginalText,
+  readRAGOriginalText,
+  type RAGOriginalText,
+  type RAGOriginalTextLocator,
+} from "./ingestion/originalText";
+export { createRAGOriginalTextTools, type RAGOriginalTextToolsOptions } from "./retrieval/originalTextTools";

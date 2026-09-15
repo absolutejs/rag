@@ -42,7 +42,7 @@ describe("intake retrieval contracts", () => {
           return [
             {
               chunkId: "semantic",
-              text: "Our spending ceiling is $17,431.29.",
+              chunkText: "Our spending ceiling is $17,431.29.",
               score: 0.9,
             },
           ];
@@ -52,7 +52,7 @@ describe("intake retrieval contracts", () => {
           return [
             {
               chunkId: "exact",
-              text: "Corrected budget: $17,431.29.",
+              chunkText: "Corrected budget: $17,431.29.",
               score: 1,
             },
           ];
@@ -68,6 +68,9 @@ describe("intake retrieval contracts", () => {
           topK: 4,
         });
         expect(result.trace.mode).toBe(mode);
+        expect(
+          result.results.every((item) => item.chunkText.includes("$17,431.29")),
+        ).toBe(true);
         expect(calls.map((call) => call.channel).sort()).toEqual(
           mode === "hybrid" ? ["lexical", "vector"] : ["lexical"],
         );
@@ -94,7 +97,7 @@ describe("intake retrieval contracts", () => {
     });
     store.queryLexical = undefined;
     store.query = async () => [
-      { chunkId: "hit", text: "Source fact", score: 1 },
+      { chunkId: "hit", chunkText: "Source fact", score: 1 },
     ];
     const result = await createRAGCollection({ store }).search({
       query: "fact",

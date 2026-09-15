@@ -70,3 +70,29 @@ The ingestion pipeline handles files, directories, uploads, URLs, PDFs, office d
 - `@absolutejs/rag/ui` exposes presentation-neutral UI contracts.
 
 Pair the retrieval runtime with `@absolutejs/ai` when retrieved context should feed a model or streaming assistant.
+
+### Verbatim original text evidence
+
+Use `chunkRAGOriginalText({ sourceId, version, text }, options)` when citations
+must resolve against an immutable text original. This opt-in path preserves
+whitespace and Unicode instead of normalizing or extracting document formats.
+Each chunk includes `metadata.sourceLocator` with the source ID, immutable
+version and UTF-16 `start`/`end` offsets. `readRAGOriginalText` validates identity,
+version and range before returning the exact original slice. Store and authorize
+the original separately; a locator is not an access grant.
+
+`createRAGOriginalTextTools({ collection, filter, loadSource, budget })` provides
+`search_text_source` and `read_text_source` AI tools. It requests real hybrid
+retrieval with diversity and verifies evidence against originals. `filter` is a
+server-owned scope; `loadSource(id, version)` must reauthorize every read and
+return `null` for inaccessible/deleted versions. The tools require
+`budget: { maxTokens, countTokens }` using the model tokenizer and a budget
+reserved by the AI context policy. Whole passages are selected within that
+budget; omitted passages are flagged rather than silently truncated. Add the
+final tools/instructions before budgeting the model request. Search traces are
+available through `onTrace`; they contain retrieval metadata and should not be
+copied wholesale into public logs.
+
+Keyword matching uses Unicode word segmentation and canonical normalization.
+English suffix rules only apply to ASCII words. This improves multilingual exact
+matches; it does not replace evaluation of the selected embedding model.

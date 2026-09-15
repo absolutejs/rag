@@ -1,6 +1,4 @@
-import type {
-  RAGHybridRetrievalMode,
-} from "@absolutejs/ai";
+import type { RAGHybridRetrievalMode } from "@absolutejs/ai";
 import type {
   RAGHybridFusionMode,
   RAGHybridSearchOptions,
@@ -42,26 +40,38 @@ const STOP_WORDS = new Set([
   "why",
 ]);
 
+const wordSegmenter = new Intl.Segmenter("und", { granularity: "word" });
+
 const tokenize = (value: string) =>
   value
+    .normalize("NFC")
     .toLowerCase()
-    .split(/[^a-z0-9]+/i)
+    .split(/[^\p{L}\p{M}\p{N}]+/u)
+    .flatMap((part) =>
+      /^[a-z0-9]+$/.test(part)
+        ? [part]
+        : [...wordSegmenter.segment(part)]
+            .filter((segment) => segment.isWordLike)
+            .map((segment) => segment.segment),
+    )
     .map((token) => token.trim())
     .filter((token) => !STOP_WORDS.has(token))
     .map((token) =>
-      token.endsWith("ies") && token.length > 3
-        ? `${token.slice(0, -3)}y`
-        : token.endsWith("ing") && token.length > 5
-          ? token.slice(0, -3)
-          : token.endsWith("ed") && token.length > 4
-            ? token.slice(0, -2)
-            : token.endsWith("es") && token.length > 4
+      !/^[a-z]+$/.test(token)
+        ? token
+        : token.endsWith("ies") && token.length > 3
+          ? `${token.slice(0, -3)}y`
+          : token.endsWith("ing") && token.length > 5
+            ? token.slice(0, -3)
+            : token.endsWith("ed") && token.length > 4
               ? token.slice(0, -2)
-              : token.endsWith("s") && token.length > 3
-                ? token.slice(0, -1)
-                : token,
+              : token.endsWith("es") && token.length > 4
+                ? token.slice(0, -2)
+                : token.endsWith("s") && token.length > 3
+                  ? token.slice(0, -1)
+                  : token,
     )
-    .filter((token) => token.length > 1);
+    .filter((token) => token.length > 1 || /[^a-z]/.test(token));
 
 const BM25_K1 = 1.2;
 const BM25_B = 0.75;
@@ -105,8 +115,9 @@ const toFieldText = (value: unknown) =>
 
 const normalizeLooseText = (value: string) =>
   value
+    .normalize("NFC")
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/[^\p{L}\p{M}\p{N}]+/gu, " ")
     .trim()
     .replace(/\s+/g, " ");
 

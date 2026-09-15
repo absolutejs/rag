@@ -12,7 +12,7 @@
         "@absolutejs/absolute": "0.20.0-beta.0",
         "@absolutejs/ai": "0.0.47",
         "@absolutejs/changelog": "^0.6.0",
-        "@absolutejs/rag-postgres": "0.0.11",
+        "@absolutejs/rag-postgres": "0.0.13",
         "@absolutejs/rag-sqlite": "0.0.11",
         "@absolutejs/sync": "2.11.0",
         "@angular/core": "21.2.6",
@@ -84,7 +84,7 @@
 
     "@absolutejs/rag": ["@absolutejs/rag@0.0.20", "", { "dependencies": { "@absolutejs/ai": "^0.0.9", "@absolutejs/linked-providers": "0.0.2" }, "peerDependencies": { "@angular/core": "^21.0.0", "elysia": "^1.4.18", "react": "^19.2.0", "svelte": "^5.35.2", "vue": "^3.5.27" }, "optionalPeers": ["@angular/core", "react", "svelte", "vue"] }, "sha512-rG67G0Q//Keq7nOBBGBoJzJ1Mn58gyvv6kBRrb8422ECBBOr+xgxoDVvkFLLkqRw9V0gFRPcTVJhZSgZq7yTvg=="],
 
-    "@absolutejs/rag-postgres": ["@absolutejs/rag-postgres@0.0.11", "", { "dependencies": { "@absolutejs/manifest": "^0.6.1", "@sinclair/typebox": "^0.34.0" }, "peerDependencies": { "@absolutejs/rag": ">=0.1.0 <0.2.0" } }, "sha512-HXCNc6pJYhUyK27i2u0VY1KEyGdEugJUo3BU1LOOINN+Jq2DCcBURZnIXURYqoiWELO7QEMj/G813DjBWxL1Qw=="],
+    "@absolutejs/rag-postgres": ["@absolutejs/rag-postgres@0.0.13", "", { "dependencies": { "@absolutejs/manifest": "^0.9.0", "@sinclair/typebox": "^0.34.0" }, "peerDependencies": { "@absolutejs/rag": ">=0.1.0 <1" } }, "sha512-wHHix1eoeaMJwoRQ0dJFP3kwF50vZZLySyBrqBQ7rbNb8wgqxTD3Bf1ERfD4qVdvIl9jhBKgQRLNQUq6dl+wFA=="],
 
     "@absolutejs/rag-sqlite": ["@absolutejs/rag-sqlite@0.0.11", "", { "dependencies": { "@absolutejs/manifest": "^0.6.1", "@sinclair/typebox": "^0.34.0" }, "optionalDependencies": { "@absolutejs/absolute-rag-sqlite-darwin-arm64": "0.0.2", "@absolutejs/absolute-rag-sqlite-darwin-x64": "0.0.2", "@absolutejs/absolute-rag-sqlite-linux-arm64": "0.0.2", "@absolutejs/absolute-rag-sqlite-linux-x64": "0.0.2", "@absolutejs/absolute-rag-sqlite-windows-x64": "0.0.2" }, "peerDependencies": { "@absolutejs/rag": ">=0.1.0 <0.2.0" } }, "sha512-1K0f0j1yjBwnMGF4/B6wuFLq+53vQR8bF8sp0ErEDPhryu9AD85YyJMghNHOlE+IMEGct9pXGG4gU8S24P6psA=="],
 
@@ -419,8 +419,6 @@
     "zustand": ["zustand@5.0.13", "", { "peerDependencies": { "@types/react": ">=18.0.0", "immer": ">=9.0.6", "react": ">=18.0.0", "use-sync-external-store": ">=1.2.0" }, "optionalPeers": ["@types/react", "immer", "react", "use-sync-external-store"] }, "sha512-efI2tVaVQPqtOh114loML/Z80Y4NP3yc+Ff0fYiZJPauNeWZeIp/bRFD7I9bfmCOYBh/PHxlglQ9+wvlwnPikQ=="],
 
     "@absolutejs/rag/@absolutejs/ai": ["@absolutejs/ai@0.0.9", "", { "dependencies": { "@absolutejs/linked-providers": "0.0.2" }, "peerDependencies": { "@angular/core": "^21.0.0", "elysia": "^1.4.18", "react": "^19.2.0", "svelte": "^5.35.2", "vue": "^3.5.27" }, "optionalPeers": ["@angular/core", "react", "svelte", "vue"] }, "sha512-/NitawL0138Isc8gHQDTB3VaBV50XN9y7BDLeUJIZ3ND3Q6PiOmEUWLtuaL5p1J0gTF3GyZDO1mRByIJOoA9fg=="],
-
-    "@absolutejs/rag-postgres/@absolutejs/manifest": ["@absolutejs/manifest@0.6.3", "", { "peerDependencies": { "@sinclair/typebox": ">=0.34.0 <0.35.0" }, "bin": { "absolute-manifest": "dist/cli.js" } }, "sha512-wWihLuCEbnnbnHVnQhbVpZnILp3CnPF8/Ogk0yZ/p9nvKD3l3sMuohNLzT8zRJ9uFgjydEpoqhMApcHC225GYg=="],
 
     "@absolutejs/rag-sqlite/@absolutejs/manifest": ["@absolutejs/manifest@0.6.3", "", { "peerDependencies": { "@sinclair/typebox": ">=0.34.0 <0.35.0" }, "bin": { "absolute-manifest": "dist/cli.js" } }, "sha512-wWihLuCEbnnbnHVnQhbVpZnILp3CnPF8/Ogk0yZ/p9nvKD3l3sMuohNLzT8zRJ9uFgjydEpoqhMApcHC225GYg=="],
 
