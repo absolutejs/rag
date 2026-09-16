@@ -91,8 +91,22 @@ reserved by the AI context policy. Whole passages are selected within that
 budget; omitted passages are flagged rather than silently truncated. Add the
 final tools/instructions before budgeting the model request. Search traces are
 available through `onTrace`; they contain retrieval metadata and should not be
-copied wholesale into public logs.
+copied wholesale into public logs. Servers may set `searchTopK` to an integer
+from 1 to 48 (default 12) for a smaller initial evidence lookup. Candidate ranking
+still considers up to 48 matches; authorization and token-budget checks are
+unchanged. A small initial result set does not establish that other facts are
+absent: retain broader search/read tools for missing or ambiguous evidence.
 
 Keyword matching uses Unicode word segmentation and canonical normalization.
 English suffix rules only apply to ASCII words. This improves multilingual exact
 matches; it does not replace evaluation of the selected embedding model.
+
+#### AI context policy compatibility
+
+With the AI 0.1 context-policy release, RAG chat validates the final assembled
+retrieval context before every model request. Its `contextPolicy` config is
+forwarded to both WebSocket and SSE generation. Use a working token target or a
+saved-source recovery callback when appropriate. Providers without capacity
+support require an explicit `contextPolicy: false` raw opt-out. Older supported
+AI peers retain their previous behavior; upgrading RAG alone does not add the AI
+0.1 capacity policy. No model-capacity numbers are defined in RAG.

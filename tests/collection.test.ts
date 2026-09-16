@@ -6080,358 +6080,259 @@ describe("createRAGCollection", () => {
     }
   });
 
-  it("prefers arbitrary mixed-format nested child families under sibling replies by branch child ordinal format and section family", async () => {
-    const store = createInMemoryRAGStore({
-      dimensions: 2,
-      mockEmbedding: async () => [1, 0],
-    });
-    const collection = createRAGCollection({
-      rerank: createHeuristicRAGReranker(),
-      store,
-    });
-    const branchKeys = MIXED_MAILBOX_BRANCH_KEYS;
-    const branchMailboxPaths = MIXED_MAILBOX_BRANCH_PATHS;
-    const rootDriftKeys = MIXED_MAILBOX_ROOT_DRIFT_KEYS;
-    const nestedReplyKeys = MIXED_MAILBOX_NESTED_REPLY_KEYS;
-    const parentDriftKeys = MIXED_MAILBOX_PARENT_DRIFT_KEYS;
-    const deepChildKeys = MIXED_MAILBOX_DEEP_CHILD_KEYS;
-    const referenceDriftKeys = MIXED_MAILBOX_REFERENCE_DRIFT_KEYS;
-    const messageDriftKeys = MIXED_MAILBOX_MESSAGE_DRIFT_KEYS;
-    const conversationIdDriftKeys = MIXED_MAILBOX_CONVERSATION_ID_DRIFT_KEYS;
-    const conversationDriftKeys = MIXED_MAILBOX_CONVERSATION_DRIFT_KEYS;
-    const threadIndexDriftKeys = MIXED_MAILBOX_THREAD_INDEX_DRIFT_KEYS;
-    const quotedHistoryKeys = MIXED_MAILBOX_QUOTED_HISTORY_KEYS;
-    const inlineResourceKeys = MIXED_MAILBOX_INLINE_RESOURCE_KEYS;
-    const branchStateFlagSets = MIXED_MAILBOX_BRANCH_STATE_FLAG_SETS;
-    const childOrdinalLabels = ["first", "second", "third"] as const;
-    const inlineOrdinalLabels = ["first", "second"] as const;
-    const replySpecs = MIXED_MAILBOX_REPLY_SPECS;
-    const buildDeepChildContext = (
-      spec: (typeof replySpecs)[number],
-      branchKey: (typeof branchKeys)[number],
-      replyKey: (typeof nestedReplyKeys)[number],
-      childKey: (typeof deepChildKeys)[number],
-      childIndex: number,
-    ) => {
-      const branchIndex = branchKeys.indexOf(branchKey);
-      const replyIndex = nestedReplyKeys.indexOf(replyKey);
-      const branchMailboxPathSegments = branchMailboxPaths[branchIndex]!;
-      const branchMailboxLeaf =
-        branchMailboxPathSegments[branchMailboxPathSegments.length - 1]!;
-      const branchMailboxFamilyKey = mixedMailboxFamilyKey(
-        branchMailboxPathSegments,
-      );
-      const nestedSource = mixedMailboxExpectedNestedReplySource(
-        spec,
-        branchKey,
-        replyKey,
-      );
-      const deepChildSource = mixedMailboxExpectedDeepChildSource(
-        spec,
-        branchKey,
-        replyKey,
-        childKey,
-      );
-      const deepSiblingSources = deepChildKeys.map((candidateChildKey) =>
-        mixedMailboxExpectedDeepChildSource(
+  // Each format is an independent correctness case. Keep all cross-format
+  // distractors and queries while giving failures a specific case name.
+  for (const [specIndex, spec] of MIXED_MAILBOX_REPLY_SPECS.entries()) {
+    it(`prefers arbitrary mixed-format nested child families under sibling replies by branch child ordinal format and section family (${spec.formatLabel})`, async () => {
+      const store = createInMemoryRAGStore({
+        dimensions: 2,
+        mockEmbedding: async () => [1, 0],
+      });
+      const collection = createRAGCollection({
+        rerank: createHeuristicRAGReranker(),
+        store,
+      });
+      const branchKeys = MIXED_MAILBOX_BRANCH_KEYS;
+      const branchMailboxPaths = MIXED_MAILBOX_BRANCH_PATHS;
+      const rootDriftKeys = MIXED_MAILBOX_ROOT_DRIFT_KEYS;
+      const nestedReplyKeys = MIXED_MAILBOX_NESTED_REPLY_KEYS;
+      const parentDriftKeys = MIXED_MAILBOX_PARENT_DRIFT_KEYS;
+      const deepChildKeys = MIXED_MAILBOX_DEEP_CHILD_KEYS;
+      const referenceDriftKeys = MIXED_MAILBOX_REFERENCE_DRIFT_KEYS;
+      const messageDriftKeys = MIXED_MAILBOX_MESSAGE_DRIFT_KEYS;
+      const conversationIdDriftKeys = MIXED_MAILBOX_CONVERSATION_ID_DRIFT_KEYS;
+      const conversationDriftKeys = MIXED_MAILBOX_CONVERSATION_DRIFT_KEYS;
+      const threadIndexDriftKeys = MIXED_MAILBOX_THREAD_INDEX_DRIFT_KEYS;
+      const quotedHistoryKeys = MIXED_MAILBOX_QUOTED_HISTORY_KEYS;
+      const inlineResourceKeys = MIXED_MAILBOX_INLINE_RESOURCE_KEYS;
+      const branchStateFlagSets = MIXED_MAILBOX_BRANCH_STATE_FLAG_SETS;
+      const childOrdinalLabels = ["first", "second", "third"] as const;
+      const inlineOrdinalLabels = ["first", "second"] as const;
+      const replySpecs = MIXED_MAILBOX_REPLY_SPECS;
+      const buildDeepChildContext = (
+        spec: (typeof replySpecs)[number],
+        branchKey: (typeof branchKeys)[number],
+        replyKey: (typeof nestedReplyKeys)[number],
+        childKey: (typeof deepChildKeys)[number],
+        childIndex: number,
+      ) => {
+        const branchIndex = branchKeys.indexOf(branchKey);
+        const replyIndex = nestedReplyKeys.indexOf(replyKey);
+        const branchMailboxPathSegments = branchMailboxPaths[branchIndex]!;
+        const branchMailboxLeaf =
+          branchMailboxPathSegments[branchMailboxPathSegments.length - 1]!;
+        const branchMailboxFamilyKey = mixedMailboxFamilyKey(
+          branchMailboxPathSegments,
+        );
+        const nestedSource = mixedMailboxExpectedNestedReplySource(
           spec,
           branchKey,
           replyKey,
-          candidateChildKey,
-        ),
-      );
-      const rootDriftKey = rootDriftKeys[branchIndex]!;
-      const parentDriftKey = parentDriftKeys[replyIndex]!;
-      const branchStateFlags = branchStateFlagSets[branchIndex]!;
-      const combinedStateFlags = [
-        ...new Set([...spec.stateFlags, ...branchStateFlags]),
-      ];
-      const referenceDriftKey = referenceDriftKeys[childIndex]!;
-      const messageDriftKey = messageDriftKeys[childIndex]!;
-      const conversationIdDriftKey = conversationIdDriftKeys[childIndex]!;
-      const conversationDriftKey = conversationDriftKeys[childIndex]!;
-      const threadIndexDriftKey = threadIndexDriftKeys[childIndex]!;
-      const nestedReplyMessageId = `<mixed-deep-parent-${spec.formatLabel}-${rootDriftKey}-${parentDriftKey}@example.com>`;
-      const deepThreadRootMessageId = `<mixed-deep-root-${spec.formatLabel}-${rootDriftKey}@example.com>`;
-      const deepReferenceId = `<mixed-deep-reference-${spec.formatLabel}-${referenceDriftKey}@example.com>`;
-      const deepMessageId = `<mixed-deep-message-${spec.formatLabel}-${messageDriftKey}@example.com>`;
-      const deepInternetMessageId = `<mixed-deep-internet-${spec.formatLabel}-${messageDriftKey}@example.com>`;
-      const deepThreadMessageIds = [
-        deepThreadRootMessageId,
-        nestedReplyMessageId,
-        deepReferenceId,
-      ];
-      const deepReferences = deepThreadMessageIds.join(" ");
-      const buildBaseMetadata = (overrides: Record<string, unknown> = {}) => ({
-        emailAttachmentSource: deepChildSource,
-        emailMailboxContainerSource: spec.containerSource,
-        emailMailboxFamilyKey: branchMailboxFamilyKey,
-        emailMailboxFolder: mixedMailboxFolder(spec.formatLabel),
-        emailMailboxFormat: spec.formatLabel,
-        emailMailboxLeaf: branchMailboxLeaf,
-        emailMailboxPathDepth: branchMailboxPathSegments.length,
-        emailMailboxPathSegments: branchMailboxPathSegments,
-        emailMailboxStateFlags: combinedStateFlags,
-        emailConversationId: conversationIdDriftKey,
-        emailConversationIndex: conversationDriftKey,
-        emailMessageLineageAttachmentSources: [
-          mixedMailboxExpectedChildSource(spec, branchKey),
-          nestedSource,
+        );
+        const deepChildSource = mixedMailboxExpectedDeepChildSource(
+          spec,
+          branchKey,
+          replyKey,
+          childKey,
+        );
+        const deepSiblingSources = deepChildKeys.map((candidateChildKey) =>
+          mixedMailboxExpectedDeepChildSource(
+            spec,
+            branchKey,
+            replyKey,
+            candidateChildKey,
+          ),
+        );
+        const rootDriftKey = rootDriftKeys[branchIndex]!;
+        const parentDriftKey = parentDriftKeys[replyIndex]!;
+        const branchStateFlags = branchStateFlagSets[branchIndex]!;
+        const combinedStateFlags = [
+          ...new Set([...spec.stateFlags, ...branchStateFlags]),
+        ];
+        const referenceDriftKey = referenceDriftKeys[childIndex]!;
+        const messageDriftKey = messageDriftKeys[childIndex]!;
+        const conversationIdDriftKey = conversationIdDriftKeys[childIndex]!;
+        const conversationDriftKey = conversationDriftKeys[childIndex]!;
+        const threadIndexDriftKey = threadIndexDriftKeys[childIndex]!;
+        const nestedReplyMessageId = `<mixed-deep-parent-${spec.formatLabel}-${rootDriftKey}-${parentDriftKey}@example.com>`;
+        const deepThreadRootMessageId = `<mixed-deep-root-${spec.formatLabel}-${rootDriftKey}@example.com>`;
+        const deepReferenceId = `<mixed-deep-reference-${spec.formatLabel}-${referenceDriftKey}@example.com>`;
+        const deepMessageId = `<mixed-deep-message-${spec.formatLabel}-${messageDriftKey}@example.com>`;
+        const deepInternetMessageId = `<mixed-deep-internet-${spec.formatLabel}-${messageDriftKey}@example.com>`;
+        const deepThreadMessageIds = [
+          deepThreadRootMessageId,
+          nestedReplyMessageId,
+          deepReferenceId,
+        ];
+        const deepReferences = deepThreadMessageIds.join(" ");
+        const buildBaseMetadata = (
+          overrides: Record<string, unknown> = {},
+        ) => ({
+          emailAttachmentSource: deepChildSource,
+          emailMailboxContainerSource: spec.containerSource,
+          emailMailboxFamilyKey: branchMailboxFamilyKey,
+          emailMailboxFolder: mixedMailboxFolder(spec.formatLabel),
+          emailMailboxFormat: spec.formatLabel,
+          emailMailboxLeaf: branchMailboxLeaf,
+          emailMailboxPathDepth: branchMailboxPathSegments.length,
+          emailMailboxPathSegments: branchMailboxPathSegments,
+          emailMailboxStateFlags: combinedStateFlags,
+          emailConversationId: conversationIdDriftKey,
+          emailConversationIndex: conversationDriftKey,
+          emailMessageLineageAttachmentSources: [
+            mixedMailboxExpectedChildSource(spec, branchKey),
+            nestedSource,
+            deepChildSource,
+          ],
+          emailMessageLineageCount: 3,
+          emailInternetMessageId: deepInternetMessageId,
+          emailMessageSource: deepChildSource,
+          emailMessageSourceKind: "attached_message",
+          messageId: deepMessageId,
+          references: deepReferences,
+          replyReferenceCount: deepThreadMessageIds.length,
+          emailReplySiblingCount: deepChildKeys.length,
+          emailReplySiblingIndex: childIndex,
+          emailReplySiblingOrdinal: childIndex + 1,
+          emailReplySiblingParentMessageId: nestedReplyMessageId,
+          emailReplySiblingSources: deepSiblingSources,
+          inReplyTo: nestedReplyMessageId,
+          threadIndex: threadIndexDriftKey,
+          threadMessageIds: deepThreadMessageIds,
+          threadRootMessageId: deepThreadRootMessageId,
+          threadTopic: "Mixed deep child descendant thread",
+          ...overrides,
+        });
+
+        return {
+          branchMailboxPathSegments,
+          branchStateFlags,
+          buildBaseMetadata,
+          childIndex,
+          combinedStateFlags,
+          conversationDriftKey,
+          conversationIdDriftKey,
           deepChildSource,
-        ],
-        emailMessageLineageCount: 3,
-        emailInternetMessageId: deepInternetMessageId,
-        emailMessageSource: deepChildSource,
-        emailMessageSourceKind: "attached_message",
-        messageId: deepMessageId,
-        references: deepReferences,
-        replyReferenceCount: deepThreadMessageIds.length,
-        emailReplySiblingCount: deepChildKeys.length,
-        emailReplySiblingIndex: childIndex,
-        emailReplySiblingOrdinal: childIndex + 1,
-        emailReplySiblingParentMessageId: nestedReplyMessageId,
-        emailReplySiblingSources: deepSiblingSources,
-        inReplyTo: nestedReplyMessageId,
-        threadIndex: threadIndexDriftKey,
-        threadMessageIds: deepThreadMessageIds,
-        threadRootMessageId: deepThreadRootMessageId,
-        threadTopic: "Mixed deep child descendant thread",
-        ...overrides,
-      });
-
-      return {
-        branchMailboxPathSegments,
-        branchStateFlags,
-        buildBaseMetadata,
-        childIndex,
-        combinedStateFlags,
-        conversationDriftKey,
-        conversationIdDriftKey,
-        deepChildSource,
-        deepInternetMessageId,
-        deepMessageId,
-        deepReferences,
-        deepSiblingSources,
-        deepThreadMessageIds,
-        deepThreadRootMessageId,
-        messageDriftKey,
-        nestedReplyMessageId,
-        nestedSource,
-        threadIndexDriftKey,
+          deepInternetMessageId,
+          deepMessageId,
+          deepReferences,
+          deepSiblingSources,
+          deepThreadMessageIds,
+          deepThreadRootMessageId,
+          messageDriftKey,
+          nestedReplyMessageId,
+          nestedSource,
+          threadIndexDriftKey,
+        };
       };
-    };
 
-    await collection.ingest({
-      chunks: replySpecs.flatMap((spec) =>
-        branchKeys.flatMap((branchKey) =>
-          nestedReplyKeys.flatMap((replyKey) => {
-            return deepChildKeys.flatMap((childKey, index) => {
-              const context = buildDeepChildContext(
-                spec,
-                branchKey,
-                replyKey,
-                childKey,
-                index,
-              );
-              return [
-                {
-                  chunkId: `mixed-deep-child-${spec.formatLabel}-${branchKey}-${replyKey}-${childKey}-authored`,
-                  embedding: [1, 0] as [number, number],
-                  metadata: context.buildBaseMetadata({
-                    emailSectionKind: "authored_text",
-                  }),
-                  text: `${spec.formatLabel} ${branchKey} nested reply ${replyKey} ${childKey} deep child summary.`,
-                },
-                {
-                  chunkId: `mixed-deep-child-${spec.formatLabel}-${branchKey}-${replyKey}-${childKey}-forwarded`,
-                  embedding: [1, 0] as [number, number],
-                  metadata: context.buildBaseMetadata({
-                    emailForwardedChainCount: 2,
-                    emailForwardedFromAddress: `forwarded-deep-${spec.formatLabel}-${branchKey}-${replyKey}-${childKey}@example.com`,
-                    emailForwardedOrdinal: 1,
-                    emailForwardedSubject: `Forwarded deep child ${spec.formatLabel} ${branchKey} ${replyKey} ${childKey} history`,
-                    emailSectionKind: "forwarded_headers",
-                  }),
-                  text: `${spec.formatLabel} ${branchKey} nested reply ${replyKey} ${childKey} deep child forwarded headers.`,
-                },
-                ...quotedHistoryKeys.map((quotedKey, quotedIndex) => ({
-                  chunkId: `mixed-deep-child-${spec.formatLabel}-${branchKey}-${replyKey}-${childKey}-quoted-${quotedKey}`,
-                  embedding: [1, 0] as [number, number],
-                  metadata: context.buildBaseMetadata({
-                    emailQuotedDepth:
+      await collection.ingest({
+        chunks: replySpecs.flatMap((spec) =>
+          branchKeys.flatMap((branchKey) =>
+            nestedReplyKeys.flatMap((replyKey) => {
+              return deepChildKeys.flatMap((childKey, index) => {
+                const context = buildDeepChildContext(
+                  spec,
+                  branchKey,
+                  replyKey,
+                  childKey,
+                  index,
+                );
+                return [
+                  {
+                    chunkId: `mixed-deep-child-${spec.formatLabel}-${branchKey}-${replyKey}-${childKey}-authored`,
+                    embedding: [1, 0] as [number, number],
+                    metadata: context.buildBaseMetadata({
+                      emailSectionKind: "authored_text",
+                    }),
+                    text: `${spec.formatLabel} ${branchKey} nested reply ${replyKey} ${childKey} deep child summary.`,
+                  },
+                  {
+                    chunkId: `mixed-deep-child-${spec.formatLabel}-${branchKey}-${replyKey}-${childKey}-forwarded`,
+                    embedding: [1, 0] as [number, number],
+                    metadata: context.buildBaseMetadata({
+                      emailForwardedChainCount: 2,
+                      emailForwardedFromAddress: `forwarded-deep-${spec.formatLabel}-${branchKey}-${replyKey}-${childKey}@example.com`,
+                      emailForwardedOrdinal: 1,
+                      emailForwardedSubject: `Forwarded deep child ${spec.formatLabel} ${branchKey} ${replyKey} ${childKey} history`,
+                      emailSectionKind: "forwarded_headers",
+                    }),
+                    text: `${spec.formatLabel} ${branchKey} nested reply ${replyKey} ${childKey} deep child forwarded headers.`,
+                  },
+                  ...quotedHistoryKeys.map((quotedKey, quotedIndex) => ({
+                    chunkId: `mixed-deep-child-${spec.formatLabel}-${branchKey}-${replyKey}-${childKey}-quoted-${quotedKey}`,
+                    embedding: [1, 0] as [number, number],
+                    metadata: context.buildBaseMetadata({
+                      emailQuotedDepth:
+                        quotedKey === "older"
+                          ? index + quotedIndex + 3
+                          : index + quotedIndex + 1,
+                      emailSectionKind: "quoted_history",
+                    }),
+                    text:
                       quotedKey === "older"
-                        ? index + quotedIndex + 3
-                        : index + quotedIndex + 1,
-                    emailSectionKind: "quoted_history",
-                  }),
-                  text:
-                    quotedKey === "older"
-                      ? `${spec.formatLabel} ${branchKey} nested reply ${replyKey} ${childKey} older archive quoted escalation history.`
-                      : `${spec.formatLabel} ${branchKey} nested reply ${replyKey} ${childKey} recent quoted owner recap.`,
-                })),
-                ...inlineResourceKeys.map((inlineKey, inlineIndex) => ({
-                  chunkId: `mixed-deep-child-${spec.formatLabel}-${branchKey}-${replyKey}-${childKey}-inline-${inlineKey}`,
-                  embedding: [1, 0] as [number, number],
-                  metadata: context.buildBaseMetadata({
-                    attachmentContentId: `<deep-inline-${spec.formatLabel}-${branchKey}-${replyKey}-${childKey}-${inlineKey}@example.com>`,
-                    attachmentEmbeddedReferenceMatched: true,
-                    attachmentIndex: inlineIndex,
-                    emailAttachmentRole: "inline_resource",
-                    emailAttachmentSource: `${context.deepChildSource}#attachments/deep-inline-${branchKey}-${replyKey}-${childKey}-${inlineKey}.txt`,
-                  }),
-                  text: `${spec.formatLabel} ${branchKey} nested reply ${replyKey} ${childKey} ${inlineKey} inline deep note.`,
-                })),
-              ];
-            });
-          }),
+                        ? `${spec.formatLabel} ${branchKey} nested reply ${replyKey} ${childKey} older archive quoted escalation history.`
+                        : `${spec.formatLabel} ${branchKey} nested reply ${replyKey} ${childKey} recent quoted owner recap.`,
+                  })),
+                  ...inlineResourceKeys.map((inlineKey, inlineIndex) => ({
+                    chunkId: `mixed-deep-child-${spec.formatLabel}-${branchKey}-${replyKey}-${childKey}-inline-${inlineKey}`,
+                    embedding: [1, 0] as [number, number],
+                    metadata: context.buildBaseMetadata({
+                      attachmentContentId: `<deep-inline-${spec.formatLabel}-${branchKey}-${replyKey}-${childKey}-${inlineKey}@example.com>`,
+                      attachmentEmbeddedReferenceMatched: true,
+                      attachmentIndex: inlineIndex,
+                      emailAttachmentRole: "inline_resource",
+                      emailAttachmentSource: `${context.deepChildSource}#attachments/deep-inline-${branchKey}-${replyKey}-${childKey}-${inlineKey}.txt`,
+                    }),
+                    text: `${spec.formatLabel} ${branchKey} nested reply ${replyKey} ${childKey} ${inlineKey} inline deep note.`,
+                  })),
+                ];
+              });
+            }),
+          ),
         ),
-      ),
-    });
-
-    for (const [specIndex, spec] of replySpecs.entries()) {
-      const branchKey = branchKeys[specIndex % branchKeys.length]!;
-      const replyKey = nestedReplyKeys[specIndex % nestedReplyKeys.length]!;
-      const childIndex = specIndex % deepChildKeys.length;
-      const childKey = deepChildKeys[childIndex]!;
-      const inlineIndex = specIndex % inlineResourceKeys.length;
-      const inlineKey = inlineResourceKeys[inlineIndex]!;
-      const inlineChildKey = deepChildKeys[0];
-      const inlineMessageDriftKey = messageDriftKeys[0]!;
-      const inlineConversationIdDriftKey = conversationIdDriftKeys[0]!;
-      const inlineConversationDriftKey = conversationDriftKeys[0]!;
-      const inlineThreadIndexDriftKey = threadIndexDriftKeys[0]!;
-      const branchStateFlags =
-        branchStateFlagSets[branchKeys.indexOf(branchKey)]!;
-      const mailboxStateCue =
-        branchStateFlags.find((flag) => !["read", "passed"].includes(flag)) ??
-        branchStateFlags[0] ??
-        "";
-      const statePrefix = mailboxStateCue ? `${mailboxStateCue} ` : "";
-      const childOrdinalLabel = childOrdinalLabels[childIndex];
-      const inlineOrdinalLabel = inlineOrdinalLabels[inlineIndex];
-      const inlineChildOrdinalLabel = childOrdinalLabels[0];
-      const branchMailboxPathSegments =
-        branchMailboxPaths[branchKeys.indexOf(branchKey)]!;
-      const branchMailboxLeaf =
-        branchMailboxPathSegments[branchMailboxPathSegments.length - 1]!;
-      const branchMailboxPathCue =
-        branchMailboxPathSegments.length > 3
-          ? branchMailboxPathSegments[branchMailboxPathSegments.length - 2]!
-          : branchMailboxLeaf;
-      const rootDriftKey = rootDriftKeys[branchKeys.indexOf(branchKey)]!;
-      const parentDriftKey =
-        parentDriftKeys[nestedReplyKeys.indexOf(replyKey)]!;
-      const referenceDriftKey = referenceDriftKeys[childIndex]!;
-      const messageDriftKey = messageDriftKeys[childIndex]!;
-      const conversationIdDriftKey = conversationIdDriftKeys[childIndex]!;
-      const conversationDriftKey = conversationDriftKeys[childIndex]!;
-      const threadIndexDriftKey = threadIndexDriftKeys[childIndex]!;
-      const authoredResults = await collection.search({
-        query: `Which ${statePrefix}${childOrdinalLabel} ${spec.formatLabel} mailbox deep child ${childKey} under nested reply ${replyKey} for ${branchKey} has the local authored summary for the mixed deep child descendant thread?`,
-        topK:
-          replySpecs.length *
-          branchKeys.length *
-          nestedReplyKeys.length *
-          deepChildKeys.length *
-          2,
       });
-      expect(authoredResults[0]?.chunkId).toBe(
-        `mixed-deep-child-${spec.formatLabel}-${branchKey}-${replyKey}-${childKey}-authored`,
-      );
 
-      const parentRootResults = await collection.search({
-        query: `Which ${statePrefix}${childOrdinalLabel} ${spec.formatLabel} mailbox deep child ${childKey} under parent ${parentDriftKey} and root ${rootDriftKey} has the local authored summary for the mixed deep child descendant thread?`,
-        topK:
-          replySpecs.length *
-          branchKeys.length *
-          nestedReplyKeys.length *
-          deepChildKeys.length *
-          2,
-      });
-      expect(parentRootResults[0]?.chunkId).toBe(
-        `mixed-deep-child-${spec.formatLabel}-${branchKey}-${replyKey}-${childKey}-authored`,
-      );
-
-      const referenceChainResults = await collection.search({
-        query: `Which ${statePrefix}${childOrdinalLabel} ${spec.formatLabel} mailbox deep child under reference chain ${referenceDriftKey} for nested reply ${replyKey} and branch ${branchKey} has the local authored summary for the mixed deep child descendant thread?`,
-        topK:
-          replySpecs.length *
-          branchKeys.length *
-          nestedReplyKeys.length *
-          deepChildKeys.length *
-          2,
-      });
-      expect(referenceChainResults[0]?.chunkId).toBe(
-        `mixed-deep-child-${spec.formatLabel}-${branchKey}-${replyKey}-${childKey}-authored`,
-      );
-
-      const messageIdResults = await collection.search({
-        query: `Which ${statePrefix}${childOrdinalLabel} ${spec.formatLabel} mailbox deep child with message id ${messageDriftKey} under nested reply ${replyKey} and branch ${branchKey} has the local authored summary for the mixed deep child descendant thread?`,
-        topK:
-          replySpecs.length *
-          branchKeys.length *
-          nestedReplyKeys.length *
-          deepChildKeys.length *
-          2,
-      });
-      expect(messageIdResults[0]?.chunkId).toBe(
-        `mixed-deep-child-${spec.formatLabel}-${branchKey}-${replyKey}-${childKey}-authored`,
-      );
-
-      const conversationIdResults = await collection.search({
-        query: `Which ${statePrefix}${childOrdinalLabel} ${spec.formatLabel} mailbox deep child with conversation id ${conversationIdDriftKey} under nested reply ${replyKey} and branch ${branchKey} has the local authored summary for the mixed deep child descendant thread?`,
-        topK:
-          replySpecs.length *
-          branchKeys.length *
-          nestedReplyKeys.length *
-          deepChildKeys.length *
-          2,
-      });
-      expect(conversationIdResults[0]?.chunkId).toBe(
-        `mixed-deep-child-${spec.formatLabel}-${branchKey}-${replyKey}-${childKey}-authored`,
-      );
-
-      const conversationIndexResults = await collection.search({
-        query: `Which ${statePrefix}${childOrdinalLabel} ${spec.formatLabel} mailbox deep child with conversation index ${conversationDriftKey} under nested reply ${replyKey} and branch ${branchKey} has the local authored summary for the mixed deep child descendant thread?`,
-        topK:
-          replySpecs.length *
-          branchKeys.length *
-          nestedReplyKeys.length *
-          deepChildKeys.length *
-          2,
-      });
-      expect(conversationIndexResults[0]?.chunkId).toBe(
-        `mixed-deep-child-${spec.formatLabel}-${branchKey}-${replyKey}-${childKey}-authored`,
-      );
-
-      const threadIndexResults = await collection.search({
-        query: `Which ${statePrefix}${childOrdinalLabel} ${spec.formatLabel} mailbox deep child with thread index ${threadIndexDriftKey} under nested reply ${replyKey} and branch ${branchKey} has the local authored summary for the mixed deep child descendant thread?`,
-        topK:
-          replySpecs.length *
-          branchKeys.length *
-          nestedReplyKeys.length *
-          deepChildKeys.length *
-          2,
-      });
-      expect(threadIndexResults[0]?.chunkId).toBe(
-        `mixed-deep-child-${spec.formatLabel}-${branchKey}-${replyKey}-${childKey}-authored`,
-      );
-
-      const forwardedResults = await collection.search({
-        query: `Which ${statePrefix}${childOrdinalLabel} ${spec.formatLabel} mailbox deep child ${childKey} under nested reply ${replyKey} for ${branchKey} forwarded chain headers show the original sender for the mixed deep child descendant thread?`,
-        topK:
-          replySpecs.length *
-          branchKeys.length *
-          nestedReplyKeys.length *
-          deepChildKeys.length *
-          2,
-      });
-      expect(forwardedResults[0]?.chunkId).toBe(
-        `mixed-deep-child-${spec.formatLabel}-${branchKey}-${replyKey}-${childKey}-forwarded`,
-      );
-      if (mailboxStateCue) {
-        const forwardedStateResults = await collection.search({
-          query: `Which ${mailboxStateCue} ${childOrdinalLabel} ${spec.formatLabel} mailbox path ${branchMailboxPathCue} leaf ${branchMailboxLeaf} deep child ${childKey} under nested reply ${replyKey} forwarded chain headers show the original sender for the mixed deep child descendant thread?`,
+      {
+        const branchKey = branchKeys[specIndex % branchKeys.length]!;
+        const replyKey = nestedReplyKeys[specIndex % nestedReplyKeys.length]!;
+        const childIndex = specIndex % deepChildKeys.length;
+        const childKey = deepChildKeys[childIndex]!;
+        const inlineIndex = specIndex % inlineResourceKeys.length;
+        const inlineKey = inlineResourceKeys[inlineIndex]!;
+        const inlineChildKey = deepChildKeys[0];
+        const inlineMessageDriftKey = messageDriftKeys[0]!;
+        const inlineConversationIdDriftKey = conversationIdDriftKeys[0]!;
+        const inlineConversationDriftKey = conversationDriftKeys[0]!;
+        const inlineThreadIndexDriftKey = threadIndexDriftKeys[0]!;
+        const branchStateFlags =
+          branchStateFlagSets[branchKeys.indexOf(branchKey)]!;
+        const mailboxStateCue =
+          branchStateFlags.find((flag) => !["read", "passed"].includes(flag)) ??
+          branchStateFlags[0] ??
+          "";
+        const statePrefix = mailboxStateCue ? `${mailboxStateCue} ` : "";
+        const childOrdinalLabel = childOrdinalLabels[childIndex];
+        const inlineOrdinalLabel = inlineOrdinalLabels[inlineIndex];
+        const inlineChildOrdinalLabel = childOrdinalLabels[0];
+        const branchMailboxPathSegments =
+          branchMailboxPaths[branchKeys.indexOf(branchKey)]!;
+        const branchMailboxLeaf =
+          branchMailboxPathSegments[branchMailboxPathSegments.length - 1]!;
+        const branchMailboxPathCue =
+          branchMailboxPathSegments.length > 3
+            ? branchMailboxPathSegments[branchMailboxPathSegments.length - 2]!
+            : branchMailboxLeaf;
+        const rootDriftKey = rootDriftKeys[branchKeys.indexOf(branchKey)]!;
+        const parentDriftKey =
+          parentDriftKeys[nestedReplyKeys.indexOf(replyKey)]!;
+        const referenceDriftKey = referenceDriftKeys[childIndex]!;
+        const messageDriftKey = messageDriftKeys[childIndex]!;
+        const conversationIdDriftKey = conversationIdDriftKeys[childIndex]!;
+        const conversationDriftKey = conversationDriftKeys[childIndex]!;
+        const threadIndexDriftKey = threadIndexDriftKeys[childIndex]!;
+        const authoredResults = await collection.search({
+          query: `Which ${statePrefix}${childOrdinalLabel} ${spec.formatLabel} mailbox deep child ${childKey} under nested reply ${replyKey} for ${branchKey} has the local authored summary for the mixed deep child descendant thread?`,
           topK:
             replySpecs.length *
             branchKeys.length *
@@ -6439,39 +6340,117 @@ describe("createRAGCollection", () => {
             deepChildKeys.length *
             2,
         });
-        expect(forwardedStateResults[0]?.chunkId).toBe(
+        expect(authoredResults[0]?.chunkId).toBe(
+          `mixed-deep-child-${spec.formatLabel}-${branchKey}-${replyKey}-${childKey}-authored`,
+        );
+
+        const parentRootResults = await collection.search({
+          query: `Which ${statePrefix}${childOrdinalLabel} ${spec.formatLabel} mailbox deep child ${childKey} under parent ${parentDriftKey} and root ${rootDriftKey} has the local authored summary for the mixed deep child descendant thread?`,
+          topK:
+            replySpecs.length *
+            branchKeys.length *
+            nestedReplyKeys.length *
+            deepChildKeys.length *
+            2,
+        });
+        expect(parentRootResults[0]?.chunkId).toBe(
+          `mixed-deep-child-${spec.formatLabel}-${branchKey}-${replyKey}-${childKey}-authored`,
+        );
+
+        const referenceChainResults = await collection.search({
+          query: `Which ${statePrefix}${childOrdinalLabel} ${spec.formatLabel} mailbox deep child under reference chain ${referenceDriftKey} for nested reply ${replyKey} and branch ${branchKey} has the local authored summary for the mixed deep child descendant thread?`,
+          topK:
+            replySpecs.length *
+            branchKeys.length *
+            nestedReplyKeys.length *
+            deepChildKeys.length *
+            2,
+        });
+        expect(referenceChainResults[0]?.chunkId).toBe(
+          `mixed-deep-child-${spec.formatLabel}-${branchKey}-${replyKey}-${childKey}-authored`,
+        );
+
+        const messageIdResults = await collection.search({
+          query: `Which ${statePrefix}${childOrdinalLabel} ${spec.formatLabel} mailbox deep child with message id ${messageDriftKey} under nested reply ${replyKey} and branch ${branchKey} has the local authored summary for the mixed deep child descendant thread?`,
+          topK:
+            replySpecs.length *
+            branchKeys.length *
+            nestedReplyKeys.length *
+            deepChildKeys.length *
+            2,
+        });
+        expect(messageIdResults[0]?.chunkId).toBe(
+          `mixed-deep-child-${spec.formatLabel}-${branchKey}-${replyKey}-${childKey}-authored`,
+        );
+
+        const conversationIdResults = await collection.search({
+          query: `Which ${statePrefix}${childOrdinalLabel} ${spec.formatLabel} mailbox deep child with conversation id ${conversationIdDriftKey} under nested reply ${replyKey} and branch ${branchKey} has the local authored summary for the mixed deep child descendant thread?`,
+          topK:
+            replySpecs.length *
+            branchKeys.length *
+            nestedReplyKeys.length *
+            deepChildKeys.length *
+            2,
+        });
+        expect(conversationIdResults[0]?.chunkId).toBe(
+          `mixed-deep-child-${spec.formatLabel}-${branchKey}-${replyKey}-${childKey}-authored`,
+        );
+
+        const conversationIndexResults = await collection.search({
+          query: `Which ${statePrefix}${childOrdinalLabel} ${spec.formatLabel} mailbox deep child with conversation index ${conversationDriftKey} under nested reply ${replyKey} and branch ${branchKey} has the local authored summary for the mixed deep child descendant thread?`,
+          topK:
+            replySpecs.length *
+            branchKeys.length *
+            nestedReplyKeys.length *
+            deepChildKeys.length *
+            2,
+        });
+        expect(conversationIndexResults[0]?.chunkId).toBe(
+          `mixed-deep-child-${spec.formatLabel}-${branchKey}-${replyKey}-${childKey}-authored`,
+        );
+
+        const threadIndexResults = await collection.search({
+          query: `Which ${statePrefix}${childOrdinalLabel} ${spec.formatLabel} mailbox deep child with thread index ${threadIndexDriftKey} under nested reply ${replyKey} and branch ${branchKey} has the local authored summary for the mixed deep child descendant thread?`,
+          topK:
+            replySpecs.length *
+            branchKeys.length *
+            nestedReplyKeys.length *
+            deepChildKeys.length *
+            2,
+        });
+        expect(threadIndexResults[0]?.chunkId).toBe(
+          `mixed-deep-child-${spec.formatLabel}-${branchKey}-${replyKey}-${childKey}-authored`,
+        );
+
+        const forwardedResults = await collection.search({
+          query: `Which ${statePrefix}${childOrdinalLabel} ${spec.formatLabel} mailbox deep child ${childKey} under nested reply ${replyKey} for ${branchKey} forwarded chain headers show the original sender for the mixed deep child descendant thread?`,
+          topK:
+            replySpecs.length *
+            branchKeys.length *
+            nestedReplyKeys.length *
+            deepChildKeys.length *
+            2,
+        });
+        expect(forwardedResults[0]?.chunkId).toBe(
           `mixed-deep-child-${spec.formatLabel}-${branchKey}-${replyKey}-${childKey}-forwarded`,
         );
-      }
+        if (mailboxStateCue) {
+          const forwardedStateResults = await collection.search({
+            query: `Which ${mailboxStateCue} ${childOrdinalLabel} ${spec.formatLabel} mailbox path ${branchMailboxPathCue} leaf ${branchMailboxLeaf} deep child ${childKey} under nested reply ${replyKey} forwarded chain headers show the original sender for the mixed deep child descendant thread?`,
+            topK:
+              replySpecs.length *
+              branchKeys.length *
+              nestedReplyKeys.length *
+              deepChildKeys.length *
+              2,
+          });
+          expect(forwardedStateResults[0]?.chunkId).toBe(
+            `mixed-deep-child-${spec.formatLabel}-${branchKey}-${replyKey}-${childKey}-forwarded`,
+          );
+        }
 
-      const quotedResults = await collection.search({
-        query: `Which ${statePrefix}${childOrdinalLabel} ${spec.formatLabel} mailbox deep child ${childKey} under nested reply ${replyKey} for ${branchKey} quoted history shows the recent owner recap for the mixed deep child descendant thread?`,
-        topK:
-          replySpecs.length *
-          branchKeys.length *
-          nestedReplyKeys.length *
-          deepChildKeys.length *
-          (2 + quotedHistoryKeys.length),
-      });
-      expect(quotedResults[0]?.chunkId).toBe(
-        `mixed-deep-child-${spec.formatLabel}-${branchKey}-${replyKey}-${childKey}-quoted-recent`,
-      );
-
-      const deepestQuotedResults = await collection.search({
-        query: `Which ${statePrefix}deeper older quoted history for the ${childOrdinalLabel} ${spec.formatLabel} mailbox deep child ${childKey} under nested reply ${replyKey} for ${branchKey} shows the archive escalation history for the mixed deep child descendant thread?`,
-        topK:
-          replySpecs.length *
-          branchKeys.length *
-          nestedReplyKeys.length *
-          deepChildKeys.length *
-          (2 + quotedHistoryKeys.length),
-      });
-      expect(deepestQuotedResults[0]?.chunkId).toBe(
-        `mixed-deep-child-${spec.formatLabel}-${branchKey}-${replyKey}-${childKey}-quoted-older`,
-      );
-      if (mailboxStateCue) {
-        const quotedStateResults = await collection.search({
-          query: `Which ${mailboxStateCue} ${childOrdinalLabel} ${spec.formatLabel} mailbox path ${branchMailboxPathCue} leaf ${branchMailboxLeaf} deep child ${childKey} under nested reply ${replyKey} quoted history shows the recent owner recap for the mixed deep child descendant thread?`,
+        const quotedResults = await collection.search({
+          query: `Which ${statePrefix}${childOrdinalLabel} ${spec.formatLabel} mailbox deep child ${childKey} under nested reply ${replyKey} for ${branchKey} quoted history shows the recent owner recap for the mixed deep child descendant thread?`,
           topK:
             replySpecs.length *
             branchKeys.length *
@@ -6479,27 +6458,39 @@ describe("createRAGCollection", () => {
             deepChildKeys.length *
             (2 + quotedHistoryKeys.length),
         });
-        expect(quotedStateResults[0]?.chunkId).toBe(
+        expect(quotedResults[0]?.chunkId).toBe(
           `mixed-deep-child-${spec.formatLabel}-${branchKey}-${replyKey}-${childKey}-quoted-recent`,
         );
-      }
 
-      const inlineResults = await collection.search({
-        query: `Which ${statePrefix}${inlineOrdinalLabel} inline cid resource for the ${inlineChildOrdinalLabel} ${spec.formatLabel} mailbox deep child ${inlineChildKey} with message id ${inlineMessageDriftKey}, conversation index ${inlineConversationDriftKey}, and thread index ${inlineThreadIndexDriftKey} under nested reply ${replyKey} for ${branchKey} shows the ${inlineKey} embedded deep note for the mixed deep child descendant thread?`,
-        topK:
-          replySpecs.length *
-          branchKeys.length *
-          nestedReplyKeys.length *
-          deepChildKeys.length *
-          inlineResourceKeys.length *
-          3,
-      });
-      expect(inlineResults[0]?.chunkId).toBe(
-        `mixed-deep-child-${spec.formatLabel}-${branchKey}-${replyKey}-${inlineChildKey}-inline-${inlineKey}`,
-      );
-      if (mailboxStateCue) {
-        const inlineStateResults = await collection.search({
-          query: `Which ${mailboxStateCue} ${inlineOrdinalLabel} inline cid resource for the ${inlineChildOrdinalLabel} ${spec.formatLabel} mailbox path ${branchMailboxPathCue} leaf ${branchMailboxLeaf} deep child ${inlineChildKey} with message id ${inlineMessageDriftKey}, conversation id ${inlineConversationIdDriftKey}, conversation index ${inlineConversationDriftKey}, and thread index ${inlineThreadIndexDriftKey} under nested reply ${replyKey} shows the ${inlineKey} embedded deep note for the mixed deep child descendant thread?`,
+        const deepestQuotedResults = await collection.search({
+          query: `Which ${statePrefix}deeper older quoted history for the ${childOrdinalLabel} ${spec.formatLabel} mailbox deep child ${childKey} under nested reply ${replyKey} for ${branchKey} shows the archive escalation history for the mixed deep child descendant thread?`,
+          topK:
+            replySpecs.length *
+            branchKeys.length *
+            nestedReplyKeys.length *
+            deepChildKeys.length *
+            (2 + quotedHistoryKeys.length),
+        });
+        expect(deepestQuotedResults[0]?.chunkId).toBe(
+          `mixed-deep-child-${spec.formatLabel}-${branchKey}-${replyKey}-${childKey}-quoted-older`,
+        );
+        if (mailboxStateCue) {
+          const quotedStateResults = await collection.search({
+            query: `Which ${mailboxStateCue} ${childOrdinalLabel} ${spec.formatLabel} mailbox path ${branchMailboxPathCue} leaf ${branchMailboxLeaf} deep child ${childKey} under nested reply ${replyKey} quoted history shows the recent owner recap for the mixed deep child descendant thread?`,
+            topK:
+              replySpecs.length *
+              branchKeys.length *
+              nestedReplyKeys.length *
+              deepChildKeys.length *
+              (2 + quotedHistoryKeys.length),
+          });
+          expect(quotedStateResults[0]?.chunkId).toBe(
+            `mixed-deep-child-${spec.formatLabel}-${branchKey}-${replyKey}-${childKey}-quoted-recent`,
+          );
+        }
+
+        const inlineResults = await collection.search({
+          query: `Which ${statePrefix}${inlineOrdinalLabel} inline cid resource for the ${inlineChildOrdinalLabel} ${spec.formatLabel} mailbox deep child ${inlineChildKey} with message id ${inlineMessageDriftKey}, conversation index ${inlineConversationDriftKey}, and thread index ${inlineThreadIndexDriftKey} under nested reply ${replyKey} for ${branchKey} shows the ${inlineKey} embedded deep note for the mixed deep child descendant thread?`,
           topK:
             replySpecs.length *
             branchKeys.length *
@@ -6508,12 +6499,27 @@ describe("createRAGCollection", () => {
             inlineResourceKeys.length *
             3,
         });
-        expect(inlineStateResults[0]?.chunkId).toBe(
+        expect(inlineResults[0]?.chunkId).toBe(
           `mixed-deep-child-${spec.formatLabel}-${branchKey}-${replyKey}-${inlineChildKey}-inline-${inlineKey}`,
         );
+        if (mailboxStateCue) {
+          const inlineStateResults = await collection.search({
+            query: `Which ${mailboxStateCue} ${inlineOrdinalLabel} inline cid resource for the ${inlineChildOrdinalLabel} ${spec.formatLabel} mailbox path ${branchMailboxPathCue} leaf ${branchMailboxLeaf} deep child ${inlineChildKey} with message id ${inlineMessageDriftKey}, conversation id ${inlineConversationIdDriftKey}, conversation index ${inlineConversationDriftKey}, and thread index ${inlineThreadIndexDriftKey} under nested reply ${replyKey} shows the ${inlineKey} embedded deep note for the mixed deep child descendant thread?`,
+            topK:
+              replySpecs.length *
+              branchKeys.length *
+              nestedReplyKeys.length *
+              deepChildKeys.length *
+              inlineResourceKeys.length *
+              3,
+          });
+          expect(inlineStateResults[0]?.chunkId).toBe(
+            `mixed-deep-child-${spec.formatLabel}-${branchKey}-${replyKey}-${inlineChildKey}-inline-${inlineKey}`,
+          );
+        }
       }
-    }
-  }, 30000);
+    }, 30000);
+  }
 
   it("prefers ost mailbox sensitivity and category-local evidence within one mailbox container", async () => {
     const store = createInMemoryRAGStore({

@@ -1,5 +1,61 @@
 {
 	"contract": 1,
 	"name": "@absolutejs/rag",
-	"releases": []
+	"releases": [
+		{
+			"changes": [
+				{
+					"kind": "changed",
+					"summary": "Forward AI context policy through RAG WebSocket and SSE chat; accept the next AI 0.1 release while retaining compatibility with the prior AI peer range",
+					"symbols": [
+						"ragChat",
+						"createRAGWorkflow",
+						"useRAG",
+						"useRAGWorkflow",
+						"useRAGStream",
+						"createRAG",
+						"RAGWorkflowService",
+						"RAGStreamService"
+					]
+				},
+				{
+					"kind": "added",
+					"summary": "Allow servers to request a smaller original-source search result set while preserving candidate ranking, authorization, and exact token budgeting",
+					"symbols": [
+						"createRAGOriginalTextTools"
+					]
+				},
+				{
+					"kind": "changed",
+					"summary": "Count a complete authorized source-result envelope once when it fits, avoiding serial tokenizer round trips while retaining exact budget validation and oversized-result packing",
+					"symbols": [
+						"createRAGOriginalTextTools"
+					]
+				},
+				{
+					"kind": "added",
+					"summary": "Add verbatim versioned text ingestion and authorized hybrid source tools with caller-supplied model token budgets; preserve multilingual keyword matches",
+					"symbols": [
+						"chunkRAGOriginalText",
+						"readRAGOriginalText",
+						"createRAGOriginalTextTools"
+					]
+				},
+				{
+					"kind": "breaking",
+					"migration": {
+						"instruction": "Use a store implementing queryLexical for lexical/hybrid retrieval, or explicitly select vector mode on vector-only stores. Scoped heuristic queries now retain the requested channels; update trace consumers from Scoped direct route to Scoped retrieval route.",
+						"manual": true
+					},
+					"summary": "Reject unsupported lexical and hybrid retrieval instead of silently omitting keyword results; preserve requested channels for scoped heuristic queries",
+					"symbols": [
+						"createRAGCollection",
+						"createHeuristicRAGRetrievalStrategy"
+					]
+				}
+			],
+			"date": "2026-09-16",
+			"version": "0.9.0"
+		}
+	]
 }

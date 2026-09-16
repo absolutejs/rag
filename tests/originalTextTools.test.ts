@@ -25,7 +25,8 @@ const documents: RAGOriginalText[] = [
   },
 ];
 
-const setup = async (maxTokens = 2000) => {
+const setup = async (maxTokens = 2000, searchTopK?: number) => {
+  const counts: string[] = [];
   // Deterministic semantic oracle tests retrieval plumbing, not live embedding quality.
   const store = createInMemoryRAGStore({
     dimensions: 2,
@@ -54,6 +55,7 @@ const setup = async (maxTokens = 2000) => {
   const traces: string[] = [];
   const tools = createRAGOriginalTextTools({
     collection,
+    searchTopK,
     filter: { owner: "a" },
     loadSource: async (id, version) =>
       documents.find(
@@ -62,15 +64,28 @@ const setup = async (maxTokens = 2000) => {
           document.sourceId === id &&
           document.version === version,
       ) ?? null,
-    budget: { maxTokens, countTokens: async (text) => text.length },
+    budget: {
+      maxTokens,
+      countTokens: async (text) => {
+        counts.push(text);
+        return text.length;
+      },
+    },
     onTrace: (trace) => {
       traces.push(trace.mode);
     },
   });
-  return { tools, calls, traces };
+  return { tools, calls, traces, counts };
 };
 
 describe("hybrid source evidence tools", () => {
+  test("counts one exact envelope when all authorized passages fit", async () => {
+    const { tools, counts } = await setup();
+    const text = await tools.search_text_source!.handler({ query: "budget" });
+    expect(counts).toEqual([text]);
+    expect(JSON.parse(text).passages.length).toBe(2);
+    expect(JSON.parse(text).budgetLimited).toBe(false);
+  });
   test("combines semantic synonym and lexical correction evidence with exact original reads", async () => {
     const { tools, calls, traces } = await setup();
     const result = JSON.parse(
@@ -151,4 +166,24 @@ describe("hybrid source evidence tools", () => {
     expect(result.passages[0].text).toBe(documents[0]!.text);
     expect(result.passages[0].text).not.toContain("$0");
   });
+});
+
+test("server-selected small searches preserve scope and default wider lookup", async () => {
+  const small = await setup(2000, 1);
+  const full = await setup();
+  const input = { query: "Orion budget" };
+  const narrow = JSON.parse(
+    await small.tools.search_text_source!.handler(input),
+  );
+  const wider = JSON.parse(await full.tools.search_text_source!.handler(input));
+  expect(narrow.passages).toHaveLength(1);
+  expect(wider.passages).toHaveLength(2);
+  expect(
+    narrow.passages.every(
+      (passage: { sourceId: string }) => passage.sourceId !== "private",
+    ),
+  ).toBe(true);
+  expect(small.counts).toHaveLength(1);
+  for (const invalid of [0, -1, 1.5, 49])
+    await expect(setup(2000, invalid)).rejects.toThrow("searchTopK");
 });

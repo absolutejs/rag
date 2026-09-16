@@ -23,6 +23,8 @@ export type RAGOriginalTextToolsOptions = {
     maxTokens: number;
     countTokens: (serializedResult: string) => Promise<number>;
   };
+  /** Server-selected result count; candidates are still ranked before budgeting. */
+  searchTopK?: number;
   signal?: AbortSignal;
   onTrace?: (trace: RAGCollectionSearchResult["trace"]) => void;
 };
@@ -62,6 +64,11 @@ export const createRAGOriginalTextTools = (
   )
     throw new RangeError(
       "Original text tools require a positive model token budget",
+    );
+  const searchTopK = options.searchTopK ?? 12;
+  if (!Number.isSafeInteger(searchTopK) || searchTopK < 1 || searchTopK > 48)
+    throw new RangeError(
+      "Original text searchTopK must be an integer between 1 and 48",
     );
   const filter = structuredClone(options.filter);
   const fits = async (value: unknown) => {
@@ -110,15 +117,14 @@ export const createRAGOriginalTextTools = (
               ? { $and: [filter, { source: value.sourceId }] }
               : filter,
           retrieval: { mode: "hybrid", diversityStrategy: "mmr" },
-          topK: 12,
+          topK: searchTopK,
           candidateTopK: 48,
           signal: options.signal,
         });
         options.onTrace?.(result.trace);
-        const passages: Array<
+        const candidates: Array<
           NonNullable<Awaited<ReturnType<typeof resolve>>>
         > = [];
-        let omitted = 0;
         const seen = new Set<string>();
         for (const match of result.results) {
           const locator = locatorFrom(match.metadata?.sourceLocator);
@@ -132,7 +138,21 @@ export const createRAGOriginalTextTools = (
           if (seen.has(key)) continue;
           seen.add(key);
           const passage = await resolve(locator);
-          if (!passage) continue;
+          if (passage) candidates.push(passage);
+        }
+        // Provider token counting can be a network round trip. Most bounded
+        // searches fit in full, so validate the exact complete envelope once.
+        const complete = {
+          referenceOnly: true,
+          passages: candidates,
+          budgetLimited: false,
+        };
+        if (await fits(complete)) return JSON.stringify(complete);
+        // Preserve greedy packing for oversized results, including later small
+        // passages after an earlier large passage does not fit.
+        const passages: typeof candidates = [];
+        let omitted = 0;
+        for (const passage of candidates) {
           if (
             await fits({
               referenceOnly: true,

@@ -1962,6 +1962,7 @@ export const ragChat = (config: RAGChatPluginConfig) => {
 
       await streamAI(ws, conversationId, assistantMessageId, {
         completeMeta: includeCompleteSources ? { sources } : undefined,
+        contextPolicy: config.contextPolicy,
         maxTurns: config.maxTurns,
         messages: [
           ...history,
@@ -12309,6 +12310,7 @@ export const ragChat = (config: RAGChatPluginConfig) => {
             assistantMessageId,
             {
               completeMeta: includeCompleteSources ? { sources } : undefined,
+              contextPolicy: config.contextPolicy,
               maxTurns: config.maxTurns,
               messages: [...userHistory, messageWithContext],
               model,
