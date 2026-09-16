@@ -534,3 +534,5 @@ export {
   type RAGOriginalTextLocator,
 } from "./ingestion/originalText";
 export { createRAGOriginalTextTools, type RAGOriginalTextToolsOptions } from "./retrieval/originalTextTools";
+
+export { createRAGQuoteReferences } from "./retrieval/quoteReferences";

@@ -5,6 +5,27 @@
 		{
 			"changes": [
 				{
+					"kind": "added",
+					"summary": "Encode retrieved original-text passages as request-scoped quote references and restore exact quotes without rewriting source text",
+					"symbols": [
+						"createRAGQuoteReferences"
+					]
+				},
+				{
+					"kind": "changed",
+					"summary": "Accept AI 0.2 alongside existing compatible AI releases; validate retrieval against AI 0.2.0",
+					"symbols": [
+						"ragChat",
+						"createRAGWorkflow"
+					]
+				}
+			],
+			"date": "2026-09-16",
+			"version": "0.10.0"
+		},
+		{
+			"changes": [
+				{
 					"kind": "changed",
 					"summary": "Forward AI context policy through RAG WebSocket and SSE chat; accept the next AI 0.1 release while retaining compatibility with the prior AI peer range",
 					"symbols": [

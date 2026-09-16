@@ -110,3 +110,18 @@ saved-source recovery callback when appropriate. Providers without capacity
 support require an explicit `contextPolicy: false` raw opt-out. Older supported
 AI peers retain their previous behavior; upgrading RAG alone does not add the AI
 0.1 capacity policy. No model-capacity numbers are defined in RAG.
+
+### Reversible quote references
+
+`createRAGQuoteReferences()` creates a request-scoped registry for compressing
+already-verified original-text tool results. `encodeToolResult(json)` replaces
+passage text with sentence entries `{ citation, text }`; `resolve(citation)`
+restores the exact registered sentence. Repeated sentences reuse a reference,
+and unknown references throw. Search and single-range read envelopes are
+supported; unrecognized tool results pass through unchanged.
+
+Keep the registry alive across prefetch, lookups and completion, then discard
+it. Only encode server-owned original-text tool results. References are not
+access controls or durable source IDs: reauthorize and validate restored quotes
+against the originals before saving a result. This is opt-in; it does not change
+the original-text tools, stored originals or their existing result format.

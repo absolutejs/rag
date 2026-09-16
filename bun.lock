@@ -10,7 +10,7 @@
       },
       "devDependencies": {
         "@absolutejs/absolute": "0.20.0-beta.0",
-        "@absolutejs/ai": "0.1.0",
+        "@absolutejs/ai": "0.2.0",
         "@absolutejs/changelog": "^0.6.0",
         "@absolutejs/rag-postgres": "0.0.13",
         "@absolutejs/rag-sqlite": "0.0.11",
@@ -33,7 +33,7 @@
         "vue": "3.5.27",
       },
       "peerDependencies": {
-        "@absolutejs/ai": ">=0.0.54 <0.2",
+        "@absolutejs/ai": ">=0.0.54 <0.3",
         "@absolutejs/sync": ">=2.14.0 <3",
         "@angular/core": "^21.0.0",
         "elysia": "^2.0.0-beta.6",
@@ -62,7 +62,7 @@
 
     "@absolutejs/absolute-rag-sqlite-windows-x64": ["@absolutejs/absolute-rag-sqlite-windows-x64@0.0.2", "", { "os": "win32", "cpu": "x64" }, "sha512-2Kvnpv7Kw815iMT4UvOmWKJiYXbRF6/aaC/oUWzqy0O+1D4bhff4UFtoYbQGmIIc4IsRAcpk6bcdvbQ6YxpJ/Q=="],
 
-    "@absolutejs/ai": ["@absolutejs/ai@0.1.0", "", { "dependencies": { "@absolutejs/linked-providers": "0.0.2", "@openrouter/sdk": "^1.2.47" }, "peerDependencies": { "@absolutejs/isolated-jsc": ">= 0.4.0", "@absolutejs/sync": ">=2.14.0 <3", "@angular/core": "^21.0.0", "elysia": "^2.0.0-beta.6", "react": "^19.2.0", "svelte": "^5.35.2", "vue": "^3.5.27" }, "optionalPeers": ["@absolutejs/isolated-jsc", "@angular/core", "react", "svelte", "vue"] }, "sha512-qD9M2/a27b3geXPCJuul056uho5bMYN604dOfT8qZ/PPm+lnBGpcrHVMLGvt76wY/6xx3bNuj5NN8x+os2cADw=="],
+    "@absolutejs/ai": ["@absolutejs/ai@0.2.0", "", { "dependencies": { "@absolutejs/linked-providers": "0.0.2", "@openrouter/sdk": "^1.2.47" }, "peerDependencies": { "@absolutejs/isolated-jsc": ">= 0.4.0", "@absolutejs/sync": ">=2.14.0 <3", "@angular/core": "^21.0.0", "elysia": "^2.0.0-beta.6", "react": "^19.2.0", "svelte": "^5.35.2", "vue": "^3.5.27" }, "optionalPeers": ["@absolutejs/isolated-jsc", "@angular/core", "react", "svelte", "vue"] }, "sha512-dmHzObzHMlGdpQeDpzVH0olH8up8SNrq9ukvZyshm6P+Se6oX29T4+TcqNcBd8cEwCaFCFmWbKTSWDpTzeNX7w=="],
 
     "@absolutejs/changelog": ["@absolutejs/changelog@0.6.0", "", { "dependencies": { "typescript": "^5.8.3" }, "bin": { "absolute-changelog": "dist/cli.js" } }, "sha512-bsCCN7PVubSQ07dcaZgoE8M46QDOYMz9+Idc//bmxZd2KRK2wG7W5jqAIvjotD7mZD/6pVfGyNCxE+VNoYguvA=="],
 
