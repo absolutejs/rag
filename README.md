@@ -191,3 +191,9 @@ evidence text. Failed pages and unvisited links are not citable source entries.
 `citationRequirements` asks consumers to place links beside supported claims,
 avoid unsupported exclusions or ownership relationships, and keep verified brand
 changes brief. Host applications still control their generated final answers.
+
+`kind: "website_evidence"` identifies a website research result. `documents`
+binds each bounded text excerpt to a source ID, while source entries provide
+compact numbered `inlineCitation` links. This lets adapters present source-local
+evidence without dumping raw retrieval metadata into a model's response context.
+The combined document text respects `maxChars`; truncated excerpts are marked.

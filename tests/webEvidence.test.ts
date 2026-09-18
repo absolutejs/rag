@@ -177,3 +177,25 @@ test("citation list and inline links identify only retrieved readable pages", as
     false,
   );
 });
+
+test("documents bind evidence to compact citations within the total text budget", async () => {
+  const result = await readRAGWebsite({
+    url: "https://example.com/",
+    maxChars: 1000,
+    fetchResource: async (url) =>
+      response(url, `<main>${body}</main><a href='/services'>Services</a>`),
+  });
+  expect(result.kind).toBe("website_evidence");
+  expect(
+    result.documents.reduce(
+      (total, document) => total + document.text.length,
+      0,
+    ),
+  ).toBeLessThanOrEqual(1000);
+  for (const document of result.documents) {
+    const source = result.sources.find((item) => item.id === document.sourceId);
+    expect(source).toBeDefined();
+    expect(source?.inlineCitation).toContain(source?.url ?? "missing");
+  }
+  expect(result.documents.at(-1)?.truncated).toBe(true);
+});

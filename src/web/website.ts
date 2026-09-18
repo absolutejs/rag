@@ -122,14 +122,36 @@ export const readRAGWebsite = async (
   }
   const sources = pages
     .filter((page) => page.status !== "error" && page.text)
-    .map((page) => {
+    .map((page, index) => {
       const title = (page.title || new URL(page.finalUrl).hostname)
         .replace(/\s+/gu, " ")
         .trim();
       const label = title.replace(/[\\[\]]/gu, "\\$&");
       const href = page.finalUrl.replace(/[<>]/gu, encodeURIComponent);
-      return { title, url: page.finalUrl, citation: `[${label}](<${href}>)` };
+      return {
+        id: `source-${index + 1}`,
+        title,
+        url: page.finalUrl,
+        citation: `[${label}](<${href}>)`,
+        inlineCitation: `[${index + 1}](<${href}>)`,
+      };
     });
+  let remainingDocumentChars = maxChars;
+  const documents = sources.flatMap((source) => {
+    const page = pages.find(
+      (item) => item.finalUrl === source.url && item.text,
+    );
+    if (!page || remainingDocumentChars <= 0) return [];
+    const text = page.text.slice(0, remainingDocumentChars);
+    remainingDocumentChars -= text.length;
+    return [
+      {
+        sourceId: source.id,
+        text,
+        truncated: page.truncated || text.length < page.text.length,
+      },
+    ];
+  });
   const evidenceText = pages
     .filter((page) => page.status !== "error")
     .map(
@@ -144,6 +166,8 @@ export const readRAGWebsite = async (
     (link) => !visited.has(link.url.split("#")[0]!),
   );
   return {
+    kind: "website_evidence" as const,
+    documents,
     sources,
     citationRequirements:
       "The final answer must contain clickable Markdown source links, not just source names or bare domain mentions. Reuse sources[].citation beside the factual paragraph, list or table row it supports. Cite the actual supporting page, not the homepage for everything. Every factual section needs its supporting links. Do not invent sources or use unread links as evidence. Before responding, check that company facts, service descriptions, customer examples and numerical claims have supporting links; retrieve or omit unsupported claims. A list of large customers does not prove smaller customers are excluded. Preserve the brands actually named in the evidence; do not append parent companies, ownership relationships, current-account status, market rankings or rebrand history from memory. Label reasoned inferences as such. A verified brand change needs at most one short, cited sentence unless the user asks for its history.",

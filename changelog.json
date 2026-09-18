@@ -5,6 +5,19 @@
 		{
 			"changes": [
 				{
+					"kind": "added",
+					"summary": "Expose bounded website documents bound to source IDs and compact inline citation links for native MCP evidence presentation.",
+					"symbols": [
+						"readRAGWebsite"
+					]
+				}
+			],
+			"date": "2026-09-18",
+			"version": "0.15.0"
+		},
+		{
+			"changes": [
+				{
 					"kind": "changed",
 					"summary": "Require nearby source links for factual answers and distinguish supported customer examples from unsupported exclusions, ownership relationships and rebrand history.",
 					"symbols": [
