@@ -165,14 +165,21 @@ must enforce equivalent network controls.
 
 ### Research related website pages with attributable evidence
 
-`readRAGWebsite` from `@absolutejs/rag/web` reads a supplied URL and up to three
-relevant same-origin customer, services and company pages by default. Pass the
+`readRAGWebsite` from `@absolutejs/rag/web` reads up to eight pages by default, balancing
+same-origin customer, service and company pages so service details are not
+starved by large case-study archives. The configurable ceiling is twelve pages;
+the overall deadline remains 75 seconds and default text budget is 48,000 characters. Pass the
 optional Playwright renderer as for `readRAGWebpage`. `maxPages: 1` retains a
 single-page read; `mode: "browser"` retries content missed by static extraction.
 Results attribute text to exact page URLs and retain per-page redirects,
 retrieval attempts, semantic image labels, link destinations, media URLs and
 available caption text. Coverage includes unvisited relevant links and deadline
-limits. HTTP redirects carry their actual status; client navigation is labeled
+limits. `incompleteReads` identifies failed, partial or truncated page reads;
+unvisited links and successful browser fallback are not failed reads.
+`stopReason` distinguishes a page limit, deadline and exhausted relevant links.
+A per-call limit is not a reason to stop research when a material question remains:
+use targeted follow-up reads. Present business answers first and keep technical
+diagnostics for explicit debugging requests. HTTP redirects carry their actual status; client navigation is labeled
 separately. Empty image labels are not proof of an absent client list, and media
 URLs are not proof that a video was watched. Consumers must cite source URLs,
 distinguish extracted evidence from inference, and finish the requested research

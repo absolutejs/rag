@@ -5,6 +5,26 @@
 		{
 			"changes": [
 				{
+					"kind": "changed",
+					"summary": "Balance repeated customer, service and company reads across an eight-page default budget (maximum twelve) with 48000 characters, preventing case-study archives from starving service details.",
+					"symbols": [
+						"readRAGWebsite"
+					]
+				},
+				{
+					"kind": "added",
+					"summary": "Expose stop reasons and actual incomplete page reads separately from unvisited links; guide targeted continuation and concise nontechnical answers.",
+					"symbols": [
+						"readRAGWebsite"
+					]
+				}
+			],
+			"date": "2026-09-18",
+			"version": "0.13.0"
+		},
+		{
+			"changes": [
+				{
 					"kind": "added",
 					"summary": "Add bounded multi-page website research with exact page citations, semantic links and image labels, media and caption evidence, redirect chains and explicit coverage limits."
 				},

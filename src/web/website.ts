@@ -29,14 +29,14 @@ export const readRAGWebsite = async (
   options: ReadWebpageOptions & { maxPages?: number },
 ) => {
   const signal = options.signal ?? AbortSignal.timeout(75000);
-  const maxPages = Math.max(1, Math.min(options.maxPages ?? 4, 5));
-  const maxChars = Math.max(1000, Math.min(options.maxChars ?? 24000, 100000));
+  const maxPages = Math.max(1, Math.min(options.maxPages ?? 8, 12));
+  const maxChars = Math.max(1000, Math.min(options.maxChars ?? 48000, 100000));
   const pages: WebReadResult[] = [];
   const queue: { url: string; label: string }[] = [
     { url: options.url, label: "Requested page" },
   ];
   const visited = new Set<string>();
-  const coveredTopics = new Set<number>();
+  const topicVisits = new Map<number, number>();
   let origin: string | undefined;
   while (queue.length && pages.length < maxPages && !signal.aborted) {
     const next = queue.shift()!;
@@ -50,7 +50,8 @@ export const readRAGWebsite = async (
     key.hash = "";
     if (visited.has(key.href)) continue;
     visited.add(key.href);
-    coveredTopics.add(pagePriority(next.url, next.label));
+    const topic = pagePriority(next.url, next.label);
+    topicVisits.set(topic, (topicVisits.get(topic) ?? 0) + 1);
     const page = await readRAGWebpage({
       ...options,
       url: next.url,
@@ -68,13 +69,16 @@ export const readRAGWebsite = async (
         !visited.has(link.url.split("#")[0]!),
     );
     queue.push(...links);
-    queue.sort(
-      (a, b) =>
-        pagePriority(b.url, b.label) +
-        (coveredTopics.has(pagePriority(b.url, b.label)) ? 0 : 10) -
-        (pagePriority(a.url, a.label) +
-          (coveredTopics.has(pagePriority(a.url, a.label)) ? 0 : 10)),
-    );
+    // Balance repeated visits too: a large case-study archive must not consume
+    // the budget before service detail pages have been read.
+    queue.sort((a, b) => {
+      const aTopic = pagePriority(a.url, a.label);
+      const bTopic = pagePriority(b.url, b.label);
+      return (
+        (topicVisits.get(aTopic) ?? 0) - (topicVisits.get(bTopic) ?? 0) ||
+        bTopic - aTopic
+      );
+    });
   }
   const first = pages[0] ?? (await readRAGWebpage({ ...options, signal }));
   const captionEvidence: { url: string; text: string; error?: string }[] = [];
@@ -149,8 +153,21 @@ export const readRAGWebsite = async (
       ].slice(0, 20),
       deadlineReached: signal.aborted,
       exhaustive: false,
+      stopReason: signal.aborted
+        ? "deadline"
+        : unvisited.length
+          ? "page_limit"
+          : "links_exhausted",
+      incompleteReads: pages
+        .filter((page) => page.status !== "ok" || page.truncated)
+        .map((page) => ({
+          url: page.finalUrl,
+          status: page.status,
+          truncated: page.truncated,
+          error: page.error,
+        })),
     },
     citationGuidance:
-      "Cite the exact source page URL for each factual claim. Distinguish page text, image labels, caption text and inference. A successful fetch is not proof that every requested topic was answered. Follow remaining relevant links if the question is still unanswered; do not ask permission merely to finish already-requested research. Describe an empty HTTP extraction followed by browser success as successful fallback, not silent failure. Only identify HTTP redirect status codes actually present in redirects. Media URLs alone are not watched video evidence.",
+      "Answer the user's question first, with exact source page URLs. Distinguish retrieved facts from inference. A page limit bounds this call, not the research task: if a material question remains unanswered, read the relevant remaining links in another call, using maxPages 1 for targeted detail pages. Do not stop with a list of next steps when those reads are needed to finish the request. Conversely, unvisited links do not by themselves mean the answer is incomplete. Report only gaps that materially limit the answer, unless a retrieval audit was explicitly requested. Successful browser fallback is a completed read, not an incomplete read. Normally summarize a redirected destination in one brief sentence; omit HTTP codes, hop chains, character counts and rendering mechanics unless explicitly requested for debugging. A redirect alone does not prove a rebrand; verify that claim from a source. Image labels do not establish customer relationships and media URLs are not watched video evidence.",
   };
 };

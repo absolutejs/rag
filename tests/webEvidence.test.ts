@@ -110,3 +110,46 @@ test("a blocked required follow-up stays partial rather than appearing complete"
   expect(result.pages[1]?.error?.code).toBe("http_error");
   expect(result.text).not.toContain("SOURCE: https://example.com/clients");
 });
+
+test("default research reaches service details despite a large case-study archive", async () => {
+  const visited: string[] = [];
+  const read = (maxPages?: number) =>
+    readRAGWebsite({
+      url: "https://example.com/",
+      maxPages,
+      fetchResource: async (url) => {
+        visited.push(url);
+        const navigation =
+          "<a href='/case-studies'>Customers</a><a href='/what-we-do'>Services</a><a href='/company-info'>About</a>";
+        const detail = url.endsWith("/what-we-do")
+          ? "<a href='/what-we-do/media-solutions'>Media solutions</a><a href='/what-we-do/open-intelligence'>Open Intelligence</a>"
+          : "";
+        const cases = url.endsWith("/case-studies")
+          ? Array.from(
+              { length: 20 },
+              (_, index) =>
+                `<a href='/case-studies/client-${index}'>Client ${index}</a>`,
+            ).join("")
+          : "";
+        return response(
+          url,
+          `<main>${body}Evidence for ${url}</main>${navigation}${detail}${cases}`,
+        );
+      },
+    });
+  const result = await read();
+  expect(result.coverage.pagesRead).toBe(8);
+  for (const path of ["media-solutions", "open-intelligence"]) {
+    expect(visited).toContain(`https://example.com/what-we-do/${path}`);
+    expect(result.text).toContain(
+      `SOURCE: https://example.com/what-we-do/${path}`,
+    );
+  }
+  expect(result.coverage.stopReason).toBe("page_limit");
+  expect(result.coverage.incompleteReads).toEqual([]);
+  expect(result.coverage.remainingRelevantLinks.length).toBeGreaterThan(0);
+  visited.length = 0;
+  const single = await read(1);
+  expect(visited).toEqual(["https://example.com/"]);
+  expect(single.coverage.pagesRead).toBe(1);
+});
