@@ -37,7 +37,14 @@ export const isPublicWebAddress = (address: string) => {
     !value.startsWith("2002:")
   );
 };
+export type WebRedirect = {
+  from: string;
+  to: string;
+  kind: "http" | "client";
+  status?: number;
+};
 export type WebFetchResult = {
+  redirects?: WebRedirect[];
   url: string;
   status: number;
   headers: Record<string, string>;
@@ -91,6 +98,7 @@ export const fetchPublicWebResource = async (
   const signal = options.signal ?? AbortSignal.timeout(15000);
   const maxBytes = options.maxBytes ?? 5_000_000;
   let url = validatePublicWebUrl(raw);
+  const redirects: WebRedirect[] = [];
   let method = options.method ?? "GET";
   let body = options.body;
   for (let hop = 0; hop <= 5; hop++) {
@@ -190,7 +198,16 @@ export const fetchPublicWebResource = async (
       [301, 302, 303, 307, 308].includes(response.status) &&
       response.headers.location
     ) {
-      url = validatePublicWebUrl(new URL(response.headers.location, url).href);
+      const next = validatePublicWebUrl(
+        new URL(response.headers.location, url).href,
+      );
+      redirects.push({
+        from: url.href,
+        to: next.href,
+        kind: "http",
+        status: response.status,
+      });
+      url = next;
       if (
         response.status === 303 ||
         ([301, 302].includes(response.status) && method === "POST")
@@ -200,7 +217,7 @@ export const fetchPublicWebResource = async (
       }
       continue;
     }
-    return response;
+    return { ...response, redirects };
   }
   throw new WebReadError(
     "redirect_limit",

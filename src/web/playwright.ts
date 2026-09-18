@@ -4,6 +4,7 @@ import {
   validatePublicWebUrl,
   WebReadError,
 } from "./transport";
+import type { WebRedirect } from "./transport";
 import type { WebRenderer } from "./index";
 /** Fresh contexts share a browser, never cookies; all HTTP traffic uses pinned public DNS. */
 export const createPlaywrightWebRenderer = (
@@ -37,6 +38,7 @@ export const createPlaywrightWebRenderer = (
       void context.close().catch(() => {});
     };
     signal.addEventListener("abort", abort, { once: true });
+    const redirects: WebRedirect[] = [];
     let count = 0,
       bytes = 0;
     try {
@@ -64,6 +66,19 @@ export const createPlaywrightWebRenderer = (
             headers,
             redirect: "manual",
           });
+          if (
+            request.isNavigationRequest() &&
+            request.frame() === context.pages()[0]?.mainFrame() &&
+            [301, 302, 303, 307, 308].includes(response.status) &&
+            response.headers.location
+          ) {
+            redirects.push({
+              from: request.url(),
+              to: new URL(response.headers.location, request.url()).href,
+              kind: "http",
+              status: response.status,
+            });
+          }
           bytes += response.body.byteLength;
           await route.fulfill({
             status: response.status,
@@ -75,11 +90,20 @@ export const createPlaywrightWebRenderer = (
         }
       });
       const page = await context.newPage();
+      let previousUrl = url;
+      page.on("framenavigated", (frame) => {
+        if (frame !== page.mainFrame() || !/^https?:/u.test(frame.url()))
+          return;
+        const next = frame.url();
+        if (next !== previousUrl && !redirects.some((hop) => hop.to === next))
+          redirects.push({ from: previousUrl, to: next, kind: "client" });
+        previousUrl = next;
+      });
       const response = await page.goto(url, {
         waitUntil: "domcontentloaded",
         timeout: 25000,
       });
-      await page
+      const settled = await page
         .waitForFunction(
           () => {
             const root = document.querySelector(
@@ -96,9 +120,23 @@ export const createPlaywrightWebRenderer = (
           undefined,
           { timeout: 8000 },
         )
-        .catch(() => {});
+        .then(
+          () => true,
+          () => false,
+        );
       // Allow hydration and async content to settle after the first readable frame.
       await page.waitForTimeout(1200);
+      // Bounded scrolling exposes common lazy-loaded sections without clicking actions.
+      for (let step = 0; step < 3; step++) {
+        await page.evaluate(() => window.scrollBy(0, window.innerHeight));
+        await page.waitForTimeout(350);
+      }
+      await page.evaluate(() => {
+        document.querySelectorAll("details").forEach((element) => {
+          element.open = true;
+        });
+        window.scrollTo(0, 0);
+      });
       signal.throwIfAborted();
       const html = await page.content();
       if (html.length > 5_000_000)
@@ -108,6 +146,8 @@ export const createPlaywrightWebRenderer = (
         );
       return {
         html,
+        redirects,
+        settled,
         text: await page.locator("body").innerText(),
         url: page.url(),
         status: response?.status() ?? 200,

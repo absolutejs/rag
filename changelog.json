@@ -5,6 +5,27 @@
 		{
 			"changes": [
 				{
+					"kind": "added",
+					"summary": "Add bounded multi-page website research with exact page citations, semantic links and image labels, media and caption evidence, redirect chains and explicit coverage limits."
+				},
+				{
+					"kind": "changed",
+					"summary": "Expand website result and renderer contracts with semantic evidence, redirect hops and explicit readiness/coverage metadata; existing renderers may omit the new optional renderer fields.",
+					"symbols": [
+						"WebFetchResult",
+						"WebReadResult",
+						"WebRenderer",
+						"readRAGWebpage",
+						"createPlaywrightWebRenderer"
+					]
+				}
+			],
+			"date": "2026-09-18",
+			"version": "0.12.0"
+		},
+		{
+			"changes": [
+				{
 					"kind": "fixed",
 					"summary": "Honor HTML response MIME types for extensionless URL ingestion instead of treating website markup as plain text, including XHTML and batch URL loading.",
 					"symbols": [

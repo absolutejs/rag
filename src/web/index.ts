@@ -1,4 +1,12 @@
 import {
+  extractWebEvidence,
+  hasIncompleteAppContent,
+  type WebEvidence,
+} from "./evidence";
+import type { WebRedirect } from "./transport";
+export type { WebEvidence, WebLink, WebImage, WebMedia } from "./evidence";
+export type { WebRedirect } from "./transport";
+import {
   loadRAGDocumentUpload,
   prepareRAGDocument,
 } from "../ingestion/ingestion";
@@ -32,11 +40,21 @@ export type WebReadResult = {
   attempts: WebReadAttempt[];
   error?: { code: string; message: string };
   fetchedAt: string;
+  redirects: WebRedirect[];
+  evidence: WebEvidence;
+  limitations: string[];
 };
 export type WebRenderer = (
   url: string,
   options: { signal: AbortSignal },
-) => Promise<{ html: string; text?: string; url: string; status: number }>;
+) => Promise<{
+  html: string;
+  text?: string;
+  url: string;
+  status: number;
+  redirects?: WebRedirect[];
+  settled?: boolean;
+}>;
 export type ReadWebpageOptions = {
   url: string;
   render?: WebRenderer;
@@ -64,6 +82,7 @@ const titleOf = (html: string) => {
 };
 const isShell = (html: string, text: string) =>
   text.length < 300 ||
+  hasIncompleteAppContent(html) ||
   /(?:enable|requires?|turn on)\s+javascript|javascript\s+(?:is\s+)?(?:disabled|required)/iu.test(
     text,
   ) ||
@@ -79,6 +98,16 @@ export const readRAGWebpage = async (
   options: ReadWebpageOptions,
 ): Promise<WebReadResult> => {
   const attempts: WebReadAttempt[] = [];
+  const redirects: WebRedirect[] = [];
+  const limitations = [
+    "A page read is not exhaustive company research. Image labels are evidence supplied by the site, not independently verified customer relationships. Videos are not watched or transcribed unless caption text is returned.",
+  ];
+  let evidence: WebEvidence = {
+    links: [],
+    images: [],
+    media: [],
+    canonicalUrl: null,
+  };
   const signal = options.signal ?? AbortSignal.timeout(45000);
   const maxChars = Math.max(1000, Math.min(options.maxChars ?? 24000, 100000));
   let finalUrl = options.url,
@@ -97,6 +126,9 @@ export const readRAGWebpage = async (
     method,
     truncated: text.length > maxChars,
     attempts,
+    redirects,
+    evidence,
+    limitations,
     fetchedAt: new Date().toISOString(),
     ...(error ? { error } : {}),
   });
@@ -117,12 +149,14 @@ export const readRAGWebpage = async (
     let needsBrowser = options.mode === "browser" || !response;
     if (response) {
       finalUrl = response.url;
+      redirects.push(...(response.redirects ?? []));
       const mime = response.headers["content-type"] ?? "";
       const raw = new TextDecoder().decode(response.body);
       const html =
         /html/iu.test(mime) || /^\s*(?:<!doctype html|<html)/iu.test(raw);
       if (response.status >= 200 && response.status < 300) {
         if (html) {
+          evidence = extractWebEvidence(raw, finalUrl);
           text = cleanHtml(raw);
           title = titleOf(raw);
           needsBrowser ||= isShell(raw, text) || isChallenge(text);
@@ -169,6 +203,12 @@ export const readRAGWebpage = async (
         method = "browser";
         finalUrl = rendered.url;
         validatePublicWebUrl(finalUrl);
+        redirects.push(...(rendered.redirects ?? []));
+        evidence = extractWebEvidence(rendered.html, finalUrl);
+        if (rendered.settled === false)
+          limitations.push(
+            "Browser content did not reach the readability threshold before the wait limit.",
+          );
         text = rendered.text?.trim() ?? cleanHtml(rendered.html);
         title = titleOf(rendered.html) ?? title;
         attempts.push({
@@ -193,11 +233,21 @@ export const readRAGWebpage = async (
             code: "http_error",
             message: `Website returned HTTP ${rendered.status}.`,
           });
-        if (!text || /(?:enable|requires?)\s+javascript/iu.test(text))
+        if (
+          !text ||
+          /^(?:loading[.\s]*|please wait[.\s]*)$/iu.test(text) ||
+          /(?:enable|requires?)\s+javascript/iu.test(text)
+        )
           return result("error", {
             code: "rendering_incomplete",
             message:
               "The page still provided no usable text after browser rendering.",
+          });
+        if (rendered.settled === false)
+          return result("partial", {
+            code: "rendering_incomplete",
+            message:
+              "Some content was extracted, but the application did not reach the readability threshold. Do not treat it as complete.",
           });
       } catch (error) {
         attempts.push({ method: "browser", status: codeFor(error) });
@@ -220,3 +270,5 @@ export const readRAGWebpage = async (
     });
   }
 };
+
+export { readRAGWebsite } from "./website";

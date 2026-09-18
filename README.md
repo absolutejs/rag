@@ -162,3 +162,18 @@ bounded. The reader does not bypass login, CAPTCHA or access restrictions, and
 reports these failures separately from incomplete rendering. A page read is not
 a crawl of every page on a domain. Host-supplied renderers/fetch implementations
 must enforce equivalent network controls.
+
+### Research related website pages with attributable evidence
+
+`readRAGWebsite` from `@absolutejs/rag/web` reads a supplied URL and up to three
+relevant same-origin customer, services and company pages by default. Pass the
+optional Playwright renderer as for `readRAGWebpage`. `maxPages: 1` retains a
+single-page read; `mode: "browser"` retries content missed by static extraction.
+Results attribute text to exact page URLs and retain per-page redirects,
+retrieval attempts, semantic image labels, link destinations, media URLs and
+available caption text. Coverage includes unvisited relevant links and deadline
+limits. HTTP redirects carry their actual status; client navigation is labeled
+separately. Empty image labels are not proof of an absent client list, and media
+URLs are not proof that a video was watched. Consumers must cite source URLs,
+distinguish extracted evidence from inference, and finish the requested research
+without treating a successful page fetch as complete company coverage.
