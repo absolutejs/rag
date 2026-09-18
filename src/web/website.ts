@@ -120,11 +120,21 @@ export const readRAGWebsite = async (
       });
     }
   }
+  const sources = pages
+    .filter((page) => page.status !== "error" && page.text)
+    .map((page) => {
+      const title = (page.title || new URL(page.finalUrl).hostname)
+        .replace(/\s+/gu, " ")
+        .trim();
+      const label = title.replace(/[\\[\]]/gu, "\\$&");
+      const href = page.finalUrl.replace(/[<>]/gu, encodeURIComponent);
+      return { title, url: page.finalUrl, citation: `[${label}](<${href}>)` };
+    });
   const evidenceText = pages
     .filter((page) => page.status !== "error")
     .map(
       (page) =>
-        `SOURCE: ${page.finalUrl}\nTITLE: ${page.title ?? "Untitled"}\n${page.text}`,
+        `SOURCE: ${page.finalUrl}\nCITATION: ${sources.find((source) => source.url === page.finalUrl)?.citation ?? page.finalUrl}\nTITLE: ${page.title ?? "Untitled"}\n${page.text}`,
     )
     .join("\n\n");
   const readable = pages.filter((page) => page.status !== "error" && page.text);
@@ -134,6 +144,9 @@ export const readRAGWebsite = async (
     (link) => !visited.has(link.url.split("#")[0]!),
   );
   return {
+    sources,
+    citationRequirements:
+      "The final answer must contain clickable Markdown source links, not just source names or bare domain mentions. Reuse sources[].citation beside the factual paragraph, list or table row it supports. Cite the actual supporting page, not the homepage for everything. Every factual section needs its supporting links. Do not invent sources or use unread links as evidence. Before responding, check that company facts, service descriptions, customer examples and numerical claims have supporting links; retrieve or omit unsupported claims. A list of large customers does not prove smaller customers are excluded. Preserve the brands actually named in the evidence; do not append parent companies, ownership relationships, current-account status, market rankings or rebrand history from memory. Label reasoned inferences as such. A verified brand change needs at most one short, cited sentence unless the user asks for its history.",
     ...first,
     status: (readable.length
       ? incomplete

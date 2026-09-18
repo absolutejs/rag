@@ -153,3 +153,27 @@ test("default research reaches service details despite a large case-study archiv
   expect(visited).toEqual(["https://example.com/"]);
   expect(single.coverage.pagesRead).toBe(1);
 });
+
+test("citation list and inline links identify only retrieved readable pages", async () => {
+  const result = await readRAGWebsite({
+    url: "https://example.com/",
+    fetchResource: async (url) =>
+      response(
+        url,
+        `<title>Media [Company]</title><main>${body}</main><a href='/services'>Services</a><a href='/clients'>Clients</a><a href='/news'>Unread news</a>`,
+        url.endsWith("/clients") ? 404 : 200,
+      ),
+  });
+  expect(result.sources.map((source) => source.url)).toEqual([
+    "https://example.com/",
+    "https://example.com/services",
+  ]);
+  expect(result.sources[0]?.citation).toBe(
+    "[Media \\[Company\\]](<https://example.com/>)",
+  );
+  for (const source of result.sources)
+    expect(result.text).toContain(`CITATION: ${source.citation}`);
+  expect(result.sources.some((source) => source.url.endsWith("/news"))).toBe(
+    false,
+  );
+});

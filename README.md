@@ -184,3 +184,10 @@ separately. Empty image labels are not proof of an absent client list, and media
 URLs are not proof that a video was watched. Consumers must cite source URLs,
 distinguish extracted evidence from inference, and finish the requested research
 without treating a successful page fetch as complete company coverage.
+
+Website results also lead with a `sources` array containing each readable page's
+`title`, `url` and ready-to-use Markdown `citation`, repeated next to that page's
+evidence text. Failed pages and unvisited links are not citable source entries.
+`citationRequirements` asks consumers to place links beside supported claims,
+avoid unsupported exclusions or ownership relationships, and keep verified brand
+changes brief. Host applications still control their generated final answers.
