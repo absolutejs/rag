@@ -2714,6 +2714,9 @@ const inferFormatFromName = (value: string | undefined) => {
 
 const inferFormatFromContentType = (contentType: string | null) => {
   const normalizedType = (contentType || "").toLowerCase();
+  if (normalizedType.includes("html")) {
+    return "html";
+  }
   if (normalizedType.includes("xml")) {
     return "xml";
   }
@@ -10556,7 +10559,10 @@ export const loadRAGDocumentFromURL = async (input: RAGDocumentUrlInput) => {
         input.contentType ?? response.headers.get("content-type") ?? undefined,
       data,
       extractorRegistry: input.extractorRegistry,
-      format: input.format ?? inferFormatFromUrl(url),
+      format:
+        input.format ??
+        inferFormatFromContentType(input.contentType ?? response.headers.get("content-type")) ??
+        inferFormatFromUrl(url),
       metadata: input.metadata,
       name: basename(new URL(url).pathname),
       source: input.source ?? url,
@@ -10634,7 +10640,10 @@ export const loadRAGDocumentsFromURLs = async (
           data,
           extractorRegistry:
             urlInput.extractorRegistry ?? input.extractorRegistry,
-          format: urlInput.format ?? inferFormatFromUrl(url),
+          format:
+            urlInput.format ??
+            inferFormatFromContentType(urlInput.contentType ?? response.headers.get("content-type")) ??
+            inferFormatFromUrl(url),
           metadata: urlInput.metadata,
           name: basename(new URL(url).pathname),
           source: urlInput.source ?? url,

@@ -5,6 +5,29 @@
 		{
 			"changes": [
 				{
+					"kind": "fixed",
+					"summary": "Honor HTML response MIME types for extensionless URL ingestion instead of treating website markup as plain text, including XHTML and batch URL loading.",
+					"symbols": [
+						"loadRAGDocumentFromURL",
+						"loadRAGDocumentsFromURLs"
+					]
+				},
+				{
+					"kind": "added",
+					"summary": "Add a bounded public website reader with prepared evidence, per-attempt diagnostics, automatic JavaScript rendering through an optional Playwright adapter, isolated browser contexts and DNS-pinned public-only resource fetching.",
+					"symbols": [
+						"readRAGWebpage",
+						"createPlaywrightWebRenderer",
+						"fetchPublicWebResource"
+					]
+				}
+			],
+			"date": "2026-09-18",
+			"version": "0.11.0"
+		},
+		{
+			"changes": [
+				{
 					"kind": "added",
 					"summary": "Encode retrieved original-text passages as request-scoped quote references and restore exact quotes without rewriting source text",
 					"symbols": [

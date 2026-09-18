@@ -125,3 +125,40 @@ it. Only encode server-owned original-text tool results. References are not
 access controls or durable source IDs: reauthorize and validate restored quotes
 against the originals before saving a result. This is opt-in; it does not change
 the original-text tools, stored originals or their existing result format.
+
+### Public websites and JavaScript rendering
+
+`loadRAGDocumentFromURL` loads a document; use `prepareRAGDocument(doc).normalizedText`
+for readable text. URL loading now honors response MIME types on extensionless URLs.
+For public websites, `@absolutejs/rag/web` provides `readRAGWebpage` with bounded
+responses, timeouts, prepared text, final URL, title, truncation and per-attempt
+retrieval diagnostics. It tries static HTML first and requests a browser for thin
+or empty application shells. A missing renderer returns `rendering_required`,
+not a claim that the website contains no information.
+
+```ts
+import { readRAGWebpage } from '@absolutejs/rag/web';
+import { createPlaywrightWebRenderer } from '@absolutejs/rag/web/playwright';
+
+const browser = createPlaywrightWebRenderer();
+try {
+  const page = await readRAGWebpage({
+    url: 'https://example.com',
+    render: browser.render,
+  });
+  // Check page.status and page.error before treating page.text as complete evidence.
+} finally {
+  await browser.close();
+}
+```
+
+The browser adapter requires the optional `playwright-core` peer and an installed
+Chromium browser (`playwright-core install --with-deps chromium`). Hosts should
+run it in a separate unprivileged process, limit concurrency, and apply memory
+limits. Contexts do not share cookies; service workers and WebSockets are blocked.
+HTTP resources and redirect hops use validated public destinations with the DNS
+answer pinned to each connection. Browser resource counts and response sizes are
+bounded. The reader does not bypass login, CAPTCHA or access restrictions, and
+reports these failures separately from incomplete rendering. A page read is not
+a crawl of every page on a domain. Host-supplied renderers/fetch implementations
+must enforce equivalent network controls.
