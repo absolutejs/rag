@@ -142,13 +142,27 @@ export const readRAGWebsite = async (
       (item) => item.finalUrl === source.url && item.text,
     );
     if (!page || remainingDocumentChars <= 0) return [];
-    const text = page.text.slice(0, remainingDocumentChars);
+    const imageLabels = page.evidence.images
+      .filter((image) => image.label)
+      .map(
+        (image) => `${image.context ? `${image.context}: ` : ""}${image.label}`,
+      );
+    const fullText = [
+      page.text,
+      ...(imageLabels.length
+        ? [
+            "Image labels supplied by the website (not independently verified customer relationships):",
+            ...imageLabels,
+          ]
+        : []),
+    ].join("\n");
+    const text = fullText.slice(0, remainingDocumentChars);
     remainingDocumentChars -= text.length;
     return [
       {
         sourceId: source.id,
         text,
-        truncated: page.truncated || text.length < page.text.length,
+        truncated: page.truncated || text.length < fullText.length,
       },
     ];
   });

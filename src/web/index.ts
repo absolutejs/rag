@@ -4,6 +4,7 @@ import {
   type WebEvidence,
 } from "./evidence";
 import type { WebRedirect } from "./transport";
+import { websiteHtmlText } from "./text";
 export type { WebEvidence, WebLink, WebImage, WebMedia } from "./evidence";
 export type { WebRedirect } from "./transport";
 import {
@@ -72,8 +73,7 @@ const codeFor = (error: unknown) =>
         /^(?:AbortError|TimeoutError)$/u.test(error.name)
       ? "timeout"
       : "fetch_failed";
-const cleanHtml = (html: string) =>
-  prepareRAGDocument({ text: html, format: "html" }).normalizedText;
+const cleanHtml = websiteHtmlText;
 const titleOf = (html: string) => {
   const title = /<title\b[^>]*>([\s\S]*?)<\/title>/iu.exec(html)?.[1];
   return title

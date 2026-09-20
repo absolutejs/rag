@@ -5,6 +5,20 @@
 		{
 			"changes": [
 				{
+					"kind": "fixed",
+					"summary": "Preserve all sections of public websites instead of extracting one article fragment, and retain labeled image evidence in source-bound documents.",
+					"symbols": [
+						"readRAGWebpage",
+						"readRAGWebsite"
+					]
+				}
+			],
+			"date": "2026-09-20",
+			"version": "0.15.1"
+		},
+		{
+			"changes": [
+				{
 					"kind": "added",
 					"summary": "Expose bounded website documents bound to source IDs and compact inline citation links for native MCP evidence presentation.",
 					"symbols": [
