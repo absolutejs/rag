@@ -1,3 +1,7 @@
+export {
+  createRAGPagedPDFExtractor,
+  type RAGPagedPDFExtractorOptions,
+} from "./ingestion/pdfPages";
 export { ragChat, ragChat as ragPlugin } from "./chat/chat";
 export {
   createRAGHTMXConfig,
@@ -533,6 +537,9 @@ export {
   type RAGOriginalText,
   type RAGOriginalTextLocator,
 } from "./ingestion/originalText";
-export { createRAGOriginalTextTools, type RAGOriginalTextToolsOptions } from "./retrieval/originalTextTools";
+export {
+  createRAGOriginalTextTools,
+  type RAGOriginalTextToolsOptions,
+} from "./retrieval/originalTextTools";
 
 export { createRAGQuoteReferences } from "./retrieval/quoteReferences";

@@ -210,3 +210,21 @@ binds each bounded text excerpt to a source ID, while source entries provide
 compact numbered `inlineCitation` links. This lets adapters present source-local
 evidence without dumping raw retrieval metadata into a model's response context.
 The combined document text respects `maxChars`; truncated excerpts are marked.
+
+### Scanned and mixed PDFs
+
+`createRAGPagedPDFExtractor({ provider, signal, onProgress })` preserves native
+text pages and sends image-bearing pages individually to a configured
+`RAGOCRProvider`. It also handles pages with visible drawing operations but no
+extractable text. This catches scans inside otherwise readable documents; a
+long embedded header does not cause a scanned body to be skipped. Page numbers
+and native/OCR provenance remain attached to each extracted document. Native
+text omitted by OCR is retained alongside the transcription.
+
+The provider receives a valid one-page PDF plus its original `pageNumber` and
+`pageCount` in metadata. The host owns credentials, metering, and model output
+limits; providers must reject truncated responses. Page failures reject the
+whole extraction instead of reporting an incomplete document as complete.
+`signal` is checked between pages and after OCR; pass the same signal into the
+provider to cancel its in-flight request. `onProgress` reports completed pages.
+Blank pages are skipped; an entirely unreadable document is rejected.

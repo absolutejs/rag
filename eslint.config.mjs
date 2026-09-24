@@ -12,10 +12,8 @@ export default [
       ".rag/**",
       ".github/**",
     ],
-    linterOptions: {
-      reportUnusedDisableDirectives: "off",
-    },
   },
+  { linterOptions: { reportUnusedDisableDirectives: "off" } },
   {
     files: ["**/*.{ts,tsx,js,mjs,cjs}"],
     languageOptions: {
