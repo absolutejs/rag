@@ -6,11 +6,19 @@
 			"changes": [
 				{
 					"kind": "added",
-					"summary": "Allow a separately configured review provider and model through the existing host accounting path."
+					"summary": "Allow a separately configured review provider and model through the existing host accounting path.",
+					"symbols": [
+						"ResearchConfig"
+					]
 				},
 				{
 					"kind": "fixed",
-					"summary": "Require relevance, entity, time and scope checks before supporting research fields; carry task criteria into review, bound default findings and share evidence space with follow-up sources. Resolve model-selected passage IDs to exact source text instead of asking models to transcribe quotes."
+					"summary": "Require relevance, entity, time and scope checks before supporting research fields; carry task criteria into review, bound default findings and share evidence space with follow-up sources. Resolve model-selected passage IDs to exact source text instead of asking models to transcribe quotes.",
+					"symbols": [
+						"bindResearchReview",
+						"ResearchField",
+						"createResearch"
+					]
 				}
 			],
 			"date": "2026-09-24",
