@@ -5,6 +5,19 @@
 		{
 			"changes": [
 				{
+					"kind": "fixed",
+					"summary": "Retry owned-index initialization after a transient database outage instead of retaining a rejected initialization promise",
+					"symbols": [
+						"createWebIndex"
+					]
+				}
+			],
+			"date": "2026-09-24",
+			"version": "0.22.1"
+		},
+		{
+			"changes": [
+				{
 					"kind": "added",
 					"summary": "Add durable owned web indexes with PostgreSQL crawl leases, versioned evidence, native search-provider integration, authenticated plugins, workers, reviewed entity projections and six-framework clients",
 					"symbols": [

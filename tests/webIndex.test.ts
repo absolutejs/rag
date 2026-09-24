@@ -185,6 +185,21 @@ suite("durable web index", () => {
     expect((await denied.run()).failures).toBe(1);
     expect((await denied.stats()).documents).toBe(0);
   });
+  test("retries initialization after a transient database outage without restarting the worker", async () => {
+    let attempts = 0;
+    const recoveringStore = {
+      ...store,
+      register: async (...args: Parameters<typeof store.register>) => {
+        if (++attempts === 1) throw new Error("Temporary database outage");
+        await store.register(...args);
+      },
+    };
+    const { index } = setup(fixture(), { store: recoveringStore });
+    await expect(index.stats()).rejects.toThrow("Temporary database outage");
+    expect((await index.stats()).documents).toBe(0);
+    await index.enqueue(["https://example.com/policy"]);
+    expect((await index.run()).failures).toBe(0);
+  });
   test("indexes scoped passages and exposes corpus coverage without crossing tenants", async () => {
     const { index, options } = setup(fixture());
     await index.enqueue(["https://example.com/policy"]);

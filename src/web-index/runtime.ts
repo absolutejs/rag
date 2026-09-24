@@ -126,7 +126,10 @@ export const createWebIndex = (options: WebIndexOptions): WebIndexRuntime => {
             }),
           ),
         );
-    })());
+    })().catch((error) => {
+      initialization = undefined;
+      throw error;
+    }));
   const resolve = async (id?: string) => {
     await ready();
     const g = generations.get(id ?? (await store.active(scope)) ?? "");
