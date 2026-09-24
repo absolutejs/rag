@@ -272,3 +272,9 @@ export const readRAGWebpage = async (
 };
 
 export { readRAGWebsite } from "./website";
+
+export {
+  createWebsiteReaderClient,
+  parseWebsiteServiceResult,
+  type WebsiteServiceResult,
+} from "./remote";

@@ -19,6 +19,7 @@ const serverBuild = await Bun.build({
   ],
   external: [
     "playwright-core",
+    "@absolutejs/egress/transport",
     "elysia",
     "@absolutejs/ai",
     "@absolutejs/ai/client",
