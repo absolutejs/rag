@@ -9,6 +9,7 @@ const serverBuild = await Bun.build({
   entrypoints: [
     "src/index.ts",
     "src/research/index.ts",
+    "src/web-index/index.ts",
     "src/web/index.ts",
     "src/web/playwright.ts",
     "src/manifest.ts",
@@ -44,6 +45,7 @@ if (!serverBuild.success) {
 const browserBuild = await Bun.build({
   entrypoints: [
     "src/client/research.ts",
+    "src/client/web-index.ts",
     "src/react/index.ts",
     "src/vue/index.ts",
     "src/svelte/index.ts",

@@ -5,6 +5,39 @@
 		{
 			"changes": [
 				{
+					"kind": "added",
+					"summary": "Add durable owned web indexes with PostgreSQL crawl leases, versioned evidence, native search-provider integration, authenticated plugins, workers, reviewed entity projections and six-framework clients",
+					"symbols": [
+						"createWebIndex",
+						"createPostgresWebIndexStore",
+						"webIndexPostgresSchemaSql",
+						"webIndexPlugin",
+						"renderWebIndexStats",
+						"startWebIndexWorker",
+						"createWebIndexProjector",
+						"createWebIndexClient",
+						"bindWebIndexSearchForm",
+						"useWebIndex",
+						"createWebIndexStore",
+						"WebIndexService"
+					]
+				},
+				{
+					"kind": "fixed",
+					"summary": "Preserve surrounding evidence context, validate quoted wording, support extraction without planning, and adapt isolated single-page readers without mixing source attribution",
+					"symbols": [
+						"createResearch",
+						"researchPlugin",
+						"createWebpageReaderClient"
+					]
+				}
+			],
+			"date": "2026-09-24",
+			"version": "0.22.0"
+		},
+		{
+			"changes": [
+				{
 					"kind": "security",
 					"summary": "Protect feed, sitemap and site discovery through final ingestion with bounded public-address transport; enforce robots agent, allow and wildcard rules and abort on temporary robots failures.",
 					"symbols": [

@@ -19,3 +19,5 @@ export {
 } from "../quality/quality";
 
 export * from "./research";
+
+export * from "./web-index";

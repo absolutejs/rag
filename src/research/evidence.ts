@@ -90,8 +90,19 @@ export const bindResearchReview = (
           review.checks?.[key as keyof NonNullable<ResearchField["checks"]>] ===
           true,
       );
+    const quoted =
+      typeof leaf.value === "string"
+        ? [
+            ...leaf.value.matchAll(
+              /(?:["“]([^"”\n]{12,})["”]|(?:^|\s)'([^'\n]{12,})')/gu,
+            ),
+          ].map((match) => match[1] ?? match[2]!)
+        : [];
+    const quotedTextSupported = quoted.every((quote) =>
+      sources.some((source) => sourceSupportsQuote(source, quote)),
+    );
     const verdict =
-      !valid || leaf.value === null || !citations.length
+      !valid || leaf.value === null || !citations.length || !quotedTextSupported
         ? "unknown"
         : review.verdict === "supported" && !checksPass
           ? "unknown"
@@ -101,8 +112,9 @@ export const bindResearchReview = (
       verdict,
       citations,
       checks: review?.checks,
-      reason:
-        valid && review.verdict === "supported" && !checksPass
+      reason: !quotedTextSupported
+        ? "Quoted wording does not occur in the supplied evidence"
+        : valid && review.verdict === "supported" && !checksPass
           ? "Task relevance, entity, time, or scope was not established: " +
             review.reason
           : valid
@@ -114,7 +126,7 @@ export const bindResearchReview = (
 /** Stable references let the runtime copy evidence instead of asking a model to transcribe it. */
 export const researchPassages = (sources: SearchSource[]) =>
   sources.map((source) => {
-    const passages: { id: string; text: string }[] = [];
+    const passages: { id: string; text: string; context: string }[] = [];
     for (const excerpt of source.excerpts) {
       let start = 0;
       while (start < excerpt.length) {
@@ -127,6 +139,10 @@ export const researchPassages = (sources: SearchSource[]) =>
         passages.push({
           id: `${source.id}:${passages.length}`,
           text: excerpt.slice(start, end),
+          context: excerpt.slice(
+            Math.max(0, start - 600),
+            Math.min(excerpt.length, end + 600),
+          ),
         });
         start = end;
       }

@@ -18,3 +18,5 @@ export { useRAGSources } from "./useRAGSources";
 export { useRAGStatus } from "./useRAGStatus";
 
 export * from "./useResearch";
+
+export * from "./useWebIndex";

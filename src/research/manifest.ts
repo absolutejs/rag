@@ -23,7 +23,7 @@ export const researchManifest = defineManifest<
       Type.Object({
         searches: Type.Optional(Type.Integer({ minimum: 1, maximum: 32 })),
         reads: Type.Optional(Type.Integer({ minimum: 0, maximum: 32 })),
-        rounds: Type.Optional(Type.Integer({ minimum: 1, maximum: 8 })),
+        rounds: Type.Optional(Type.Integer({ minimum: 0, maximum: 8 })),
         timeoutMs: Type.Optional(Type.Integer({ minimum: 1, maximum: 600000 })),
       }),
     ),

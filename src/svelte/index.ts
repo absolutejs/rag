@@ -17,3 +17,5 @@ export type { CreateRAGWorkflowResult } from "./createRAGWorkflow";
 export type { CreateRAGStreamResult } from "./createRAGStream";
 
 export * from "./createResearch";
+
+export * from "./createWebIndex";

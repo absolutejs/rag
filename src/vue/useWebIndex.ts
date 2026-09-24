@@ -1,7 +1,7 @@
 import { shallowRef, onScopeDispose } from "vue";
-import { createResearchClient } from "../client/research";
-export const useResearch = (path = "/research") => {
-  const client = createResearchClient({ path });
+import { createWebIndexClient } from "../client/web-index";
+export const useWebIndex = (path = "/web-index") => {
+  const client = createWebIndexClient({ path });
   const state = shallowRef(client.getSnapshot());
   const unsubscribe = client.subscribe(() => {
     state.value = client.getSnapshot();

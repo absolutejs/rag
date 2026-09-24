@@ -278,3 +278,5 @@ export {
   parseWebsiteServiceResult,
   type WebsiteServiceResult,
 } from "./remote";
+
+export { createWebpageReaderClient } from "./remote";

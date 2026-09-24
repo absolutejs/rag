@@ -58,7 +58,10 @@ export const createResearch = (config: ResearchConfig): ResearchRuntime => {
     (config.budget ? createResearchBudgetAdmission(config.budget) : undefined);
   const limits = { ...defaults, ...config.limits };
   for (const [key, value] of Object.entries(limits))
-    if (!Number.isSafeInteger(value) || value < (key === "reads" ? 0 : 1))
+    if (
+      !Number.isSafeInteger(value) ||
+      value < (key === "reads" || key === "rounds" ? 0 : 1)
+    )
       throw new Error(`Invalid research limit: ${key}`);
   if (
     limits.fields > 256 ||
@@ -291,6 +294,7 @@ export const createResearch = (config: ResearchConfig): ResearchRuntime => {
           maxChars: Math.min(limits.evidenceChars, 24000),
         }),
       );
+      result.limitations.push(...page.limitations);
       if (page.status !== "ok")
         result.limitations.push(`Page read ${page.status}: ${url}`);
       if (page.text && page.status !== "error") {
@@ -300,6 +304,11 @@ export const createResearch = (config: ResearchConfig): ResearchRuntime => {
           // later primary sources when the initial search filled the budget.
           sourceText.set(prior.url, page.text.slice(0, limits.evidenceChars));
           prior.contentFetchedAt = page.fetchedAt;
+          prior.metadata = { ...prior.metadata, readFinalUrl: page.finalUrl };
+          if (page.finalUrl !== prior.url)
+            result.limitations.push(
+              `Source redirected from ${prior.url} to ${page.finalUrl}; identity requires supporting evidence.`,
+            );
           rebalanceEvidence();
         } else
           addSource({
@@ -382,7 +391,7 @@ export const createResearch = (config: ResearchConfig): ResearchRuntime => {
       const reviewed = await generate(
         "review",
         ReviewSchema,
-        "Independently review EVERY JSON pointer and its value. supported requires exact quotes establishing the entire fact for the correct entity and time. A name mention or publication date is insufficient to establish employment, event date, ownership, or buying intent. Check all sources for conflicts. Use conflicting when sources disagree, unsupported for contradicted claims, unknown for missing support. Null is unknown. Cite only supplied passage IDs; their text will be copied verbatim by the runtime. For each field, explicitly check answersQuestion (directly answers query/schema/instructions, not background or a non-answer), correctEntity, correctTime, and preservesScope. Read surrounding context and headings, not only the matching quote. A benefit/trial condition is not a program-wide rule; customer conditions are not partner conditions; eligible is not approved or automatic. Preserve exceptions, qualifiers and marketing attribution. Every check must pass for supported. A leader’s education or career history does not answer who currently leads a team. Keep each reason under 25 words. Cite only the minimum passages needed to establish the entire field, at most four. Do not invent passage IDs. Read adjacent passages for conditions and exceptions, even when citing only one. Return each pointer once. Never treat this review as independent real-world verification.",
+        "Independently review EVERY JSON pointer and its value. supported requires exact quotes establishing the entire fact for the correct entity and time. A name mention or publication date is insufficient to establish employment, event date, ownership, or buying intent. Check all sources for actual factual contradictions. Complementary details from different sources are not a conflict; a price from one source and a term from another can jointly support a claim. Use conflicting only when sources make incompatible factual statements, unsupported for contradicted claims, unknown for missing support. Match the requested event period: an August release is not a September event even when published in September. Quoted wording must be verbatim; a paraphrase cannot be placed in quotation marks. Vendor claims about first/best status and performance metrics must remain explicitly attributed in the answer itself, not just in your reason. Null is unknown. Cite only supplied passage IDs; their text will be copied verbatim by the runtime. For each field, explicitly check answersQuestion (directly answers query/schema/instructions, not background or a non-answer), correctEntity, correctTime, and preservesScope. Read surrounding context and headings, not only the matching quote. A benefit/trial condition is not a program-wide rule; customer conditions are not partner conditions; eligible is not approved or automatic. Preserve exceptions, qualifiers and marketing attribution. Every check must pass for supported. A leader’s education or career history does not answer who currently leads a team. Keep each reason under 25 words. Cite only the minimum passages needed to establish the entire field, at most four. Do not invent passage IDs. Read adjacent passages for conditions and exceptions, even when citing only one. Return each pointer once. Never treat this review as independent real-world verification.",
         {
           query: input.query,
           asOf: result.generatedAt,

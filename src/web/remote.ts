@@ -1,3 +1,4 @@
+import type { ReadWebpageOptions, WebReadResult } from "./index";
 /** Typed boundary for a host-managed isolated website reader. The service URL is
  * trusted host configuration; public destination validation stays in the reader. */
 export type WebsiteServiceResult = Record<string, unknown> & {
@@ -128,3 +129,70 @@ export const createWebsiteReaderClient =
       };
     }
   };
+
+/** Adapt an isolated website reader to the exact single-page research contract. */
+export const createWebpageReaderClient = (
+  options: Parameters<typeof createWebsiteReaderClient>[0],
+) => {
+  const read = createWebsiteReaderClient(options);
+  return async (input: ReadWebpageOptions): Promise<WebReadResult> => {
+    const result = await read({
+      url: input.url,
+      maxPages: 1,
+      mode: input.mode,
+      signal: input.signal,
+    });
+    if (result.status === "error") {
+      const error = result.error as { message?: string } | undefined;
+      throw new Error(error?.message ?? "Isolated page read failed");
+    }
+    const documents = result.documents as
+      | Array<{ sourceId: string; text: string; truncated?: boolean }>
+      | undefined;
+    const sources = result.sources as
+      | Array<{ id: string; url: string }>
+      | undefined;
+    const source = sources?.length === 1 ? sources[0] : undefined;
+    const document = documents?.length === 1 ? documents[0] : undefined;
+    if (
+      !source ||
+      !document ||
+      source.id !== document.sourceId ||
+      typeof document.text !== "string" ||
+      typeof result.finalUrl !== "string" ||
+      source.url !== result.finalUrl ||
+      result.url !== input.url ||
+      typeof result.fetchedAt !== "string" ||
+      !Number.isFinite(Date.parse(result.fetchedAt)) ||
+      !["http", "browser"].includes(String(result.method)) ||
+      !Array.isArray(result.attempts) ||
+      !Array.isArray(result.redirects) ||
+      !result.evidence ||
+      typeof result.evidence !== "object"
+    )
+      throw new Error(
+        "Reader did not return attributable single-page evidence",
+      );
+    const evidence = result.evidence as WebReadResult["evidence"];
+    if (![evidence.links, evidence.images, evidence.media].every(Array.isArray))
+      throw new Error("Invalid page evidence");
+    const limit = Math.max(1000, Math.min(input.maxChars ?? 24000, 100000));
+    return {
+      status: result.status,
+      url: input.url,
+      finalUrl: result.finalUrl,
+      title: typeof result.title === "string" ? result.title : null,
+      text: document.text.slice(0, limit),
+      method: result.method as WebReadResult["method"],
+      truncated:
+        result.truncated === true ||
+        document.truncated === true ||
+        document.text.length > limit,
+      fetchedAt: result.fetchedAt,
+      attempts: result.attempts as WebReadResult["attempts"],
+      redirects: result.redirects as WebReadResult["redirects"],
+      evidence,
+      limitations: result.limitations ?? [],
+    };
+  };
+};
