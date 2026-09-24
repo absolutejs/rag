@@ -266,3 +266,42 @@ const mcpTools = toMcpToolRegistry(researchManifest, {
 Use `evaluateResearch` to run representative cases with optional independent human review and total measured cost. Unreviewed acceptance, unknown cost, and cost per accepted finding without accepted findings remain `null`. Publication freshness measures source publication dates; it is not event freshness.
 
 Each result includes `groundingCase`, accepted by the existing `evaluateRAGAnswerGrounding({cases})` function from `@absolutejs/rag/quality`. Citation resolution metrics do not establish factual correctness or discovery recall. Keep approved ground truth and reviewer identity with comparisons, and hold task/model/budget policy constant when switching search providers.
+
+### Research quality and reviewer configuration
+
+Default research returns at most six concise findings. Every supported field must
+have source-bound quotes and positive model checks for task relevance, entity,
+time and scope. Missing or failed checks withhold support even when a quote
+matches. `bindResearchReview` callers must now supply `checks` to promote a field.
+These checks are fallible model judgments, not human or independent verification.
+Task instructions and schema are supplied to both extraction and review.
+Internally, the reviewer selects numbered source passages and the runtime copies
+their text verbatim into citations. Invented or ambiguous references fail closed;
+this removes quote transcription errors without establishing factual entailment.
+
+The evidence budget is shared across sources instead of consumed entirely by
+first results. Fetched pages replace their snippets and receive four times the
+allocation weight of snippet-only sources; short sources donate unused space.
+This preserves more page context while reserving room for follow-up retrieval.
+A maximum of 64 unique sources bounds retained evidence. Truncation can still
+omit necessary context; inspect limitations and field verdicts.
+
+A separate reviewer can be configured without changing planning or extraction:
+
+```ts
+const research = createResearch({
+  search,
+  provider,
+  model: extractionModel,
+  reviewer: { provider: reviewProvider, model: reviewModel },
+});
+```
+
+Omitting `reviewer` uses the main provider/model. The host generation adapter and
+admission/settlement path still apply to review calls. Price review reservations
+and usage with the configured reviewer; do not apply the extraction model's rate
+to a different model. A stronger reviewer does not repair missing retrieval.
+
+An invalid planner schema no longer discards retrieved evidence: extraction and
+review continue without retry, while the result remains partial and the failed
+plan retains unknown settlement. Budget denial and cancellation still stop work.

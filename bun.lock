@@ -5,7 +5,7 @@
     "": {
       "name": "@absolutejs/rag",
       "dependencies": {
-        "@absolutejs/egress": "^0.3.0",
+        "@absolutejs/egress": "^0.3.1",
         "@absolutejs/manifest": "^0.9.0",
         "@absolutejs/search": "^0.2.0",
         "@sinclair/typebox": "^0.34.0",
@@ -75,7 +75,7 @@
 
     "@absolutejs/changelog": ["@absolutejs/changelog@0.6.0", "", { "dependencies": { "typescript": "^5.8.3" }, "bin": { "absolute-changelog": "dist/cli.js" } }, "sha512-bsCCN7PVubSQ07dcaZgoE8M46QDOYMz9+Idc//bmxZd2KRK2wG7W5jqAIvjotD7mZD/6pVfGyNCxE+VNoYguvA=="],
 
-    "@absolutejs/egress": ["@absolutejs/egress@0.3.0", "", { "dependencies": { "@absolutejs/manifest": "^0.9.0", "@sinclair/typebox": "^0.34.0" } }, "sha512-YjRcnH9lSY/vFVnppZaCS7BEkoSlZ24SxeCtEVBP0NdMIEQI1mhQDZ7mOdD8PUYXRlrnbFCdqu6hBXJdeUbbUA=="],
+    "@absolutejs/egress": ["@absolutejs/egress@0.3.1", "", { "dependencies": { "@absolutejs/manifest": "^0.9.0", "@sinclair/typebox": "^0.34.0" } }, "sha512-JamtxOJOLpe+NHU8ff0Q7NShdDIdfRFK3kfAr/XNUplefxuj+oJS4NHQGemojGI+dj/ei/TcXkpjIfzL0sOE0w=="],
 
     "@absolutejs/handoff": ["@absolutejs/handoff@0.1.0", "", { "dependencies": { "@absolutejs/manifest": "0.7.2", "@sinclair/typebox": "0.34.52" } }, "sha512-P9Wr2oyYBcj7mriCV4h9zRlLGijee/7DW8USVkl/m4ovql7zpITy547jy6j8+HC5v5Ocs+TVcMYmrROEEBupNg=="],
 

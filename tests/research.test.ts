@@ -4,7 +4,12 @@ import { Elysia, t } from "elysia";
 import { Type as ModernType } from "typebox";
 import { checkResearchValue } from "../src/research/schema";
 import { createResearch } from "../src/research/runtime";
-import { bindResearchReview, researchLeaves } from "../src/research/evidence";
+import {
+  bindResearchReview,
+  researchLeaves,
+  researchPassages,
+  resolveResearchPassages,
+} from "../src/research/evidence";
 import { researchPlugin, renderResearchResult } from "../src/research/plugin";
 import { createResearchClient } from "../src/client/research";
 import type { AIProviderConfig } from "@absolutejs/ai";
@@ -73,8 +78,20 @@ const review = {
       verdict: "supported",
       citations: [citation],
       reason: "Explicit source statement",
+      checks: {
+        answersQuestion: true,
+        correctEntity: true,
+        correctTime: true,
+        preservesScope: true,
+      },
     },
   ],
+};
+const modelReview = {
+  fields: review.fields.map((field) => ({
+    ...field,
+    citations: [{ passageId: "s1:0" }],
+  })),
 };
 const plan = { queries: [], urls: [], done: true };
 
@@ -83,7 +100,7 @@ describe("research runtime", () => {
     const calls: any[] = [];
     const runtime = createResearch({
       search: search(),
-      provider: model([plan, { name: "Example" }, review], calls),
+      provider: model([plan, { name: "Example" }, modelReview], calls),
       model: "fixture",
     });
     const result = await runtime.extract(
@@ -108,7 +125,7 @@ describe("research runtime", () => {
           done: false,
         },
         { name: "Example" },
-        review,
+        modelReview,
       ]),
       model: "fixture",
       limits: { rounds: 1, searches: 2, reads: 1 },
@@ -343,7 +360,7 @@ for (const [name, schema] of [
     ]) {
       const runtime = createResearch({
         search: search(),
-        provider: model([plan, value, review]),
+        provider: model([plan, value, modelReview]),
         model: "fixture",
       });
       const result = await runtime.extract(
@@ -388,4 +405,217 @@ test("Elysia 2 nested, optional and union schemas retain validation constraints"
       findings: Array(3).fill({ label: "Example" }),
     }),
   ).toBe(false);
+});
+
+describe("research quality gates", () => {
+  test("a real quote cannot override failed relevance, entity, time or scope checks", () => {
+    for (const key of [
+      "answersQuestion",
+      "correctEntity",
+      "correctTime",
+      "preservesScope",
+    ] as const) {
+      const candidate = {
+        ...review.fields[0]!,
+        checks: { ...review.fields[0]!.checks, [key]: false },
+      };
+      const [field] = bindResearchReview(
+        researchLeaves({ name: "Example" }),
+        [candidate],
+        [{ ...source, id: "s1" }],
+      );
+      expect(field!.verdict).toBe("unknown");
+      expect(field!.citations).toEqual([citation]);
+      expect(field!.checks![key]).toBe(false);
+    }
+    const { checks: _checks, ...legacy } = review.fields[0]!;
+    expect(
+      bindResearchReview(
+        researchLeaves({ name: "Example" }),
+        [legacy],
+        [{ ...source, id: "s1" }],
+      )[0]!.verdict,
+    ).toBe("unknown");
+  });
+  test("follow-up evidence gets space and a full read replaces snippets at capacity", async () => {
+    const calls: any[] = [];
+    let searches = 0;
+    const runtime = createResearch({
+      model: "fixture",
+      provider: model(
+        [
+          { queries: ["official policy"], urls: [source.url], done: false },
+          { findings: [] },
+        ],
+        calls,
+      ),
+      limits: { rounds: 1, searches: 2, reads: 1, evidenceChars: 300 },
+      search: {
+        ...search(),
+        search: async (input) => ({
+          provider: "fixture",
+          version: "1",
+          query: input.query,
+          status: "ok",
+          attempts: [],
+          limitations: [],
+          sources: [
+            {
+              ...source,
+              url: searches++ ? "https://example.com/policy" : source.url,
+              excerpts: [
+                searches === 1
+                  ? "snippet ".repeat(100)
+                  : "Official eligibility policy and its qualifying conditions.",
+              ],
+            },
+          ],
+        }),
+      },
+      reader: async (input) => ({
+        status: "ok",
+        url: input.url,
+        finalUrl: input.url,
+        text:
+          "Trial benefit only\nNo previous subscription.\n" +
+          "other ".repeat(100),
+        title: "Terms",
+        method: "http",
+        truncated: false,
+        fetchedAt: "2026-09-24T00:00:00Z",
+        attempts: [],
+        redirects: [],
+        limitations: [],
+        evidence: { links: [], images: [], media: [], canonicalUrl: null },
+      }),
+    });
+    const result = await runtime.run({ query: "eligibility" });
+    expect(result.sources).toHaveLength(2);
+    expect(result.sources[0]!.excerpts.join("\n")).toStartWith(
+      "Trial benefit only\nNo previous subscription.",
+    );
+    expect(result.sources[0]!.excerpts.join("\n")).not.toContain("snippet");
+    expect(result.sources[1]!.excerpts[0]).toBe(
+      "Official eligibility policy and its qualifying conditions.",
+    );
+    expect(
+      result.sources.reduce(
+        (sum, item) => sum + item.excerpts.join("\n").length,
+        0,
+      ),
+    ).toBeLessThanOrEqual(300);
+  });
+  test("review receives task criteria and full structured context", async () => {
+    const calls: any[] = [];
+    const runtime = createResearch({
+      search: search(),
+      provider: model([plan, { name: "Example" }, modelReview], calls),
+      model: "fixture",
+    });
+    await runtime.extract(
+      {
+        schema: Type.Object({ name: Type.String() }),
+        instructions: "Only the current named leader qualifies.",
+      },
+      { query: "Who leads Example?" },
+    );
+    const payload = JSON.parse(calls[2].messages.at(-1).content);
+    expect(payload.instructions).toBe(
+      "Only the current named leader qualifies.",
+    );
+    expect(payload.schema.properties.name.type).toBe("string");
+    expect(payload.asOf).toMatch(/^\d{4}-\d{2}-\d{2}T/u);
+  });
+});
+
+test("separate review model retains host accounting and cannot perform extraction", async () => {
+  const extractionCalls: any[] = [];
+  const reviewCalls: any[] = [];
+  const settled: string[] = [];
+  const runtime = createResearch({
+    search: search(),
+    provider: model([plan, { name: "Example" }], extractionCalls),
+    model: "extractor",
+    reviewer: {
+      provider: model([modelReview], reviewCalls),
+      model: "reviewer",
+    },
+    admit: async ({ kind }) => ({
+      settle: async () => {
+        settled.push(kind);
+      },
+    }),
+  });
+  const result = await runtime.extract(
+    { schema: Type.Object({ name: Type.String() }) },
+    { query: "Example" },
+  );
+  expect(result.status).toBe("reviewed");
+  expect(extractionCalls).toHaveLength(2);
+  expect(extractionCalls.every((call) => call.model === "extractor")).toBe(
+    true,
+  );
+  expect(reviewCalls).toHaveLength(1);
+  expect(reviewCalls[0].model).toBe("reviewer");
+  expect(settled).toEqual(["search", "plan", "extract", "review"]);
+});
+
+test("passage references copy exact evidence and reject invented or ambiguous IDs", () => {
+  const passages = researchPassages([
+    {
+      ...source,
+      id: "s1",
+      excerpts: [
+        "Trial only\n" + "A condition and its exceptions. ".repeat(80),
+      ],
+    },
+  ]);
+  expect(passages[0]!.passages.map((p) => p.text).join("")).toBe(
+    "Trial only\n" + "A condition and its exceptions. ".repeat(80),
+  );
+  const copied = resolveResearchPassages([{ passageId: "s1:1" }], passages);
+  expect(copied[0]!.quote).toBe(passages[0]!.passages[1]!.text);
+  expect(resolveResearchPassages([{ passageId: "made-up" }], passages)).toEqual(
+    [{ sourceId: "", quote: "" }],
+  );
+  expect(
+    resolveResearchPassages(
+      [{ passageId: "s1:0" }],
+      [...passages, ...passages],
+    ),
+  ).toEqual([{ sourceId: "", quote: "" }]);
+});
+
+test("invalid planning preserves retrieved evidence without retrying or bypassing admission", async () => {
+  const calls: any[] = [];
+  const outcomes: { kind: string; status: string }[] = [];
+  const runtime = createResearch({
+    search: search(),
+    model: "fixture",
+    provider: model(
+      [{ queries: null }, { name: "Example" }, modelReview],
+      calls,
+    ),
+    admit: async ({ kind }) => ({
+      settle: async ({ status }) => {
+        outcomes.push({ kind, status });
+      },
+    }),
+  });
+  const result = await runtime.extract(
+    { schema: Type.Object({ name: Type.String() }) },
+    { query: "Example" },
+  );
+  expect(result.status).toBe("partial");
+  expect(result.fields[0]!.verdict).toBe("supported");
+  expect(result.limitations).toContain(
+    "Invalid planning output; continued with retrieved evidence",
+  );
+  expect(calls).toHaveLength(3);
+  expect(outcomes).toEqual([
+    { kind: "search", status: "fulfilled" },
+    { kind: "plan", status: "unknown" },
+    { kind: "extract", status: "fulfilled" },
+    { kind: "review", status: "fulfilled" },
+  ]);
 });

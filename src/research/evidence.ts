@@ -11,11 +11,16 @@ export const ReviewSchema = Type.Object({
           (value) => Type.Literal(value),
         ),
       ),
-      citations: Type.Array(
-        Type.Object({ sourceId: Type.String(), quote: Type.String() }),
-        { maxItems: 8 },
-      ),
+      citations: Type.Array(Type.Object({ passageId: Type.String() }), {
+        maxItems: 8,
+      }),
       reason: Type.String(),
+      checks: Type.Object({
+        answersQuestion: Type.Boolean(),
+        correctEntity: Type.Boolean(),
+        correctTime: Type.Boolean(),
+        preservesScope: Type.Boolean(),
+      }),
     }),
     { maxItems: 256 },
   ),
@@ -55,6 +60,7 @@ export const bindResearchReview = (
     verdict: ResearchField["verdict"];
     citations: ResearchField["citations"];
     reason: string;
+    checks?: ResearchField["checks"];
   }[],
   sources: SearchSource[],
 ): ResearchField[] =>
@@ -72,16 +78,73 @@ export const bindResearchReview = (
         );
       }) ?? [];
     const valid = !!review && citations.length === review.citations.length;
+    const checksPass =
+      review?.checks &&
+      [
+        "answersQuestion",
+        "correctEntity",
+        "correctTime",
+        "preservesScope",
+      ].every(
+        (key) =>
+          review.checks?.[key as keyof NonNullable<ResearchField["checks"]>] ===
+          true,
+      );
     const verdict =
       !valid || leaf.value === null || !citations.length
         ? "unknown"
-        : review.verdict;
+        : review.verdict === "supported" && !checksPass
+          ? "unknown"
+          : review.verdict;
     return {
       ...leaf,
       verdict,
       citations,
-      reason: valid
-        ? review.reason
-        : "Missing, ambiguous, or invalid source-bound review",
+      checks: review?.checks,
+      reason:
+        valid && review.verdict === "supported" && !checksPass
+          ? "Task relevance, entity, time, or scope was not established: " +
+            review.reason
+          : valid
+            ? review.reason
+            : "Missing, ambiguous, or invalid source-bound review",
     };
+  });
+
+/** Stable references let the runtime copy evidence instead of asking a model to transcribe it. */
+export const researchPassages = (sources: SearchSource[]) =>
+  sources.map((source) => {
+    const passages: { id: string; text: string }[] = [];
+    for (const excerpt of source.excerpts) {
+      let start = 0;
+      while (start < excerpt.length) {
+        let end = Math.min(start + 600, excerpt.length);
+        if (end < excerpt.length) {
+          const boundary = excerpt.lastIndexOf("\n", end);
+          if (boundary > start + 300) end = boundary;
+          if (excerpt.length - end < 12) end = excerpt.length;
+        }
+        passages.push({
+          id: `${source.id}:${passages.length}`,
+          text: excerpt.slice(start, end),
+        });
+        start = end;
+      }
+    }
+    const { excerpts: _excerpts, ...metadata } = source;
+    return { ...metadata, passages };
+  });
+
+export const resolveResearchPassages = (
+  citations: { passageId: string }[],
+  sources: ReturnType<typeof researchPassages>,
+) =>
+  citations.map((citation) => {
+    const matches = sources.flatMap((source) =>
+      source.passages
+        .filter((passage) => passage.id === citation.passageId)
+        .map((passage) => ({ sourceId: source.id, quote: passage.text })),
+    );
+    // Keep invalid references present so binding fails closed, never silently drop them.
+    return matches.length === 1 ? matches[0]! : { sourceId: "", quote: "" };
   });

@@ -13,7 +13,13 @@ import {
   type ResearchStatic,
 } from "./schema";
 import { readRAGWebpage } from "../web";
-import { bindResearchReview, researchLeaves, ReviewSchema } from "./evidence";
+import {
+  bindResearchReview,
+  researchLeaves,
+  ReviewSchema,
+  researchPassages,
+  resolveResearchPassages,
+} from "./evidence";
 import type {
   ResearchConfig,
   ResearchInput,
@@ -25,7 +31,7 @@ import type {
 } from "./types";
 
 const DefaultSchema = Type.Object({
-  findings: Type.Array(Type.String(), { maxItems: 12 }),
+  findings: Type.Array(Type.String(), { maxItems: 6 }),
 });
 const PlanSchema = Type.Object({
   queries: Type.Array(Type.String({ maxLength: 600 }), { maxItems: 8 }),
@@ -144,8 +150,14 @@ export const createResearch = (config: ResearchConfig): ResearchRuntime => {
         kind,
         () =>
           (config.generateObject ?? generateObjectAI)({
-            provider: config.provider,
-            model: config.model,
+            provider:
+              kind === "review"
+                ? (config.reviewer?.provider ?? config.provider)
+                : config.provider,
+            model:
+              kind === "review"
+                ? (config.reviewer?.model ?? config.model)
+                : config.model,
             schema,
             signal,
             contextPolicy: false,
@@ -172,6 +184,31 @@ export const createResearch = (config: ResearchConfig): ResearchRuntime => {
     const urls = new Set<string>();
     const queries = new Set<string>();
     let evidenceChars = 0;
+    const sourceText = new Map<string, string>();
+    const rebalanceEvidence = () => {
+      let remaining = limits.evidenceChars;
+      const weight = (source: SearchSource) =>
+        source.contentFetchedAt ? 4 : 1;
+      const ordered = [...result.sources].sort(
+        (a, b) =>
+          sourceText.get(a.url)!.length / weight(a) -
+          sourceText.get(b.url)!.length / weight(b),
+      );
+      let remainingWeight = ordered.reduce(
+        (sum, source) => sum + weight(source),
+        0,
+      );
+      for (const source of ordered) {
+        const text = sourceText.get(source.url)!;
+        const allowance = Math.floor(
+          (remaining * weight(source)) / remainingWeight,
+        );
+        remainingWeight -= weight(source);
+        source.excerpts = [text.slice(0, allowance)];
+        remaining -= source.excerpts[0]!.length;
+      }
+      evidenceChars = limits.evidenceChars - remaining;
+    };
     const addSource = (source: SearchSource) => {
       if (
         !requiredPhrases.every((phrase) =>
@@ -181,11 +218,12 @@ export const createResearch = (config: ResearchConfig): ResearchRuntime => {
         )
       )
         return;
-      if (
-        result.sources.some((existing) => existing.url === source.url) ||
-        evidenceChars >= limits.evidenceChars
-      )
+      if (result.sources.some((existing) => existing.url === source.url))
         return;
+      if (result.sources.length >= 64) {
+        result.limitations.push("Evidence source limit reached");
+        return;
+      }
       try {
         const url = new URL(source.url);
         if (
@@ -197,16 +235,15 @@ export const createResearch = (config: ResearchConfig): ResearchRuntime => {
       } catch {
         return;
       }
-      const text = source.excerpts
-        .join("\n")
-        .slice(0, limits.evidenceChars - evidenceChars);
+      const text = source.excerpts.join("\n").slice(0, limits.evidenceChars);
       if (!text.trim()) return;
-      evidenceChars += text.length;
+      sourceText.set(source.url, text);
       result.sources.push({
         ...source,
         id: `s${result.sources.length + 1}`,
         excerpts: [text],
       });
+      rebalanceEvidence();
     };
     const doSearch = async (query: string) => {
       for (const bounded of boundedQueries(query)) {
@@ -259,15 +296,11 @@ export const createResearch = (config: ResearchConfig): ResearchRuntime => {
       if (page.text && page.status !== "error") {
         const prior = result.sources.find((source) => source.url === url);
         if (prior) {
-          const extra = page.text.slice(
-            0,
-            limits.evidenceChars - evidenceChars,
-          );
-          if (extra) {
-            prior.excerpts.push(extra);
-            evidenceChars += extra.length;
-            prior.contentFetchedAt = page.fetchedAt;
-          }
+          // Replace snippets with page context; do not duplicate them or starve
+          // later primary sources when the initial search filled the budget.
+          sourceText.set(prior.url, page.text.slice(0, limits.evidenceChars));
+          prior.contentFetchedAt = page.fetchedAt;
+          rebalanceEvidence();
         } else
           addSource({
             id: "",
@@ -283,21 +316,34 @@ export const createResearch = (config: ResearchConfig): ResearchRuntime => {
       for (const query of input.queries ?? [input.query]) await doSearch(query);
       for (let round = 0; round < limits.rounds; round++) {
         if (!result.sources.length && queries.size >= limits.searches) break;
-        const plan = await generate(
-          "plan",
-          PlanSchema,
-          "Select follow-up searches for missing evidence and primary-source URLs to read. URLs must come from the supplied search results. done means available evidence addresses the requested schema, not merely that some results exist. Return no actions if further work is not useful.",
-          {
-            query: input.query,
-            schema: task.schema,
-            instructions: task.instructions,
-            sources: result.sources,
-            searched: [...queries],
-            read: [...urls],
-            remainingSearches: limits.searches - queries.size,
-            remainingReads: limits.reads - urls.size,
-          },
-        );
+        let plan: ResearchStatic<typeof PlanSchema>;
+        try {
+          plan = await generate(
+            "plan",
+            PlanSchema,
+            "Select follow-up searches for missing evidence and primary-source URLs to read. For current people or roles, seek the organization’s own leadership/about/team pages; testimonials, package authors, and job listings are not staff identity evidence. For policies, read the full policy or agreement to preserve section scope and exceptions. URLs must come from the supplied search results. done means available evidence addresses the requested schema, not merely that some results exist. Return no actions if further work is not useful.",
+            {
+              query: input.query,
+              schema: task.schema,
+              instructions: task.instructions,
+              sources: result.sources,
+              searched: [...queries],
+              read: [...urls],
+              remainingSearches: limits.searches - queries.size,
+              remainingReads: limits.reads - urls.size,
+            },
+          );
+        } catch (error) {
+          if (
+            !(error instanceof Error) ||
+            error.message !== "Invalid plan output"
+          )
+            throw error;
+          result.limitations.push(
+            "Invalid planning output; continued with retrieved evidence",
+          );
+          break;
+        }
         for (const url of plan.urls) await doRead(url);
         for (const query of plan.queries) await doSearch(query);
         if (plan.done || (!plan.queries.length && !plan.urls.length)) break;
@@ -319,8 +365,12 @@ export const createResearch = (config: ResearchConfig): ResearchRuntime => {
       const data = await generate(
         "extract",
         task.schema,
-        `Extract only evidence-supported facts for the requested query and schema. ${task.instructions ?? ""}`,
-        { query: input.query, sources: result.sources },
+        `Extract only facts that directly answer the requested query and schema. Return concise, atomic answers; include only the minimum facts needed to answer the question. For a leadership query, report the named person and current title, not their biography, education, or acquisition history. Do not pad findings with background facts, excluded candidates, or statements that evidence is missing; return an empty findings array when no answer is established. Preserve all material qualifiers: program versus benefit/trial, customer versus partner, eligibility versus automatic approval, dates, exceptions, and attribution of promotional claims. Never generalize a section-specific condition to the whole organization or program. ${task.instructions ?? ""}`,
+        {
+          query: input.query,
+          asOf: result.generatedAt,
+          sources: result.sources,
+        },
       );
       const leaves = researchLeaves(data, limits.fields);
       if (!leaves.length) {
@@ -328,15 +378,26 @@ export const createResearch = (config: ResearchConfig): ResearchRuntime => {
         result.status = result.limitations.length ? "partial" : "empty";
         return result;
       }
+      const reviewSources = researchPassages(result.sources);
       const reviewed = await generate(
         "review",
         ReviewSchema,
-        "Independently review EVERY JSON pointer and its value. supported requires exact quotes establishing the entire fact for the correct entity and time. A name mention or publication date is insufficient to establish employment, event date, ownership, or buying intent. Check all sources for conflicts. Use conflicting when sources disagree, unsupported for contradicted claims, unknown for missing support. Null is unknown. Quotes must appear in supplied excerpts. Return each pointer once. Never treat this review as independent real-world verification.",
-        { query: input.query, fields: leaves, sources: result.sources },
+        "Independently review EVERY JSON pointer and its value. supported requires exact quotes establishing the entire fact for the correct entity and time. A name mention or publication date is insufficient to establish employment, event date, ownership, or buying intent. Check all sources for conflicts. Use conflicting when sources disagree, unsupported for contradicted claims, unknown for missing support. Null is unknown. Cite only supplied passage IDs; their text will be copied verbatim by the runtime. For each field, explicitly check answersQuestion (directly answers query/schema/instructions, not background or a non-answer), correctEntity, correctTime, and preservesScope. Read surrounding context and headings, not only the matching quote. A benefit/trial condition is not a program-wide rule; customer conditions are not partner conditions; eligible is not approved or automatic. Preserve exceptions, qualifiers and marketing attribution. Every check must pass for supported. A leader’s education or career history does not answer who currently leads a team. Keep each reason under 25 words. Cite only the minimum passages needed to establish the entire field, at most four. Do not invent passage IDs. Read adjacent passages for conditions and exceptions, even when citing only one. Return each pointer once. Never treat this review as independent real-world verification.",
+        {
+          query: input.query,
+          asOf: result.generatedAt,
+          instructions: task.instructions,
+          schema: task.schema,
+          fields: leaves,
+          sources: reviewSources,
+        },
       );
       result.fields = bindResearchReview(
         leaves,
-        reviewed.fields,
+        reviewed.fields.map((field) => ({
+          ...field,
+          citations: resolveResearchPassages(field.citations, reviewSources),
+        })),
         result.sources,
       );
       const complete =

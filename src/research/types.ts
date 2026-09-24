@@ -27,6 +27,13 @@ export type ResearchField = {
   verdict: "supported" | "unsupported" | "conflicting" | "unknown";
   citations: { sourceId: string; quote: string }[];
   reason: string;
+  /** Model judgments, not independent verification; all must pass for support. */
+  checks?: {
+    answersQuestion: boolean;
+    correctEntity: boolean;
+    correctTime: boolean;
+    preservesScope: boolean;
+  };
 };
 export type ResearchResult<T = unknown> = {
   id: string;
@@ -74,6 +81,8 @@ export type ResearchConfig = {
   search: SearchProvider;
   provider: AIProviderConfig;
   model: string;
+  /** Optional separate reviewer. Host reservations must price this model too. */
+  reviewer?: { provider: AIProviderConfig; model: string };
   tasks?: Record<string, ResearchTask>;
   limits?: Partial<ResearchLimits>;
   /** Explicit shared-public or tenant scope. Omit to disable search caching. */
