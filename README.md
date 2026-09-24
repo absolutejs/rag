@@ -230,3 +230,7 @@ provider to cancel its in-flight request. `onProgress` reports completed pages.
 Blank pages are skipped; an entirely unreadable document is rejected.
 
 `createWebsiteReaderClient` from `@absolutejs/rag/web` connects to a trusted host-managed reader service and validates its status, text, source URLs and limitations. Configure the service endpoint and inject a static fallback. The client reserves fallback time within one total deadline, propagates caller cancellation, and keeps service saturation retryable. RAG's public HTTP/HTTPS reader shares the low-level pinned transport with `@absolutejs/egress/transport`; egress still enforces its own allowlisted HTTPS policy.
+
+## Web research workflows
+
+See [RESEARCH.md](./RESEARCH.md) for the research plugin, six framework flows, schema extraction, field evidence review, company discovery, durable batches, monitoring, spending policy, agent tools, and evaluation.

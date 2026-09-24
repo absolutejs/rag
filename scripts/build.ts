@@ -8,6 +8,7 @@ await rm(DIST, { force: true, recursive: true });
 const serverBuild = await Bun.build({
   entrypoints: [
     "src/index.ts",
+    "src/research/index.ts",
     "src/web/index.ts",
     "src/web/playwright.ts",
     "src/manifest.ts",
@@ -18,6 +19,7 @@ const serverBuild = await Bun.build({
     "src/client/ui.ts",
   ],
   external: [
+    "@absolutejs/search",
     "playwright-core",
     "@absolutejs/egress/transport",
     "elysia",
@@ -39,6 +41,7 @@ if (!serverBuild.success) {
 
 const browserBuild = await Bun.build({
   entrypoints: [
+    "src/client/research.ts",
     "src/react/index.ts",
     "src/vue/index.ts",
     "src/svelte/index.ts",

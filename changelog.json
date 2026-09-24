@@ -1,237 +1,247 @@
 {
-  "contract": 1,
-  "name": "@absolutejs/rag",
-  "releases": [
-    {
-      "changes": [
-        {
-          "kind": "added",
-          "summary": "Reuse shared pinned transport and add a typed remote website-reader client with caller cancellation and reserved fallback time"
-        },
-        {
-          "kind": "security",
-          "summary": "Reject additional reserved IPv6 ranges through the shared public-address validator",
-          "symbols": [
-            "isPublicWebAddress"
-          ]
-        }
-      ],
-      "date": "2026-09-24",
-      "version": "0.17.0"
-    },
-    {
-      "changes": [
-        {
-          "kind": "added",
-          "summary": "Add page-by-page PDF extraction with OCR for image-bearing pages, preserving mixed-document evidence and rejecting incomplete extraction.",
-          "symbols": [
-            "createRAGPagedPDFExtractor"
-          ]
-        }
-      ],
-      "date": "2026-09-23",
-      "version": "0.16.0"
-    },
-    {
-      "changes": [
-        {
-          "kind": "fixed",
-          "summary": "Decode real PDFs with PDF.js, preserving page evidence across compressed streams and font encodings without application intake caps; retain explicit OCR support.",
-          "symbols": [
-            "createPDFFileExtractor",
-            "createRAGPDFOCRExtractor"
-          ]
-        }
-      ],
-      "date": "2026-09-23",
-      "version": "0.15.2"
-    },
-    {
-      "changes": [
-        {
-          "kind": "fixed",
-          "summary": "Preserve all sections of public websites instead of extracting one article fragment, and retain labeled image evidence in source-bound documents.",
-          "symbols": [
-            "readRAGWebpage",
-            "readRAGWebsite"
-          ]
-        }
-      ],
-      "date": "2026-09-20",
-      "version": "0.15.1"
-    },
-    {
-      "changes": [
-        {
-          "kind": "added",
-          "summary": "Expose bounded website documents bound to source IDs and compact inline citation links for native MCP evidence presentation.",
-          "symbols": [
-            "readRAGWebsite"
-          ]
-        }
-      ],
-      "date": "2026-09-18",
-      "version": "0.15.0"
-    },
-    {
-      "changes": [
-        {
-          "kind": "changed",
-          "summary": "Require nearby source links for factual answers and distinguish supported customer examples from unsupported exclusions, ownership relationships and rebrand history.",
-          "symbols": [
-            "readRAGWebsite"
-          ]
-        },
-        {
-          "kind": "added",
-          "summary": "Return copy-ready source citations before website evidence and repeat links beside each retrieved page; exclude failed reads and unread links from the source list.",
-          "symbols": [
-            "readRAGWebsite"
-          ]
-        }
-      ],
-      "date": "2026-09-18",
-      "version": "0.14.0"
-    },
-    {
-      "changes": [
-        {
-          "kind": "changed",
-          "summary": "Balance repeated customer, service and company reads across an eight-page default budget (maximum twelve) with 48000 characters, preventing case-study archives from starving service details.",
-          "symbols": [
-            "readRAGWebsite"
-          ]
-        },
-        {
-          "kind": "added",
-          "summary": "Expose stop reasons and actual incomplete page reads separately from unvisited links; guide targeted continuation and concise nontechnical answers.",
-          "symbols": [
-            "readRAGWebsite"
-          ]
-        }
-      ],
-      "date": "2026-09-18",
-      "version": "0.13.0"
-    },
-    {
-      "changes": [
-        {
-          "kind": "added",
-          "summary": "Add bounded multi-page website research with exact page citations, semantic links and image labels, media and caption evidence, redirect chains and explicit coverage limits."
-        },
-        {
-          "kind": "changed",
-          "summary": "Expand website result and renderer contracts with semantic evidence, redirect hops and explicit readiness/coverage metadata; existing renderers may omit the new optional renderer fields.",
-          "symbols": [
-            "WebFetchResult",
-            "WebReadResult",
-            "WebRenderer",
-            "readRAGWebpage",
-            "createPlaywrightWebRenderer"
-          ]
-        }
-      ],
-      "date": "2026-09-18",
-      "version": "0.12.0"
-    },
-    {
-      "changes": [
-        {
-          "kind": "fixed",
-          "summary": "Honor HTML response MIME types for extensionless URL ingestion instead of treating website markup as plain text, including XHTML and batch URL loading.",
-          "symbols": [
-            "loadRAGDocumentFromURL",
-            "loadRAGDocumentsFromURLs"
-          ]
-        },
-        {
-          "kind": "added",
-          "summary": "Add a bounded public website reader with prepared evidence, per-attempt diagnostics, automatic JavaScript rendering through an optional Playwright adapter, isolated browser contexts and DNS-pinned public-only resource fetching.",
-          "symbols": [
-            "readRAGWebpage",
-            "createPlaywrightWebRenderer",
-            "fetchPublicWebResource"
-          ]
-        }
-      ],
-      "date": "2026-09-18",
-      "version": "0.11.0"
-    },
-    {
-      "changes": [
-        {
-          "kind": "added",
-          "summary": "Encode retrieved original-text passages as request-scoped quote references and restore exact quotes without rewriting source text",
-          "symbols": [
-            "createRAGQuoteReferences"
-          ]
-        },
-        {
-          "kind": "changed",
-          "summary": "Accept AI 0.2 alongside existing compatible AI releases; validate retrieval against AI 0.2.0",
-          "symbols": [
-            "ragChat",
-            "createRAGWorkflow"
-          ]
-        }
-      ],
-      "date": "2026-09-16",
-      "version": "0.10.0"
-    },
-    {
-      "changes": [
-        {
-          "kind": "changed",
-          "summary": "Forward AI context policy through RAG WebSocket and SSE chat; accept the next AI 0.1 release while retaining compatibility with the prior AI peer range",
-          "symbols": [
-            "ragChat",
-            "createRAGWorkflow",
-            "useRAG",
-            "useRAGWorkflow",
-            "useRAGStream",
-            "createRAG",
-            "RAGWorkflowService",
-            "RAGStreamService"
-          ]
-        },
-        {
-          "kind": "added",
-          "summary": "Allow servers to request a smaller original-source search result set while preserving candidate ranking, authorization, and exact token budgeting",
-          "symbols": [
-            "createRAGOriginalTextTools"
-          ]
-        },
-        {
-          "kind": "changed",
-          "summary": "Count a complete authorized source-result envelope once when it fits, avoiding serial tokenizer round trips while retaining exact budget validation and oversized-result packing",
-          "symbols": [
-            "createRAGOriginalTextTools"
-          ]
-        },
-        {
-          "kind": "added",
-          "summary": "Add verbatim versioned text ingestion and authorized hybrid source tools with caller-supplied model token budgets; preserve multilingual keyword matches",
-          "symbols": [
-            "chunkRAGOriginalText",
-            "readRAGOriginalText",
-            "createRAGOriginalTextTools"
-          ]
-        },
-        {
-          "kind": "breaking",
-          "migration": {
-            "instruction": "Use a store implementing queryLexical for lexical/hybrid retrieval, or explicitly select vector mode on vector-only stores. Scoped heuristic queries now retain the requested channels; update trace consumers from Scoped direct route to Scoped retrieval route.",
-            "manual": true
-          },
-          "summary": "Reject unsupported lexical and hybrid retrieval instead of silently omitting keyword results; preserve requested channels for scoped heuristic queries",
-          "symbols": [
-            "createRAGCollection",
-            "createHeuristicRAGRetrievalStrategy"
-          ]
-        }
-      ],
-      "date": "2026-09-16",
-      "version": "0.9.0"
-    }
-  ]
+	"contract": 1,
+	"name": "@absolutejs/rag",
+	"releases": [
+		{
+			"changes": [
+				{
+					"kind": "added",
+					"summary": "Add configurable web research, bounded multistep planning, field-level evidence review, a server plugin and six framework flows, company discovery, resumable batches, fenced PostgreSQL monitoring, billing admission, agent tools and evaluation adapters."
+				}
+			],
+			"date": "2026-09-24",
+			"version": "0.18.0"
+		},
+		{
+			"changes": [
+				{
+					"kind": "added",
+					"summary": "Reuse shared pinned transport and add a typed remote website-reader client with caller cancellation and reserved fallback time"
+				},
+				{
+					"kind": "security",
+					"summary": "Reject additional reserved IPv6 ranges through the shared public-address validator",
+					"symbols": [
+						"isPublicWebAddress"
+					]
+				}
+			],
+			"date": "2026-09-24",
+			"version": "0.17.0"
+		},
+		{
+			"changes": [
+				{
+					"kind": "added",
+					"summary": "Add page-by-page PDF extraction with OCR for image-bearing pages, preserving mixed-document evidence and rejecting incomplete extraction.",
+					"symbols": [
+						"createRAGPagedPDFExtractor"
+					]
+				}
+			],
+			"date": "2026-09-23",
+			"version": "0.16.0"
+		},
+		{
+			"changes": [
+				{
+					"kind": "fixed",
+					"summary": "Decode real PDFs with PDF.js, preserving page evidence across compressed streams and font encodings without application intake caps; retain explicit OCR support.",
+					"symbols": [
+						"createPDFFileExtractor",
+						"createRAGPDFOCRExtractor"
+					]
+				}
+			],
+			"date": "2026-09-23",
+			"version": "0.15.2"
+		},
+		{
+			"changes": [
+				{
+					"kind": "fixed",
+					"summary": "Preserve all sections of public websites instead of extracting one article fragment, and retain labeled image evidence in source-bound documents.",
+					"symbols": [
+						"readRAGWebpage",
+						"readRAGWebsite"
+					]
+				}
+			],
+			"date": "2026-09-20",
+			"version": "0.15.1"
+		},
+		{
+			"changes": [
+				{
+					"kind": "added",
+					"summary": "Expose bounded website documents bound to source IDs and compact inline citation links for native MCP evidence presentation.",
+					"symbols": [
+						"readRAGWebsite"
+					]
+				}
+			],
+			"date": "2026-09-18",
+			"version": "0.15.0"
+		},
+		{
+			"changes": [
+				{
+					"kind": "changed",
+					"summary": "Require nearby source links for factual answers and distinguish supported customer examples from unsupported exclusions, ownership relationships and rebrand history.",
+					"symbols": [
+						"readRAGWebsite"
+					]
+				},
+				{
+					"kind": "added",
+					"summary": "Return copy-ready source citations before website evidence and repeat links beside each retrieved page; exclude failed reads and unread links from the source list.",
+					"symbols": [
+						"readRAGWebsite"
+					]
+				}
+			],
+			"date": "2026-09-18",
+			"version": "0.14.0"
+		},
+		{
+			"changes": [
+				{
+					"kind": "changed",
+					"summary": "Balance repeated customer, service and company reads across an eight-page default budget (maximum twelve) with 48000 characters, preventing case-study archives from starving service details.",
+					"symbols": [
+						"readRAGWebsite"
+					]
+				},
+				{
+					"kind": "added",
+					"summary": "Expose stop reasons and actual incomplete page reads separately from unvisited links; guide targeted continuation and concise nontechnical answers.",
+					"symbols": [
+						"readRAGWebsite"
+					]
+				}
+			],
+			"date": "2026-09-18",
+			"version": "0.13.0"
+		},
+		{
+			"changes": [
+				{
+					"kind": "added",
+					"summary": "Add bounded multi-page website research with exact page citations, semantic links and image labels, media and caption evidence, redirect chains and explicit coverage limits."
+				},
+				{
+					"kind": "changed",
+					"summary": "Expand website result and renderer contracts with semantic evidence, redirect hops and explicit readiness/coverage metadata; existing renderers may omit the new optional renderer fields.",
+					"symbols": [
+						"WebFetchResult",
+						"WebReadResult",
+						"WebRenderer",
+						"readRAGWebpage",
+						"createPlaywrightWebRenderer"
+					]
+				}
+			],
+			"date": "2026-09-18",
+			"version": "0.12.0"
+		},
+		{
+			"changes": [
+				{
+					"kind": "fixed",
+					"summary": "Honor HTML response MIME types for extensionless URL ingestion instead of treating website markup as plain text, including XHTML and batch URL loading.",
+					"symbols": [
+						"loadRAGDocumentFromURL",
+						"loadRAGDocumentsFromURLs"
+					]
+				},
+				{
+					"kind": "added",
+					"summary": "Add a bounded public website reader with prepared evidence, per-attempt diagnostics, automatic JavaScript rendering through an optional Playwright adapter, isolated browser contexts and DNS-pinned public-only resource fetching.",
+					"symbols": [
+						"readRAGWebpage",
+						"createPlaywrightWebRenderer",
+						"fetchPublicWebResource"
+					]
+				}
+			],
+			"date": "2026-09-18",
+			"version": "0.11.0"
+		},
+		{
+			"changes": [
+				{
+					"kind": "added",
+					"summary": "Encode retrieved original-text passages as request-scoped quote references and restore exact quotes without rewriting source text",
+					"symbols": [
+						"createRAGQuoteReferences"
+					]
+				},
+				{
+					"kind": "changed",
+					"summary": "Accept AI 0.2 alongside existing compatible AI releases; validate retrieval against AI 0.2.0",
+					"symbols": [
+						"ragChat",
+						"createRAGWorkflow"
+					]
+				}
+			],
+			"date": "2026-09-16",
+			"version": "0.10.0"
+		},
+		{
+			"changes": [
+				{
+					"kind": "changed",
+					"summary": "Forward AI context policy through RAG WebSocket and SSE chat; accept the next AI 0.1 release while retaining compatibility with the prior AI peer range",
+					"symbols": [
+						"ragChat",
+						"createRAGWorkflow",
+						"useRAG",
+						"useRAGWorkflow",
+						"useRAGStream",
+						"createRAG",
+						"RAGWorkflowService",
+						"RAGStreamService"
+					]
+				},
+				{
+					"kind": "added",
+					"summary": "Allow servers to request a smaller original-source search result set while preserving candidate ranking, authorization, and exact token budgeting",
+					"symbols": [
+						"createRAGOriginalTextTools"
+					]
+				},
+				{
+					"kind": "changed",
+					"summary": "Count a complete authorized source-result envelope once when it fits, avoiding serial tokenizer round trips while retaining exact budget validation and oversized-result packing",
+					"symbols": [
+						"createRAGOriginalTextTools"
+					]
+				},
+				{
+					"kind": "added",
+					"summary": "Add verbatim versioned text ingestion and authorized hybrid source tools with caller-supplied model token budgets; preserve multilingual keyword matches",
+					"symbols": [
+						"chunkRAGOriginalText",
+						"readRAGOriginalText",
+						"createRAGOriginalTextTools"
+					]
+				},
+				{
+					"kind": "breaking",
+					"migration": {
+						"instruction": "Use a store implementing queryLexical for lexical/hybrid retrieval, or explicitly select vector mode on vector-only stores. Scoped heuristic queries now retain the requested channels; update trace consumers from Scoped direct route to Scoped retrieval route.",
+						"manual": true
+					},
+					"summary": "Reject unsupported lexical and hybrid retrieval instead of silently omitting keyword results; preserve requested channels for scoped heuristic queries",
+					"symbols": [
+						"createRAGCollection",
+						"createHeuristicRAGRetrievalStrategy"
+					]
+				}
+			],
+			"date": "2026-09-16",
+			"version": "0.9.0"
+		}
+	]
 }

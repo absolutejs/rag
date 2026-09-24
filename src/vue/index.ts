@@ -15,3 +15,5 @@ export { useRAGStreamProgress } from "./useRAGStreamProgress";
 export type { UseRAGStreamResult } from "./useRAGStream";
 export { useRAGSources } from "./useRAGSources";
 export { useRAGStatus } from "./useRAGStatus";
+
+export * from "./useResearch";

@@ -15,3 +15,5 @@ export { createRAGStream } from "./createRAGStream";
 export { createRAGStreamProgress } from "./createRAGStreamProgress";
 export type { CreateRAGWorkflowResult } from "./createRAGWorkflow";
 export type { CreateRAGStreamResult } from "./createRAGStream";
+
+export * from "./createResearch";

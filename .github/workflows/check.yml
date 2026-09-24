@@ -1,0 +1,32 @@
+name: Check
+on: [push, pull_request]
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_PASSWORD: research-ci
+        ports: [5432:5432]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      RESEARCH_TEST_DATABASE_URL: postgres://postgres:research-ci@127.0.0.1:5432/postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+      - run: bun install --frozen-lockfile
+      - run: bun run typecheck
+      - run: bun run lint
+      - run: bun test
+      - run: bun run build
+      - run: bunx absolute-changelog check --offline
+      - run: bunx playwright-core install --with-deps chromium
+      - name: Browser research flow
+        run: RESEARCH_TEST_CHROMIUM="$(bun -e 'import { chromium } from "playwright-core"; console.log(chromium.executablePath())')" bun test tests/researchBrowser.test.ts

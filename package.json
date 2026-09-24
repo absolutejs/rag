@@ -1,6 +1,6 @@
 {
   "name": "@absolutejs/rag",
-  "version": "0.17.0",
+  "version": "0.18.0",
   "homepage": "https://github.com/absolutejs/rag",
   "bugs": {
     "url": "https://github.com/absolutejs/rag/issues"
@@ -14,7 +14,8 @@
     "CHANGELOG.md",
     "README.md",
     "changelog.json",
-    "dist"
+    "dist",
+    "RESEARCH.md"
   ],
   "exports": {
     ".": {
@@ -69,6 +70,14 @@
     "./web/playwright": {
       "import": "./dist/web/playwright.js",
       "types": "./dist/src/web/playwright.d.ts"
+    },
+    "./research": {
+      "types": "./dist/src/research/index.d.ts",
+      "import": "./dist/research/index.js"
+    },
+    "./research/client": {
+      "types": "./dist/src/client/research.d.ts",
+      "import": "./dist/client/research.js"
     }
   },
   "absolutejs": {
@@ -80,7 +89,8 @@
     "linkedom": "0.18.13",
     "pdfjs-dist": "6.3.289",
     "pdf-lib": "1.17.1",
-    "@absolutejs/egress": "^0.3.0"
+    "@absolutejs/egress": "^0.3.0",
+    "@absolutejs/search": "^0.2.0"
   },
   "peerDependencies": {
     "@angular/core": "^21.0.0",
@@ -89,7 +99,7 @@
     "svelte": "^5.35.2",
     "vue": "^3.5.27",
     "@absolutejs/sync": ">=2.14.0 <3",
-    "@absolutejs/ai": ">=0.0.54 <0.3",
+    "@absolutejs/ai": ">=0.2.7 <0.3",
     "playwright-core": "^1.60.0"
   },
   "peerDependenciesMeta": {
@@ -111,7 +121,7 @@
   },
   "devDependencies": {
     "@absolutejs/absolute": "0.20.0-beta.0",
-    "@absolutejs/ai": "0.2.0",
+    "@absolutejs/ai": "0.2.7",
     "@absolutejs/changelog": "^0.6.0",
     "@absolutejs/rag-postgres": "0.0.13",
     "@absolutejs/rag-sqlite": "0.0.11",
@@ -179,6 +189,12 @@
       ],
       "manifest": [
         "dist/src/manifest.d.ts"
+      ],
+      "research": [
+        "dist/src/research/index.d.ts"
+      ],
+      "research/client": [
+        "dist/src/client/research.d.ts"
       ]
     }
   }
