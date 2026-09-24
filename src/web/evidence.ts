@@ -117,3 +117,27 @@ export const hasIncompleteAppContent = (html: string) => {
     text.length < 100 || /^(?:loading|please wait)(?:[.\s]|$)/iu.test(text)
   );
 };
+
+/** Parse attributes once: overlapping HTML regex quantifiers can stall on repeated attributes. */
+export const hasEmptyAppRoot = (html: string) => {
+  const { document } = parseHTML(html);
+  return Array.from(document.querySelectorAll("div,main,section")).some(
+    (element) => {
+      const attributes = Array.from(element.attributes);
+      const id = attributes
+        .find((attribute) => attribute.name.toLowerCase() === "id")
+        ?.value.toLowerCase();
+      const classes =
+        attributes
+          .find((attribute) => attribute.name.toLowerCase() === "class")
+          ?.value.toLowerCase()
+          .split(/\s+/u) ?? [];
+      return (
+        ((id !== undefined && ["root", "app", "__next"].includes(id)) ||
+          classes.includes("todoapp")) &&
+        element.children.length === 0 &&
+        !element.textContent?.trim()
+      );
+    },
+  );
+};

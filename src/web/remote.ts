@@ -55,7 +55,9 @@ export const createWebsiteReaderClient =
     fetch?: typeof fetch;
     timeoutMs?: number;
     fallbackReserveMs?: number;
-    fallback: (input: {
+    /** Optional host fallback. Omit to preserve process isolation on service failure.
+     * A fallback must not run untrusted synchronous parsing on the application event loop. */
+    fallback?: (input: {
       url: string;
       maxPages: number;
       mode: "auto" | "browser";
@@ -69,8 +71,8 @@ export const createWebsiteReaderClient =
     signal?: AbortSignal;
   }) => {
     const timeoutMs = options.timeoutMs ?? 85000,
-      reserveMs = options.fallbackReserveMs ?? 15000;
-    if (!(reserveMs > 0 && timeoutMs > reserveMs))
+      reserveMs = options.fallback ? (options.fallbackReserveMs ?? 15000) : 0;
+    if (!(reserveMs >= 0 && timeoutMs > reserveMs))
       throw new Error("Reader deadline must reserve fallback time");
     const signal = AbortSignal.any([
       ...(input.signal ? [input.signal] : []),
@@ -116,6 +118,16 @@ export const createWebsiteReaderClient =
       return result;
     } catch (error) {
       signal.throwIfAborted();
+      if (!options.fallback)
+        return {
+          status: "error" as const,
+          text: "",
+          error: {
+            code: "reader_unavailable",
+            message:
+              "Website reader unavailable. Retry shortly; no website evidence was retrieved.",
+          },
+        };
       const result = parseWebsiteServiceResult(
         await options.fallback({ ...request, signal }),
       );

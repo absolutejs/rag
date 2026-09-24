@@ -65,3 +65,22 @@ test("caller cancellation never starts fallback; service saturation stays retrya
     }),
   ).toThrow("sources");
 });
+
+test("isolated reader failures never need an in-process parser", async () => {
+  for (const fetch of [
+    fake(async () => {
+      throw new Error("offline");
+    }),
+    fake(async () => new Response("failed", { status: 502 })),
+    fake(async () => Response.json({ invalid: true })),
+  ]) {
+    const read = createWebsiteReaderClient({
+      endpoint: "http://reader/read",
+      fetch,
+    });
+    expect(await read({ url: "https://example.com" })).toMatchObject({
+      status: "error",
+      error: { code: "reader_unavailable" },
+    });
+  }
+});

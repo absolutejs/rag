@@ -1,6 +1,7 @@
 import {
   extractWebEvidence,
   hasIncompleteAppContent,
+  hasEmptyAppRoot,
   type WebEvidence,
 } from "./evidence";
 import type { WebRedirect } from "./transport";
@@ -86,9 +87,7 @@ const isShell = (html: string, text: string) =>
   /(?:enable|requires?|turn on)\s+javascript|javascript\s+(?:is\s+)?(?:disabled|required)/iu.test(
     text,
   ) ||
-  /<(?:div|main|section)[^>]*(?:id=["'](?:root|app|__next)["']|class=["']todoapp["'])[^>]*>\s*<\//iu.test(
-    html,
-  );
+  hasEmptyAppRoot(html);
 const isChallenge = (text: string) =>
   /verify (?:that )?you are human|checking your browser|just a moment|enable javascript and cookies to continue|access denied/iu.test(
     text.slice(0, 1000),
