@@ -5,6 +5,16 @@
 		{
 			"changes": [
 				{
+					"kind": "fixed",
+					"summary": "Republish the tested research quality improvements as 0.20.0 because npm has not made 0.19.0 installable."
+				}
+			],
+			"date": "2026-09-24",
+			"version": "0.20.0"
+		},
+		{
+			"changes": [
+				{
 					"kind": "added",
 					"summary": "Allow a separately configured review provider and model through the existing host accounting path.",
 					"symbols": [
