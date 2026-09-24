@@ -1,3 +1,4 @@
+import { createDiscoveryTransport, type DiscoveryFetch } from "./discoveryTransport";
 import { S3Client } from "bun";
 import { createHash } from "node:crypto";
 import { mkdir, readFile, readdir } from "node:fs/promises";
@@ -1422,8 +1423,8 @@ const isFeedDocument = (value: string) => {
   );
 };
 
-const discoverFeedsFromHTML = async (feed: RAGFeedSyncInput) => {
-  const response = await fetch(feed.url, h2IfHttps(feed.url));
+const discoverFeedsFromHTML = async (feed: RAGFeedSyncInput, fetchURL: DiscoveryFetch) => {
+  const response = await fetchURL(feed.url);
   if (!response.ok) {
     return [];
   }
@@ -1477,10 +1478,7 @@ const discoverFeedsFromHTML = async (feed: RAGFeedSyncInput) => {
 
   const validated: RAGFeedSyncInput[] = [];
   for (const candidate of discovered.values()) {
-    const candidateResponse = await fetch(
-      candidate.url,
-      h2IfHttps(candidate.url),
-    );
+    const candidateResponse = await fetchURL(candidate.url);
     if (!candidateResponse.ok) {
       continue;
     }
@@ -1562,9 +1560,9 @@ const parseSitemapEntries = (sitemap: RAGSitemapSyncInput, value: string) => {
   return [...deduped.values()];
 };
 
-const discoverSitemapsFromRobots = async (sitemap: RAGSitemapSyncInput) => {
+const discoverSitemapsFromRobots = async (sitemap: RAGSitemapSyncInput, fetchURL: DiscoveryFetch) => {
   const robotsURL = resolveSiblingURL(sitemap.url, "/robots.txt");
-  const response = await fetch(robotsURL, h2IfHttps(robotsURL));
+  const response = await fetchURL(robotsURL);
   if (!response.ok) {
     return [];
   }
@@ -1584,38 +1582,8 @@ const discoverSitemapsFromRobots = async (sitemap: RAGSitemapSyncInput) => {
   return discovered;
 };
 
-const loadRobotsDisallowRules = async (siteURL: string) => {
-  const robotsURL = resolveSiblingURL(siteURL, "/robots.txt");
-  const response = await fetch(robotsURL, h2IfHttps(robotsURL));
-  if (!response.ok) {
-    return [];
-  }
-  const text = await response.text();
-  const rules: string[] = [];
-  let inGlobalAgent = false;
-  for (const rawLine of text.split(/\r?\n/)) {
-    const line = rawLine.replace(/\s+#.*$/, "").trim();
-    if (!line) {
-      continue;
-    }
-    const agentMatch = line.match(/^User-agent:\s*(.+)$/i);
-    if (agentMatch) {
-      inGlobalAgent = agentMatch[1]?.trim() === "*";
-      continue;
-    }
-    if (!inGlobalAgent) {
-      continue;
-    }
-    const disallowMatch = line.match(/^Disallow:\s*(.*)$/i);
-    const path = disallowMatch?.[1]?.trim();
-    if (typeof path === "string" && path.length > 0) {
-      rules.push(path);
-    }
-  }
-  return rules;
-};
-
 const discoverRecursiveSitemapURLs = async (input: {
+  fetchURL: DiscoveryFetch;
   sitemap: RAGSitemapSyncInput;
   maxNestedSitemaps?: number;
 }): Promise<RAGSitemapSyncInput[]> => {
@@ -1633,10 +1601,7 @@ const discoverRecursiveSitemapURLs = async (input: {
     seen.add(current.sitemap.url);
     resolved.push(current.sitemap);
 
-    const response = await fetch(
-      current.sitemap.url,
-      h2IfHttps(current.sitemap.url),
-    );
+    const response = await input.fetchURL(current.sitemap.url);
     if (!response.ok) {
       throw new Error(
         `Failed to load sitemap ${current.sitemap.url}: ${response.status} ${response.statusText}`,
@@ -1739,15 +1704,6 @@ const normalizeCanonicalURL = (value: string) => {
   }
 };
 
-const isBlockedByRobotsRules = (url: string, disallowRules: string[]) => {
-  try {
-    const path = new URL(url).pathname;
-    return disallowRules.some((rule) => rule !== "/" && path.startsWith(rule));
-  } catch {
-    return false;
-  }
-};
-
 const buildDiscoveryPruneDiagnostics = (counts: {
   canonicalDedupedCount: number;
   robotsBlockedCount: number;
@@ -1796,6 +1752,7 @@ const buildDiscoveryPruneDiagnostics = (counts: {
 };
 
 const discoverLinkedPagesFromHTML = async (input: {
+  transport: ReturnType<typeof createDiscoveryTransport>;
   site: RAGSiteDiscoveryInput;
   seedURLs: string[];
   maxLinkedPages?: number;
@@ -1809,7 +1766,7 @@ const discoverLinkedPagesFromHTML = async (input: {
       pages: [],
     };
   }
-  const disallowRules = await loadRobotsDisallowRules(input.site.url);
+
 
   const queue: Array<{ depth: number; url: string }> = input.seedURLs.map(
     (url) => ({
@@ -1844,12 +1801,12 @@ const discoverLinkedPagesFromHTML = async (input: {
     if (!currentOrigin || currentOrigin !== siteOrigin) {
       continue;
     }
-    if (isBlockedByRobotsRules(current.url, disallowRules)) {
+    if (!(await input.transport.allowed(current.url))) {
       pruneCounts.robotsBlockedCount += 1;
       continue;
     }
 
-    const response = await fetch(current.url, h2IfHttps(current.url));
+    const response = await input.transport.get(current.url);
     if (!response.ok) {
       continue;
     }
@@ -1909,7 +1866,7 @@ const discoverLinkedPagesFromHTML = async (input: {
       if (!resolvedOrigin || resolvedOrigin !== siteOrigin) {
         continue;
       }
-      if (isBlockedByRobotsRules(resolved, disallowRules)) {
+      if (!(await input.transport.allowed(resolved))) {
         pruneCounts.robotsBlockedCount += 1;
         continue;
       }
@@ -1957,6 +1914,7 @@ const discoverLinkedPagesFromHTML = async (input: {
 };
 
 const loadDiscoveredURLDocuments = async (input: {
+  fetchURL?: DiscoveryFetch;
   sourceId: string;
   collection: RAGCollection;
   deleteDocument?: (id: string) => Promise<boolean> | boolean;
@@ -1992,7 +1950,7 @@ const loadDiscoveredURLDocuments = async (input: {
           metadata: entry.metadata,
           title: entry.title,
           url: entry.url,
-        });
+        }, input.fetchURL);
 
         return [
           {
@@ -2467,13 +2425,15 @@ export const createRAGFeedSyncSource = (
       ? options.feeds[0]?.url
       : `${options.feeds.length} feeds`,
   sync: async ({ collection, deleteDocument, listDocuments }) => {
+    const transport = createDiscoveryTransport(options.fetchResource, false);
+    const fetchURL = transport.get;
     const feedMap = new Map<string, RAGFeedSyncInput>();
     const discoveredFeeds = options.autoDiscoverFromHTML
       ? (
           await Promise.all(
             options.feeds.map(async (feed) => [
               feed,
-              ...(await discoverFeedsFromHTML(feed)),
+              ...(await discoverFeedsFromHTML(feed, fetchURL)),
             ]),
           )
         ).flat()
@@ -2492,7 +2452,7 @@ export const createRAGFeedSyncSource = (
     const discoveredEntries = (
       await Promise.all(
         [...feedMap.values()].map(async (feed) => {
-          const response = await fetch(feed.url, h2IfHttps(feed.url));
+          const response = await fetchURL(feed.url);
           if (!response.ok) {
             throw new Error(
               `Failed to load feed ${feed.url}: ${response.status} ${response.statusText}`,
@@ -2512,6 +2472,7 @@ export const createRAGFeedSyncSource = (
       )
     ).flat();
     const result = await loadDiscoveredURLDocuments({
+      fetchURL,
       baseMetadata: options.baseMetadata,
       chunkingRegistry: options.chunkingRegistry,
       collection,
@@ -2559,12 +2520,14 @@ export const createRAGSitemapSyncSource = (
       ? options.sitemaps[0]?.url
       : `${options.sitemaps.length} sitemaps`,
   sync: async ({ collection, deleteDocument, listDocuments }) => {
+    const transport = createDiscoveryTransport(options.fetchResource, false);
+    const fetchURL = transport.get;
     const seedSitemaps = options.autoDiscoverFromRobots
       ? (
           await Promise.all(
             options.sitemaps.map(async (sitemap) => [
               sitemap,
-              ...(await discoverSitemapsFromRobots(sitemap)),
+              ...(await discoverSitemapsFromRobots(sitemap, fetchURL)),
             ]),
           )
         ).flat()
@@ -2579,6 +2542,7 @@ export const createRAGSitemapSyncSource = (
       await Promise.all(
         [...sitemapMap.values()].map((sitemap) =>
           discoverRecursiveSitemapURLs({
+                fetchURL,
             maxNestedSitemaps: options.maxNestedSitemaps,
             sitemap,
           }),
@@ -2594,7 +2558,7 @@ export const createRAGSitemapSyncSource = (
     const discoveredEntries = (
       await Promise.all(
         [...resolvedSitemapMap.values()].map(async (sitemap) => {
-          const response = await fetch(sitemap.url, h2IfHttps(sitemap.url));
+          const response = await fetchURL(sitemap.url);
           if (!response.ok) {
             throw new Error(
               `Failed to load sitemap ${sitemap.url}: ${response.status} ${response.statusText}`,
@@ -2616,6 +2580,7 @@ export const createRAGSitemapSyncSource = (
       )
     ).flat();
     const result = await loadDiscoveredURLDocuments({
+      fetchURL,
       baseMetadata: options.baseMetadata,
       chunkingRegistry: options.chunkingRegistry,
       collection,
@@ -2663,6 +2628,8 @@ export const createRAGSiteDiscoverySyncSource = (
       ? options.sites[0]?.url
       : `${options.sites.length} sites`,
   sync: async ({ collection, deleteDocument, listDocuments }) => {
+    const transport = createDiscoveryTransport(options.fetchResource, true);
+    const fetchURL = transport.get;
     const discoveredURLMap = new Map<
       string,
       { title?: string; metadata?: Record<string, unknown>; url: string }
@@ -2672,7 +2639,7 @@ export const createRAGSiteDiscoverySyncSource = (
     for (const site of options.sites) {
       if (options.autoDiscoverFeeds !== false) {
         const feedMap = new Map<string, RAGFeedSyncInput>();
-        for (const feed of [site, ...(await discoverFeedsFromHTML(site))]) {
+        for (const feed of [site, ...(await discoverFeedsFromHTML(site, fetchURL))]) {
           if (!feedMap.has(feed.url)) {
             feedMap.set(feed.url, feed);
           }
@@ -2686,7 +2653,7 @@ export const createRAGSiteDiscoverySyncSource = (
         const feedEntries = (
           await Promise.all(
             [...feedMap.values()].map(async (feed) => {
-              const response = await fetch(feed.url, h2IfHttps(feed.url));
+              const response = await fetchURL(feed.url);
               if (!response.ok) {
                 throw new Error(
                   `Failed to load feed ${feed.url}: ${response.status} ${response.statusText}`,
@@ -2732,7 +2699,7 @@ export const createRAGSiteDiscoverySyncSource = (
             metadata: site.metadata,
             title: site.title,
             url: site.url,
-          })),
+          }, fetchURL)),
         ];
         const sitemapMap = new Map<string, RAGSitemapSyncInput>();
         for (const sitemap of seedSitemaps) {
@@ -2744,6 +2711,7 @@ export const createRAGSiteDiscoverySyncSource = (
           await Promise.all(
             [...sitemapMap.values()].map((sitemap) =>
               discoverRecursiveSitemapURLs({
+                fetchURL,
                 maxNestedSitemaps: options.maxNestedSitemaps,
                 sitemap,
               }),
@@ -2753,7 +2721,7 @@ export const createRAGSiteDiscoverySyncSource = (
         const sitemapEntries = (
           await Promise.all(
             resolvedSitemaps.map(async (sitemap) => {
-              const response = await fetch(sitemap.url, h2IfHttps(sitemap.url));
+              const response = await fetchURL(sitemap.url);
               if (!response.ok) {
                 throw new Error(
                   `Failed to load sitemap ${sitemap.url}: ${response.status} ${response.statusText}`,
@@ -2804,6 +2772,7 @@ export const createRAGSiteDiscoverySyncSource = (
             .map((entry) => entry.url),
         ];
         const linkedPages = await discoverLinkedPagesFromHTML({
+          transport,
           maxLinkDepth: options.maxLinkDepth,
           maxLinkedPages: options.maxLinkedPages,
           maxLinksPerPage: options.maxLinksPerPage,
@@ -2823,6 +2792,7 @@ export const createRAGSiteDiscoverySyncSource = (
     }
 
     const result = await loadDiscoveredURLDocuments({
+      fetchURL,
       baseMetadata: options.baseMetadata,
       chunkingRegistry: options.chunkingRegistry,
       collection,

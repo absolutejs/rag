@@ -1,6 +1,6 @@
 {
   "name": "@absolutejs/rag",
-  "version": "0.20.0",
+  "version": "0.21.0",
   "homepage": "https://github.com/absolutejs/rag",
   "bugs": {
     "url": "https://github.com/absolutejs/rag/issues"
@@ -91,6 +91,7 @@
     "linkedom": "0.18.13",
     "pdf-lib": "1.17.1",
     "pdfjs-dist": "6.3.289",
+    "robots-parser": "3.0.1",
     "typebox": "^1.3.16"
   },
   "peerDependencies": {

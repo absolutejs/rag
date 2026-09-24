@@ -1,3 +1,4 @@
+import type { fetchPublicWebResource } from "../src/web/transport";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { join } from "node:path";
@@ -55,6 +56,16 @@ const createMockFetchMap = (
     },
     { preconnect: fetch.preconnect },
   ) as typeof fetch;
+
+const fixtureResource: typeof fetchPublicWebResource = async (url) => {
+  let response: Response;
+  try { response = await fetch(url); }
+  catch (error) {
+    if (new URL(url).pathname !== "/robots.txt") throw error;
+    response = new Response("", { status: 404 });
+  }
+  return { url, status: response.status, headers: Object.fromEntries(response.headers), body: new Uint8Array(await response.arrayBuffer()) };
+};
 
 describe("RAG sync helpers", () => {
   it("syncs directory sources into a collection and tracks completed state", async () => {
@@ -1162,6 +1173,7 @@ describe("RAG sync helpers", () => {
         collection,
         sources: [
           createRAGFeedSyncSource({
+            fetchResource: fixtureResource,
             feeds: [
               {
                 title: "Release Feed",
@@ -1269,6 +1281,7 @@ describe("RAG sync helpers", () => {
         collection,
         sources: [
           createRAGFeedSyncSource({
+            fetchResource: fixtureResource,
             autoDiscoverFromHTML: true,
             feeds: [
               {
@@ -1353,6 +1366,7 @@ describe("RAG sync helpers", () => {
         collection,
         sources: [
           createRAGSitemapSyncSource({
+            fetchResource: fixtureResource,
             id: "docs-sitemap",
             label: "Docs sitemap",
             sitemaps: [
@@ -1457,6 +1471,7 @@ describe("RAG sync helpers", () => {
         collection,
         sources: [
           createRAGSitemapSyncSource({
+            fetchResource: fixtureResource,
             autoDiscoverFromRobots: true,
             id: "site-discovery",
             label: "Site discovery",
@@ -1591,6 +1606,7 @@ describe("RAG sync helpers", () => {
         collection,
         sources: [
           createRAGSiteDiscoverySyncSource({
+            fetchResource: fixtureResource,
             id: "site-discovery",
             label: "Site discovery",
             maxDiscoveredFeeds: 3,
@@ -1737,6 +1753,7 @@ describe("RAG sync helpers", () => {
         collection,
         sources: [
           createRAGSiteDiscoverySyncSource({
+            fetchResource: fixtureResource,
             autoDiscoverLinkedPages: true,
             id: "site-discovery",
             label: "Site discovery",
@@ -1871,6 +1888,7 @@ describe("RAG sync helpers", () => {
         collection,
         sources: [
           createRAGSiteDiscoverySyncSource({
+            fetchResource: fixtureResource,
             autoDiscoverFeeds: false,
             autoDiscoverLinkedPages: true,
             autoDiscoverSitemaps: false,
@@ -2021,6 +2039,7 @@ describe("RAG sync helpers", () => {
         collection,
         sources: [
           createRAGSiteDiscoverySyncSource({
+            fetchResource: fixtureResource,
             autoDiscoverFeeds: false,
             autoDiscoverLinkedPages: true,
             autoDiscoverSitemaps: false,

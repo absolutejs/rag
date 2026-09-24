@@ -5,6 +5,26 @@
 		{
 			"changes": [
 				{
+					"kind": "security",
+					"summary": "Protect feed, sitemap and site discovery through final ingestion with bounded public-address transport; enforce robots agent, allow and wildcard rules and abort on temporary robots failures.",
+					"symbols": [
+						"createRAGFeedSyncSource",
+						"createRAGSitemapSyncSource",
+						"createRAGSiteDiscoverySyncSource",
+						"RAGFeedSyncSourceOptions",
+						"RAGSitemapSyncSourceOptions",
+						"RAGSiteDiscoverySyncSourceOptions",
+						"loadRAGDocumentFromURL",
+						"researchPlugin"
+					]
+				}
+			],
+			"date": "2026-09-24",
+			"version": "0.21.0"
+		},
+		{
+			"changes": [
+				{
 					"kind": "fixed",
 					"summary": "Republish the tested research quality improvements as 0.20.0 because npm has not made 0.19.0 installable."
 				}

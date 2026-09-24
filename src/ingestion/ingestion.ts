@@ -10471,13 +10471,13 @@ export const loadRAGDocumentFile = async (input: RAGDocumentFileInput) => {
 
   return getFirstExtractedDocument(documents, "for file input");
 };
-export const loadRAGDocumentFromURL = async (input: RAGDocumentUrlInput) => {
+export const loadRAGDocumentFromURL = async (input: RAGDocumentUrlInput, fetchURL: (url: string) => Promise<Response> = (url) => fetch(url, h2IfHttps(url))) => {
   const url = input.url.trim();
   if (!url) {
     throw new Error("RAG URL is required");
   }
 
-  const response = await fetch(url, h2IfHttps(url));
+  const response = await fetchURL(url);
   if (!response.ok) {
     throw new Error(
       `Failed to fetch RAG URL ${url}: ${response.status} ${response.statusText}`,

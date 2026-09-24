@@ -1,3 +1,4 @@
+import type { fetchPublicWebResource } from "../src/web/transport";
 // RAG engine types — extracted from @absolutejs/ai (RAG_EXTRACTION_PLAN.md).
 // The 11 ai-facing RAG types, AI* inference types, and SessionStore stay in
 // @absolutejs/ai and are imported here; the RAG engine domain lives in this package.
@@ -1782,6 +1783,8 @@ export type RAGFeedSyncInput = {
 };
 
 export type RAGFeedSyncSourceOptions = {
+  /** Trusted host transport override. Must preserve public-address, redirect and response-size protections. */
+  fetchResource?: typeof fetchPublicWebResource;
   id: string;
   label: string;
   feeds: RAGFeedSyncInput[];
@@ -1806,6 +1809,8 @@ export type RAGSitemapSyncInput = {
 };
 
 export type RAGSitemapSyncSourceOptions = {
+  /** Trusted host transport override. Must preserve public-address, redirect and response-size protections. */
+  fetchResource?: typeof fetchPublicWebResource;
   id: string;
   label: string;
   sitemaps: RAGSitemapSyncInput[];
@@ -1830,6 +1835,8 @@ export type RAGSiteDiscoveryInput = {
 };
 
 export type RAGSiteDiscoverySyncSourceOptions = {
+  /** Trusted host transport override. Must preserve public-address, redirect and response-size protections. */
+  fetchResource?: typeof fetchPublicWebResource;
   id: string;
   label: string;
   sites: RAGSiteDiscoveryInput[];

@@ -58,6 +58,19 @@ it does not remove the need for exact keyword matches within that corpus.
 
 The ingestion pipeline handles files, directories, uploads, URLs, PDFs, office documents, archives, images, and media transcripts. Scheduled connectors can keep collections synchronized from email, GitHub, sitemaps, feeds, directories, and S3-compatible storage.
 
+Feed, sitemap and site-discovery sync sources use the bounded, DNS-pinned public
+web transport through final document ingestion. Private addresses and unsafe
+redirect destinations are rejected. Site discovery identifies itself as
+`AbsoluteJSReader/1.0`, respects agent-specific robots rules, `Allow`, wildcards
+and query paths, and checks each page redirect against its destination's policy.
+A robots 4xx response permits crawling except 429; network errors, 429 and 5xx
+abort the sync before reconciliation, preserving previously indexed documents.
+Robots policies are cached only within one sync run. A trusted host can inject
+`fetchResource` for isolated readers or deterministic tests; that adapter must
+preserve DNS pinning, response bounds and redirect validation. Direct URL and
+GitHub sync behavior is unchanged. Durable scheduling and corpus-wide crawl
+budgets remain separate from these source-level protections.
+
 PDF uploads use the built-in PDF.js reader to decode compressed streams and
 font encodings, with page numbers retained in native text blocks for citations.
 The reader processes pages sequentially and does not impose an application
