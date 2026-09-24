@@ -6,8 +6,12 @@ import {
   type SearchResult,
   type SearchSource,
 } from "@absolutejs/search";
-import { Type, type Static, type TSchema } from "@sinclair/typebox";
-import { Value } from "@sinclair/typebox/value";
+import { Type } from "@sinclair/typebox";
+import {
+  checkResearchValue,
+  type ResearchSchema,
+  type ResearchStatic,
+} from "./schema";
 import { readRAGWebpage } from "../web";
 import { bindResearchReview, researchLeaves, ReviewSchema } from "./evidence";
 import type {
@@ -64,17 +68,17 @@ export const createResearch = (config: ResearchConfig): ResearchRuntime => {
     ? withSearchCache(config.search, config.cache)
     : config.search;
 
-  const extract = async <S extends TSchema>(
+  const extract = async <S extends ResearchSchema>(
     task: ResearchTask<S>,
     input: ResearchInput,
-  ): Promise<ResearchResult<Static<S>>> => {
+  ): Promise<ResearchResult<ResearchStatic<S>>> => {
     if (!input.query.trim() || input.query.length > 8000)
       throw new Error("Research query must contain 1–8000 characters");
     const signal = AbortSignal.any([
       AbortSignal.timeout(limits.timeoutMs),
       ...(input.signal ? [input.signal] : []),
     ]);
-    const result: ResearchResult<Static<S>> = {
+    const result: ResearchResult<ResearchStatic<S>> = {
       id: crypto.randomUUID(),
       status: "unavailable",
       data: null,
@@ -130,12 +134,12 @@ export const createResearch = (config: ResearchConfig): ResearchRuntime => {
         throw error;
       }
     };
-    const generate = async <Schema extends TSchema>(
+    const generate = async <Schema extends ResearchSchema>(
       kind: "plan" | "extract" | "review",
       schema: Schema,
       prompt: string,
       payload: unknown,
-    ): Promise<Static<Schema>> => {
+    ): Promise<ResearchStatic<Schema>> => {
       const generated = await operate(
         kind,
         () =>
@@ -151,9 +155,9 @@ export const createResearch = (config: ResearchConfig): ResearchRuntime => {
             systemPrompt: `${trust}\n${prompt}`,
             messages: [{ role: "user", content: JSON.stringify(payload) }],
             validate: (value) => {
-              if (!Value.Check(schema, value))
+              if (!checkResearchValue(schema, value))
                 throw new Error(`Invalid ${kind} output`);
-              return value as Static<Schema>;
+              return value;
             },
           }),
         (value) => ({ usage: value.usage }),

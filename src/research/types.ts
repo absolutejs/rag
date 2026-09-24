@@ -5,7 +5,8 @@ import type {
   SearchSource,
   SearchCacheStore,
 } from "@absolutejs/search";
-import type { TSchema, Static } from "@sinclair/typebox";
+import type { ResearchSchema, ResearchStatic } from "./schema";
+export type { ResearchSchema, ResearchStatic } from "./schema";
 import type { ReadWebpageOptions, WebReadResult } from "../web";
 
 export type ResearchOperation =
@@ -44,7 +45,7 @@ export type ResearchResult<T = unknown> = {
     durationMs: number;
   }[];
 };
-export type ResearchTask<S extends TSchema = TSchema> = {
+export type ResearchTask<S extends ResearchSchema = ResearchSchema> = {
   schema: S;
   instructions?: string;
 };
@@ -102,8 +103,8 @@ export type ResearchConfig = {
 };
 export type ResearchRuntime = {
   run: (input: ResearchInput) => Promise<ResearchResult>;
-  extract: <S extends TSchema>(
+  extract: <S extends ResearchSchema>(
     task: ResearchTask<S>,
     input: ResearchInput,
-  ) => Promise<ResearchResult<Static<S>>>;
+  ) => Promise<ResearchResult<ResearchStatic<S>>>;
 };

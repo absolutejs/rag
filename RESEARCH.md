@@ -5,8 +5,7 @@
 ## Configure once
 
 ```ts
-import { Elysia } from "elysia";
-import { Type } from "@sinclair/typebox";
+import { Elysia, t } from "elysia";
 import { anthropic } from "@absolutejs/ai/anthropic";
 import { createBraveSearch } from "@absolutejs/search/brave";
 import {
@@ -21,7 +20,7 @@ const research = createResearch({
   model: process.env.RESEARCH_MODEL!,
   tasks: {
     company: {
-      schema: Type.Object({ name: Type.String(), description: Type.String() }),
+      schema: t.Object({ name: t.String(), description: t.String() }),
     },
     signals: researchMonitorTask,
   },
@@ -45,7 +44,7 @@ const result = await research.run({
 
 `authorizeResearchRequest` is your application's authorization function, not an export of this package. It is required. For multiple tenants, pass `runtime: request => runtimeForAuthorizedTenant(request)`; authorization runs first. Scope tenant caches, workflows and budget ledgers to the same resolved identity. The plugin rejects cross-origin browser POSTs and sends `Cache-Control: no-store`. Do not treat a caller-supplied tenant header as identity.
 
-`run` selects server-registered schemas; browsers cannot override models, limits, schemas or credentials. `extract({schema, instructions}, input)` accepts a typed TypeBox schema directly for trusted server code. The same configured AI provider handles planning, extraction and independent review, with transport retries and schema repair retries disabled.
+`run` selects server-registered schemas; browsers cannot override models, limits, schemas or credentials. `extract({schema, instructions}, input)` accepts JSON-compatible Elysia 2 `t`, TypeBox 1 (`typebox`), or legacy TypeBox 0.34 (`@sinclair/typebox`) schemas directly, preserving result type inference and runtime validation for trusted server code. The same configured AI provider handles planning, extraction and independent review, with transport retries and schema repair retries disabled.
 
 Default limits are four searches, four page reads, two planning rounds, 90 seconds, 32,000 evidence characters, 4,096 output tokens per model call and 128 primitive output fields. Limits are per research call, not per entire batch. Page reading uses the existing hardened public web transport; optional `render` enables your existing browser service. A browser process is not provisioned automatically. Cancellation must also be honored by custom providers and readers.
 

@@ -5,6 +5,23 @@
 		{
 			"changes": [
 				{
+					"kind": "fixed",
+					"summary": "Accept Elysia 2 and TypeBox 1 research schemas with inferred result types and matching runtime validation while preserving TypeBox 0.34 compatibility.",
+					"symbols": [
+						"ResearchTask",
+						"ResearchRuntime",
+						"ResearchSchema",
+						"ResearchStatic",
+						"createResearch"
+					]
+				}
+			],
+			"date": "2026-09-24",
+			"version": "0.18.1"
+		},
+		{
+			"changes": [
+				{
 					"kind": "added",
 					"summary": "Add configurable web research, bounded multistep planning, field-level evidence review, a server plugin and six framework flows, company discovery, resumable batches, fenced PostgreSQL monitoring, billing admission, agent tools and evaluation adapters."
 				}

@@ -1,6 +1,6 @@
 {
   "name": "@absolutejs/rag",
-  "version": "0.18.0",
+  "version": "0.18.1",
   "homepage": "https://github.com/absolutejs/rag",
   "bugs": {
     "url": "https://github.com/absolutejs/rag/issues"
@@ -90,7 +90,8 @@
     "pdfjs-dist": "6.3.289",
     "pdf-lib": "1.17.1",
     "@absolutejs/egress": "^0.3.0",
-    "@absolutejs/search": "^0.2.0"
+    "@absolutejs/search": "^0.2.0",
+    "typebox": "^1.3.16"
   },
   "peerDependencies": {
     "@angular/core": "^21.0.0",
@@ -153,7 +154,8 @@
     "test": "bun test",
     "release": "bun run build && bun publish --access public",
     "check:package": "absolute-changelog check",
-    "prepublishOnly": "bun run check:package"
+    "prepublishOnly": "bun run check:package",
+    "test:research-types": "tsc --project tsconfig.research-types.json"
   },
   "publishConfig": {
     "access": "public"

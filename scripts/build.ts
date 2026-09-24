@@ -19,6 +19,8 @@ const serverBuild = await Bun.build({
     "src/client/ui.ts",
   ],
   external: [
+    "typebox",
+    "typebox/value",
     "@absolutejs/search",
     "playwright-core",
     "@absolutejs/egress/transport",

@@ -1,6 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import { Type } from "@sinclair/typebox";
-import { Elysia } from "elysia";
+import { Elysia, t } from "elysia";
+import { Type as ModernType } from "typebox";
+import { checkResearchValue } from "../src/research/schema";
 import { createResearch } from "../src/research/runtime";
 import { bindResearchReview, researchLeaves } from "../src/research/evidence";
 import { researchPlugin, renderResearchResult } from "../src/research/plugin";
@@ -306,4 +308,84 @@ describe("plugin and clients", () => {
     expect(client.getSnapshot().status).toBe("idle");
     expect(client.getSnapshot().result).toBeNull();
   });
+});
+
+for (const [name, schema] of [
+  [
+    "Elysia 2",
+    t.Object(
+      { name: t.String({ minLength: 1 }) },
+      { additionalProperties: false },
+    ),
+  ],
+  [
+    "TypeBox 1",
+    ModernType.Object(
+      { name: ModernType.String({ minLength: 1 }) },
+      { additionalProperties: false },
+    ),
+  ],
+  [
+    "TypeBox 0.34",
+    Type.Object(
+      { name: Type.String({ minLength: 1 }) },
+      { additionalProperties: false },
+    ),
+  ],
+] as const) {
+  test(`${name} schemas support reviewed extraction and reject invalid model output`, async () => {
+    for (const value of [
+      { name: "Example" },
+      { name: 123 },
+      { name: "" },
+      {},
+      { name: "Example", extra: true },
+    ]) {
+      const runtime = createResearch({
+        search: search(),
+        provider: model([plan, value, review]),
+        model: "fixture",
+      });
+      const result = await runtime.extract(
+        { schema },
+        { query: "Example launch" },
+      );
+      if (JSON.stringify(value) === JSON.stringify({ name: "Example" })) {
+        expect(result.status).toBe("reviewed");
+        expect(result.data).toEqual(value);
+      } else {
+        expect(result.data).toBeNull();
+        expect(result.status).not.toBe("reviewed");
+      }
+    }
+  });
+}
+
+test("Elysia 2 nested, optional and union schemas retain validation constraints", () => {
+  const schema = t.Object({
+    findings: t.Array(
+      t.Object({
+        label: t.String({ minLength: 1 }),
+        score: t.Optional(t.Union([t.Number({ minimum: 0 }), t.Null()])),
+      }),
+      { maxItems: 2 },
+    ),
+  });
+  expect(checkResearchValue(schema, { findings: [{ label: "Example" }] })).toBe(
+    true,
+  );
+  expect(
+    checkResearchValue(schema, {
+      findings: [{ label: "Example", score: null }],
+    }),
+  ).toBe(true);
+  expect(
+    checkResearchValue(schema, { findings: [{ label: "Example", score: -1 }] }),
+  ).toBe(false);
+  expect(checkResearchValue(schema, { findings: [{ label: "" }] })).toBe(false);
+  expect(
+    checkResearchValue(schema, {
+      findings: Array(3).fill({ label: "Example" }),
+    }),
+  ).toBe(false);
 });
