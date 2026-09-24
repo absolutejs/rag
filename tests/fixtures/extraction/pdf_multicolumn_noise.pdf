@@ -1,47 +1,33 @@
-%PDF-1.4
+%PDF-1.7
 1 0 obj
-<<>>
-stream
-BT
-(Related links) Tj
-T*
-(/docs/release-gates) Tj
-T*
-(/docs/approval-lanes) Tj
-ET
-endstream
+<< /Type /Catalog /Pages 2 0 R >>
 endobj
 2 0 obj
-<<>>
-stream
-BT
-(Overview Column) Tj
-T*
-(Stable blockers stay explicit in the rollout record.) Tj
-ET
-endstream
+<< /Type /Pages /Count 1 /Kids [4 0 R] >>
 endobj
 3 0 obj
-<<>>
-stream
-BT
-(Start free trial) Tj
-T*
-(Book demo with enterprise support) Tj
-T*
-(Learn more at /pricing) Tj
-ET
-endstream
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
 endobj
 4 0 obj
-<<>>
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 2000 800] /Resources << /Font << /F1 3 0 R >> >> /Contents 5 0 R >>
+endobj
+5 0 obj
+<< /Length 258 /Filter /FlateDecode >>
 stream
-BT
-(Details Column) Tj
-T*
-(Approval state belongs beside the blocking gate.) Tj
-ET
+xœ‘ËnÂ@E÷|Å]ÒJ4	T,K+¤Je~ÀIL˜âÌŒ<Ú¿¯x”‹Šõµ|î±çÅ{…ª„[¡Ã-P¡D‰
+%¦%\?~²qña“ïà¾îÃ¢M.”…)ó¨#ãëŒRÒ¸#	…søæóÿ™å‰ù±cİyŞã%Ê¶—ÍK£ZµÄfÃš‘~ÀßI|ã>ÀÖ"qkPn¢¶·‘§“ñ‘¼4RÃJ™aêI.èyŒ´ÜGì½­ÁÁX“úÌÈÛ”¢ÚerÁ¤}TŠ¤¾ñ¡»­ÆdvªñÊF^òµÿóù¦qcÔ,1t5gßòQşx:^òçşGXC
 endstream
 endobj
-/Type /Page
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000212 00000 n 
+0000000339 00000 n 
+trailer
+<< /Size 6 /Root 1 0 R >>
+startxref
+669
 %%EOF

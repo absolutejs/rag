@@ -3253,70 +3253,6 @@ const isLikelyTextData = (data: Uint8Array) => {
   return suspicious / sample.length < 0.1;
 };
 
-const decodePdfLiteral = (value: string) =>
-  value
-    .replace(/\\([\\()])/g, "$1")
-    .replace(/\\n/g, "\n")
-    .replace(/\\r/g, "\r")
-    .replace(/\\t/g, "\t")
-    .replace(/\\b/g, "\b")
-    .replace(/\\f/g, "\f")
-    .replace(/\\([0-7]{1,3})/g, (_match, octal: string) =>
-      String.fromCharCode(parseInt(octal, 8)),
-    );
-
-const PDF_TABLE_GAP_THRESHOLD = 120;
-
-const extractPdfArrayText = (value: string) => {
-  const parts: string[] = [];
-  const tokenPattern = /\(((?:\\.|[^\\)])*)\)|([-+]?\d*\.?\d+)/g;
-  let pendingColumnGap = false;
-
-  for (const match of value.matchAll(tokenPattern)) {
-    if (match[1] !== undefined) {
-      const decoded = decodePdfLiteral(match[1]);
-      if (
-        pendingColumnGap &&
-        decoded &&
-        !/^\s/.test(decoded) &&
-        parts.at(-1) !== " | "
-      ) {
-        parts.push(" | ");
-      }
-
-      parts.push(decoded);
-      pendingColumnGap = false;
-      continue;
-    }
-
-    const gap = Number(match[2]);
-    if (Number.isFinite(gap) && gap >= PDF_TABLE_GAP_THRESHOLD) {
-      pendingColumnGap = true;
-    }
-  }
-
-  return normalizeWhitespace(parts.join(""))
-    .replace(/\s+\|\s+/g, " | ")
-    .trim();
-};
-
-const appendPdfText = (parts: string[], value: string) => {
-  if (!value) {
-    return;
-  }
-
-  parts.push(value);
-};
-
-const appendPdfLineBreak = (parts: string[]) => {
-  const last = parts.at(-1);
-  if (!last || last.endsWith("\n")) {
-    return;
-  }
-
-  parts.push("\n");
-};
-
 type PDFNativeTextBlock = {
   blockNumber: number;
   lineCount: number;
@@ -3366,47 +3302,6 @@ const PDF_PROMO_BODY_PATTERN =
   /\b(?:free trial|upgrade|subscribe|newsletter|contact sales|book demo|learn more|pricing|enterprise|demo)\b/i;
 const OCR_SUMMARY_CONFIDENCE_THRESHOLD = 0.75;
 const OCR_SUMMARY_MIN_STRONG_TEXT_RATIO = 0.6;
-
-const PDF_TEXT_OPERATOR_PATTERN =
-  /(\[((?:\\.|[^\]])*)\]\s*TJ)|(\(((?:\\.|[^\\)])*)\)\s*Tj)|([-+]?\d*\.?\d+\s+[-+]?\d*\.?\d+\s+\(((?:\\.|[^\\)])*)\)\s*")|(\(((?:\\.|[^\\)])*)\)\s*')|((?:[-+]?\d*\.?\d+\s+){2}(?:Td|TD))|(T\*)|((?:[-+]?\d*\.?\d+\s+){6}Tm)/g;
-
-const extractTextFromPDFTextObject = (value: string) => {
-  const parts: string[] = [];
-
-  for (const match of value.matchAll(PDF_TEXT_OPERATOR_PATTERN)) {
-    if (match[2] !== undefined) {
-      appendPdfText(parts, extractPdfArrayText(match[2]));
-      continue;
-    }
-
-    if (match[4] !== undefined) {
-      appendPdfText(parts, decodePdfLiteral(match[4]));
-      continue;
-    }
-
-    if (match[6] !== undefined) {
-      appendPdfLineBreak(parts);
-      appendPdfText(parts, decodePdfLiteral(match[6]));
-      continue;
-    }
-
-    if (match[8] !== undefined) {
-      appendPdfLineBreak(parts);
-      appendPdfText(parts, decodePdfLiteral(match[8]));
-      continue;
-    }
-
-    if (
-      match[9] !== undefined ||
-      match[10] !== undefined ||
-      match[11] !== undefined
-    ) {
-      appendPdfLineBreak(parts);
-    }
-  }
-
-  return parts.join("");
-};
 
 const buildPDFNativeTextBlockSeed = (
   lines: string[],
@@ -3767,46 +3662,80 @@ const associatePDFNativeFigureBodies = (blocks: PDFNativeTextBlock[]) =>
     };
   });
 
-const extractNativePDFText = (data: Uint8Array): PDFNativeTextExtraction => {
-  const raw = Buffer.from(data).toString("latin1");
-  const count = [...raw.matchAll(/\/Type\s*\/Page\b/g)].length;
-  const pageCount = count > 0 ? count : 1;
-  const pageMarkers = [...raw.matchAll(/\/Type\s*\/Page\b/g)].map(
-    (match) => match.index ?? raw.length,
-  );
-  const blocks = assignPDFBlockNumbers(
-    [...raw.matchAll(/BT([\s\S]*?)ET/g)].flatMap((match) => {
-      const blockText = extractTextFromPDFTextObject(match[1] ?? "");
-      const objectEnd = (match.index ?? 0) + (match[0]?.length ?? 0);
-      const pageIndex = pageMarkers.findIndex((marker) => marker >= objectEnd);
-      const pageNumber = pageIndex >= 0 ? pageIndex + 1 : pageCount;
-
-      return splitPDFNativeTextBlocks(blockText, pageNumber);
-    }),
-  );
-  const visibleBlocks = assignPDFBlockNumbers(
-    associatePDFNativeFigureBodies(
-      mergePDFHeadingContinuationBlocks(
-        suppressNonContentPDFBlocks(suppressRepeatedPDFChrome(blocks)),
+const extractNativePDFText = async (
+  data: Uint8Array,
+): Promise<PDFNativeTextExtraction> => {
+  // Bundle the worker alongside the reader so compiled Bun applications do not
+  // need to locate a separate worker file on disk.
+  await import("pdfjs-dist/legacy/build/pdf.worker.mjs");
+  const { getDocument } = await import("pdfjs-dist/legacy/build/pdf.mjs");
+  const task = getDocument({
+    data: Uint8Array.from(data),
+    disableFontFace: true,
+    useSystemFonts: true,
+    stopAtErrors: true,
+  });
+  try {
+    const pdf = await task.promise;
+    const seeds: PDFNativeTextBlockSeed[] = [];
+    // Read sequentially and release each page; there is no model-context or
+    // application-intake character/page cap on an indexed document.
+    for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber++) {
+      const page = await pdf.getPage(pageNumber);
+      try {
+        const content = await page.getTextContent();
+        let block = "";
+        let previousY: number | undefined;
+        let previousHeight = 0;
+        const flush = () => {
+          seeds.push(...splitPDFNativeTextBlocks(block, pageNumber));
+          block = "";
+        };
+        for (const item of content.items) {
+          if (!("str" in item)) continue;
+          const y = item.transform[5] as number;
+          const height = Math.abs(item.height) || previousHeight || 1;
+          if (previousY !== undefined && Math.abs(y - previousY) > 0.5) {
+            // A larger vertical gap separates paragraphs; ordinary line spacing
+            // stays within a block so tables and figure captions retain context.
+            if (
+              Math.abs(y - previousY) >
+              Math.max(height, previousHeight) * 1.8
+            ) {
+              flush();
+            } else if (block && !block.endsWith("\n")) {
+              block += "\n";
+            }
+          }
+          block += item.str;
+          if (item.hasEOL) block += "\n";
+          previousY = y;
+          previousHeight = height;
+        }
+        flush();
+      } finally {
+        page.cleanup();
+      }
+    }
+    const blocks = assignPDFBlockNumbers(seeds);
+    const visibleBlocks = assignPDFBlockNumbers(
+      associatePDFNativeFigureBodies(
+        mergePDFHeadingContinuationBlocks(
+          suppressNonContentPDFBlocks(suppressRepeatedPDFChrome(blocks)),
+        ),
       ),
-    ),
-  );
-  const fallbackText = [...raw.matchAll(/\(((?:\\.|[^\\)])*)\)\s*Tj/g)]
-    .map((match) => decodePdfLiteral(match[1] ?? ""))
-    .join("\n");
-  const text =
-    visibleBlocks.length > 0
-      ? normalizeWhitespace(
-          visibleBlocks.map((block) => block.text).join("\n\n"),
-        )
-      : normalizeWhitespace(fallbackText);
-
-  return {
-    pageCount,
-    text,
-    textBlockCount: visibleBlocks.length,
-    textBlocks: visibleBlocks,
-  };
+    );
+    return {
+      pageCount: pdf.numPages,
+      text: normalizeWhitespace(
+        visibleBlocks.map((block) => block.text).join("\n\n"),
+      ),
+      textBlockCount: visibleBlocks.length,
+      textBlocks: visibleBlocks,
+    };
+  } finally {
+    await task.destroy();
+  }
 };
 
 const readUInt16LE = (data: Uint8Array, offset: number) =>
@@ -3830,8 +3759,7 @@ const decodeUtf8 = (data: Uint8Array) => Buffer.from(data).toString("utf8");
  * the message as latin1 keeps every byte addressable until the part's own
  * charset is known, at which point decodeWithCharset does the real decode.
  */
-const decodeLatin1 = (data: Uint8Array) =>
-  Buffer.from(data).toString("latin1");
+const decodeLatin1 = (data: Uint8Array) => Buffer.from(data).toString("latin1");
 
 const isZipData = (data: Uint8Array) =>
   data.length >= 4 &&
@@ -5828,8 +5756,10 @@ const decodeRfc2047 = (value: string) =>
         // Whitespace separating two adjacent encoded-words is not content
         // (RFC 2047 s6.2), so it must go before decoding splits them apart.
         .replace(/\?=\s+=\?/g, "?==?")
-        .replace(RFC2047_WORD, (_match, charset: string, enc: string, text: string) =>
-          decodeEncodedWord(charset, enc, text),
+        .replace(
+          RFC2047_WORD,
+          (_match, charset: string, enc: string, text: string) =>
+            decodeEncodedWord(charset, enc, text),
         )
     : value;
 
@@ -5893,7 +5823,10 @@ const parseMimeCharset = (contentType: string | undefined) =>
  * Unknown or unsupported labels fall back to utf8, which is what the code did
  * unconditionally before, so this can only improve on the previous behaviour.
  */
-const decodeWithCharset = (data: Uint8Array, contentType: string | undefined) => {
+const decodeWithCharset = (
+  data: Uint8Array,
+  contentType: string | undefined,
+) => {
   const charset = parseMimeCharset(contentType)?.trim().toLowerCase();
   if (!charset || charset === "utf-8" || charset === "utf8") {
     return decodeUtf8(data);
@@ -8487,8 +8420,8 @@ const expandArchiveEntry = async (
 export const createPDFFileExtractor = (): RAGFileExtractor => ({
   name: "absolute_pdf",
   supports: pdfExtractorSupports,
-  extract: (input) => {
-    const extracted = extractNativePDFText(input.data);
+  extract: async (input) => {
+    const extracted = await extractNativePDFText(input.data);
     if (!extracted.text) {
       throw new Error(
         "AbsoluteJS could not extract readable text from this PDF. Supply a custom extractor for scanned or image-only PDFs.",
@@ -8554,7 +8487,7 @@ export const createRAGPDFOCRExtractor = (
   name: `absolute_pdf_ocr:${options.provider.name}`,
   supports: pdfExtractorSupports,
   extract: async (input) => {
-    const extracted = extractNativePDFText(input.data);
+    const extracted = await extractNativePDFText(input.data);
     const nativeText = extracted.text;
     const minLength = options.minExtractedTextLength ?? 80;
     const shouldUseNativeText =
@@ -10561,7 +10494,9 @@ export const loadRAGDocumentFromURL = async (input: RAGDocumentUrlInput) => {
       extractorRegistry: input.extractorRegistry,
       format:
         input.format ??
-        inferFormatFromContentType(input.contentType ?? response.headers.get("content-type")) ??
+        inferFormatFromContentType(
+          input.contentType ?? response.headers.get("content-type"),
+        ) ??
         inferFormatFromUrl(url),
       metadata: input.metadata,
       name: basename(new URL(url).pathname),
@@ -10642,7 +10577,9 @@ export const loadRAGDocumentsFromURLs = async (
             urlInput.extractorRegistry ?? input.extractorRegistry,
           format:
             urlInput.format ??
-            inferFormatFromContentType(urlInput.contentType ?? response.headers.get("content-type")) ??
+            inferFormatFromContentType(
+              urlInput.contentType ?? response.headers.get("content-type"),
+            ) ??
             inferFormatFromUrl(url),
           metadata: urlInput.metadata,
           name: basename(new URL(url).pathname),

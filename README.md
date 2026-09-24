@@ -58,6 +58,19 @@ it does not remove the need for exact keyword matches within that corpus.
 
 The ingestion pipeline handles files, directories, uploads, URLs, PDFs, office documents, archives, images, and media transcripts. Scheduled connectors can keep collections synchronized from email, GitHub, sitemaps, feeds, directories, and S3-compatible storage.
 
+PDF uploads use the built-in PDF.js reader to decode compressed streams and
+font encodings, with page numbers retained in native text blocks for citations.
+The reader processes pages sequentially and does not impose an application
+intake page count or character limit. Upload/storage budgets and model context
+budgets belong to their respective layers; RAG chunks the extracted text for
+retrieval rather than sending the whole PDF to a model.
+
+Scanned or image-only PDFs need an explicitly configured OCR provider through
+`createRAGPDFOCRExtractor({ provider })`. Empty text layers fail clearly in the
+default extractor. Invalid or password-protected documents propagate reader
+errors; they are not indexed from raw PDF operators. The PDF worker is included
+in the server bundle, including compiled Bun applications.
+
 ## Quality and evaluation
 
 `@absolutejs/rag/quality` evaluates retrieval relevance and answer grounding, compares strategies and rerankers, and records runs against a baseline so retrieval changes can be tested before release.

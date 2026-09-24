@@ -1,3 +1,4 @@
+import { makePDFFixture } from "./pdfFixture";
 import {
   mkdtempSync,
   mkdirSync,
@@ -1513,7 +1514,7 @@ describe("RAG ingestion helpers", () => {
   });
 
   it("extracts text from simple PDF uploads through the built-in extractor", async () => {
-    const pdfBytes = Buffer.from(
+    const pdfBytes = makePDFFixture(
       "%PDF-1.4\n1 0 obj\n<<>>\nstream\nBT\n(AbsoluteJS PDF evidence) Tj\nET\nendstream\nendobj\n/Type /Page\n/Type /Page\n%%EOF",
       "latin1",
     ).toString("base64");
@@ -1532,7 +1533,7 @@ describe("RAG ingestion helpers", () => {
   });
 
   it("suppresses link-dominated sidebar blocks from native PDF extraction", async () => {
-    const pdfBytes = Buffer.from(
+    const pdfBytes = makePDFFixture(
       [
         "%PDF-1.4",
         "1 0 obj",
@@ -1598,7 +1599,7 @@ describe("RAG ingestion helpers", () => {
   });
 
   it("suppresses promo-style sidebar blocks without harming nearby content blocks", async () => {
-    const pdfBytes = Buffer.from(
+    const pdfBytes = makePDFFixture(
       [
         "%PDF-1.4",
         "1 0 obj",
@@ -1659,7 +1660,7 @@ describe("RAG ingestion helpers", () => {
   });
 
   it("preserves figure caption-body association across multiple figures on the same page", async () => {
-    const pdfBytes = Buffer.from(
+    const pdfBytes = makePDFFixture(
       [
         "%PDF-1.4",
         "1 0 obj",
@@ -9911,7 +9912,7 @@ describe("RAG ingestion helpers", () => {
     });
 
     const loaded = await loadRAGDocumentUpload({
-      content: Buffer.from("%PDF-1.4\n%%EOF", "latin1").toString("base64"),
+      content: makePDFFixture("%PDF-1.4\n%%EOF", "latin1").toString("base64"),
       contentType: "application/pdf",
       encoding: "base64",
       extractors: [createRAGPDFOCRExtractor({ provider: ocr })],
@@ -9974,7 +9975,7 @@ describe("RAG ingestion helpers", () => {
       ],
       uploads: [
         {
-          content: Buffer.from(
+          content: makePDFFixture(
             [
               "%PDF-1.4",
               "1 0 obj",
@@ -11725,7 +11726,7 @@ describe("RAG ingestion helpers", () => {
       ],
       uploads: [
         {
-          content: Buffer.from(
+          content: makePDFFixture(
             "%PDF-1.4\n/Type /Page\n%%EOF",
             "latin1",
           ).toString("base64"),
@@ -11816,7 +11817,7 @@ describe("RAG ingestion helpers", () => {
       ],
       uploads: [
         {
-          content: Buffer.from(
+          content: makePDFFixture(
             "%PDF-1.4\n/Type /Page\n/Type /Page\n%%EOF",
             "latin1",
           ).toString("base64"),
@@ -11935,7 +11936,7 @@ describe("RAG ingestion helpers", () => {
       ],
       uploads: [
         {
-          content: Buffer.from(
+          content: makePDFFixture(
             "%PDF-1.4\n/Type /Page\n%%EOF",
             "latin1",
           ).toString("base64"),
@@ -11987,7 +11988,7 @@ describe("RAG ingestion helpers", () => {
       ],
       uploads: [
         {
-          content: Buffer.from(
+          content: makePDFFixture(
             "%PDF-1.4\n/Type /Page\n%%EOF",
             "latin1",
           ).toString("base64"),
@@ -12360,7 +12361,7 @@ describe("RAG ingestion helpers", () => {
 
   it("repeats the header row when chunking oversized pdf tables", async () => {
     const loaded = await loadRAGDocumentUpload({
-      content: Buffer.from(
+      content: makePDFFixture(
         [
           "%PDF-1.4",
           "1 0 obj",

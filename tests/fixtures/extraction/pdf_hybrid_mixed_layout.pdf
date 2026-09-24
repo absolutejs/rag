@@ -1,25 +1,32 @@
-%PDF-1.4
+%PDF-1.7
 1 0 obj
-<<>>
-stream
-BT
-(Release Readiness) Tj
-T*
-(Stable release approval remains blocked.) Tj
-ET
-endstream
+<< /Type /Catalog /Pages 2 0 R >>
 endobj
 2 0 obj
-<<>>
+<< /Type /Pages /Count 1 /Kids [4 0 R] >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+4 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 2000 800] /Resources << /Font << /F1 3 0 R >> >> /Contents 5 0 R >>
+endobj
+5 0 obj
+<< /Length 144 /Filter /FlateDecode >>
 stream
-BT
-(Lane | Status) Tj
-T*
-(Stable | Blocked) Tj
-T*
-(Canary | Ready) Tj
-ET
+xœ}½‚0…÷>ÅÑA[Mt¯Á‰	î\äš ¥¶šğğF$.&®çï;–°=ºÂì@44öÇƒu*+Å	GA)Ü´^b\nŠÖÈªÄµ„%ÀÃú';é¸õµë/wi6s!'eÿóŞJ§²‚½`B•8=~XìgôkœØs1ÍÿÆõñ=*
 endstream
 endobj
-/Type /Page
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000212 00000 n 
+0000000339 00000 n 
+trailer
+<< /Size 6 /Root 1 0 R >>
+startxref
+555
 %%EOF

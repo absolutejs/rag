@@ -1,38 +1,44 @@
-%PDF-1.4
+%PDF-1.7
 1 0 obj
-<<>>
-stream
-BT
-(Approval Matrix) Tj
-ET
-endstream
+<< /Type /Catalog /Pages 2 0 R >>
 endobj
 2 0 obj
-<<>>
-stream
-BT
-(Lane | Status) Tj
-T*
-(Stable | Blocked pending remediation review) Tj
-T*
-(Canary | Ready after approval verification) Tj
-T*
-(Rollback | Review after runbook confirmation) Tj
-T*
-(Hotfix | Ready once release signoff lands) Tj
-ET
-endstream
+<< /Type /Pages /Count 2 /Kids [4 0 R 6 0 R] >>
 endobj
-/Type /Page
 3 0 obj
-<<>>
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+4 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 2000 800] /Resources << /Font << /F1 3 0 R >> >> /Contents 5 0 R >>
+endobj
+5 0 obj
+<< /Length 208 /Filter /FlateDecode >>
 stream
-BT
-(Escalation Notes) Tj
-T*
-(Follow-up ownership remains local.) Tj
-ET
+xœ}ÏÁNÃ0Ğ{¾b…vAp&¨ˆC¹´şM¼®–8ëÈqC+õãQDâÂu¥73[;Ü½ZX`×p[XXÜ<=¸¾Z=CNE¼SÉrºû¨6®ªÿÇë‡oIì•ã8Sw‹Õ¾P¯÷:¦¶cÕ‹¹g/T$)2OÂŸ‹y!¥|Æ;&…Âô»mâ,AÚY.d—bl¨íftûQù¨MJÚ¤Arÿ½¥ä´ô$m™#ÓÈå )DRÿıÍÆ}è~d‰
 endstream
 endobj
-/Type /Page
+6 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 2000 800] /Resources << /Font << /F1 3 0 R >> >> /Contents 7 0 R >>
+endobj
+7 0 obj
+<< /Length 104 /Filter /FlateDecode >>
+stream
+xœÊ1
+Â@@Ñ>§øe"¨³´’J¬æKXqe²²‘\_ğÕï®œÇ@ôEèÑA\„ÛUĞ¹i‡:E‹[öÂÓ·T;ôÓèvt3ßßßKZë;/¬i¹TÌ§h§ôÚ)
+endstream
+endobj
+xref
+0 8
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000121 00000 n 
+0000000218 00000 n 
+0000000345 00000 n 
+0000000625 00000 n 
+0000000752 00000 n 
+trailer
+<< /Size 8 /Root 1 0 R >>
+startxref
+928
 %%EOF

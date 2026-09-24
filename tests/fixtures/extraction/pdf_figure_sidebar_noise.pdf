@@ -1,55 +1,33 @@
-%PDF-1.4
+%PDF-1.7
 1 0 obj
-<<>>
-stream
-BT
-(Related links) Tj
-T*
-(/docs/release-gates) Tj
-T*
-(/docs/approval-lanes) Tj
-ET
-endstream
+<< /Type /Catalog /Pages 2 0 R >>
 endobj
 2 0 obj
-<<>>
-stream
-BT
-(Figure 3) Tj
-T*
-(Canary approval topology by lane.) Tj
-T*
-(Canary remediation stays local until the stable gate clears.) Tj
-ET
-endstream
+<< /Type /Pages /Count 1 /Kids [4 0 R] >>
 endobj
 3 0 obj
-<<>>
-stream
-BT
-(Rollback Controls) Tj
-ET
-endstream
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
 endobj
 4 0 obj
-<<>>
-stream
-BT
-(Stable rollback requires incident acknowledgement before promotion.) Tj
-ET
-endstream
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 2000 800] /Resources << /Font << /F1 3 0 R >> >> /Contents 5 0 R >>
 endobj
 5 0 obj
-<<>>
+<< /Length 288 /Filter /FlateDecode >>
 stream
-BT
-(Start free trial) Tj
-T*
-(Book demo with enterprise support) Tj
-T*
-(Learn more at /pricing) Tj
-ET
+xúçêΩR√@Ñ˚<≈ñ¿LbõCù©RÅ_@∂Á∞|2∫3ø=cÚS§`RJZÌ~“∫@≤Õê•(ˆ»ûQÏê!EäÀØyä¢õ=|∞P‰‚|Q|Õä'<$µV!1¶¿ÛÜ"ﬂŒ®ÔMHÊB˛<|/fÎˇ3”SÊ÷5É1ñWÀy≤ODÌU¥Qéò¸∑J„ékG—©Gà4àV$|tÇx‡©[
+cBG%L˜AÊ´ÛcT§§™≈F}4ï;oÃ”’ﬂ˙Á)ﬂ..∆ﬂÉ3pær5˚™ZØG·∫·n™Kﬁ´1z”Nß√Ó‰}…ﬂ.Å±7fDs$◊ó≠U[‘‹)é.¿>≤ıÊ#}ØØ ìytE$Ωπ ˘ÊåÒ˜o≠Í
 endstream
 endobj
-/Type /Page
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000212 00000 n 
+0000000339 00000 n 
+trailer
+<< /Size 6 /Root 1 0 R >>
+startxref
+699
 %%EOF
