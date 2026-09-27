@@ -7,6 +7,10 @@
   },
   "license": "BSL-1.1",
   "description": "Standalone RAG ingestion, sync, retrieval, evaluation, clients, and framework adapters extracted from AbsoluteJS",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/absolutejs/rag.git"
+  },
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/src/index.d.ts",
