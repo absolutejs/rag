@@ -2670,8 +2670,8 @@ const slugify = (value: string) =>
     .slice(0, RAG_DOCUMENT_SLUG_MAX_LENGTH) || "document";
 
 /** A display slug is not an identity: truncation, punctuation and case are lossy. */
-const documentIdentity = (value: string) =>
-  `${slugify(value)}-${createHash("sha256").update(value).digest("hex")}`;
+const documentIdentity = (value: string, page?: number, region?: number) =>
+  `${slugify(value)}-${createHash("sha256").update(page === undefined ? value : JSON.stringify([value, page, region ?? null])).digest("hex")}`;
 
 const inferFormatFromPath = (path: string) => {
   const extension = extname(path).toLowerCase();
@@ -10081,7 +10081,11 @@ export const prepareRAGDocument = (
   );
   const documentId =
     document.id?.trim() ||
-    documentIdentity(document.source || document.title || normalizedText);
+    documentIdentity(
+      document.source || document.title || normalizedText,
+      typeof document.metadata?.pageNumber === "number" ? document.metadata.pageNumber : undefined,
+      typeof document.metadata?.regionNumber === "number" ? document.metadata.regionNumber : undefined,
+    );
   const title = document.title?.trim() || document.id?.trim() ||
     slugify(document.source || normalizedText);
   let sourceExtension = "txt";
