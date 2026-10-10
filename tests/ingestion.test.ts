@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { makePDFFixture } from "./pdfFixture";
 import {
   mkdtempSync,
@@ -382,13 +383,13 @@ describe("RAG ingestion helpers", () => {
       text: "# Retrieval\n\nUse **metadata** filters to narrow results.\n\n- Keep ids stable\n- Reuse source labels",
     });
 
-    expect(prepared.documentId).toBe("guides-retrieval-md");
+    expect(prepared.documentId).toBe(`guides-retrieval-md-${createHash("sha256").update("guides/retrieval.md").digest("hex")}`);
     expect(prepared.format).toBe("markdown");
     expect(prepared.normalizedText).toContain("Retrieval");
     expect(prepared.normalizedText).toContain("Use metadata filters");
-    expect(prepared.chunks[0]?.chunkId).toBe("guides-retrieval-md:001");
+    expect(prepared.chunks[0]?.chunkId).toBe(`guides-retrieval-md-${createHash("sha256").update("guides/retrieval.md").digest("hex")}:001`);
     expect(prepared.chunks[0]?.metadata).toMatchObject({
-      documentId: "guides-retrieval-md",
+      documentId: `guides-retrieval-md-${createHash("sha256").update("guides/retrieval.md").digest("hex")}`,
       format: "markdown",
       source: "guides/retrieval.md",
       title: "guides-retrieval-md",
@@ -708,11 +709,11 @@ describe("RAG ingestion helpers", () => {
       sectionPath: ["Intro", "Details"],
       sectionTitle: "Details",
       sourceAwareChunkReason: "section_boundary",
-      previousChunkId: "guides-structure-md:001",
-      sectionChunkId: "guides-structure-md:section:intro-details",
+      previousChunkId: "guides-structure-md-8cd3ed0ae03212b1c91742156119a0a6915db2ed278b75e5ddebbe27f222dc0d:001",
+      sectionChunkId: "guides-structure-md-8cd3ed0ae03212b1c91742156119a0a6915db2ed278b75e5ddebbe27f222dc0d:section:intro-details",
     });
     expect(prepared.chunks[1]?.metadata?.nextChunkId).toBe(
-      "guides-structure-md:003",
+      "guides-structure-md-8cd3ed0ae03212b1c91742156119a0a6915db2ed278b75e5ddebbe27f222dc0d:003",
     );
   });
 
@@ -747,7 +748,7 @@ describe("RAG ingestion helpers", () => {
       sectionPath: ["Release Ops Overview", "Stable blockers"],
       sectionTitle: "Stable blockers",
       sectionChunkId:
-        "docs-release-html:section:release-ops-overview-stable-blockers",
+        "docs-release-html-def5244cb918492259c0acbc4be0c7a26597f8b025bf36af5556c2953402d7f8:section:release-ops-overview-stable-blockers",
     });
     expect(
       prepared.chunks.some((chunk) =>
@@ -796,7 +797,7 @@ describe("RAG ingestion helpers", () => {
     const stableChunks = prepared.chunks.filter(
       (chunk) =>
         chunk.metadata?.sectionChunkId ===
-        "guides-stable-section-md:section:release-ops-stable-lane",
+        "guides-stable-section-md-3de029e79bc2835b020e9e6b1ed98c3ae2bf32b947fcf6f857f15eaf2d3bf262:section:release-ops-stable-lane",
     );
 
     expect(stableChunks).toHaveLength(3);
@@ -853,7 +854,7 @@ describe("RAG ingestion helpers", () => {
     const clientSetupChunks = prepared.chunks.filter(
       (chunk) =>
         chunk.metadata?.sectionChunkId ===
-        "guides-code-sample-md:section:sdk-guide-client-setup",
+        "guides-code-sample-md-829070783eddd93b1388ab87b14873c0ba9fc85d98e198e03c14c6ece8acfa48:section:sdk-guide-client-setup",
     );
 
     expect(clientSetupChunks.length).toBeGreaterThanOrEqual(2);

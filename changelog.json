@@ -6,6 +6,20 @@
 			"changes": [
 				{
 					"kind": "fixed",
+					"summary": "Prevent derived document and chunk IDs from colliding across long sources, revisions, pages, Unicode and media assets; rebuild existing derived-ID indexes to remove overwritten vectors",
+					"symbols": [
+						"prepareRAGDocument",
+						"buildRAGUpsertInputFromUploads"
+					]
+				}
+			],
+			"date": "2026-10-10",
+			"version": "0.22.3"
+		},
+		{
+			"changes": [
+				{
+					"kind": "fixed",
 					"summary": "Replace backtracking HTML app-shell detection with DOM inspection and allow isolated reader clients to fail without in-process parsing",
 					"symbols": [
 						"readRAGWebpage",

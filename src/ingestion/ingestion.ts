@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { readdir, readFile } from "node:fs/promises";
 import { basename, extname, join, relative, resolve } from "node:path";
 import { gunzipSync, inflateRawSync } from "node:zlib";
@@ -44,7 +45,6 @@ import type {
 import {
   EXCLUDE_LAST_OFFSET,
   RAG_CHUNK_ID_PAD_LENGTH,
-  RAG_DOCUMENT_ID_PREVIEW_LENGTH,
   RAG_DOCUMENT_SLUG_MAX_LENGTH,
   RAG_MIN_CHUNK_LENGTH_FLOOR,
 } from "../internal/constants";
@@ -2668,6 +2668,10 @@ const slugify = (value: string) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .slice(0, RAG_DOCUMENT_SLUG_MAX_LENGTH) || "document";
+
+/** A display slug is not an identity: truncation, punctuation and case are lossy. */
+const documentIdentity = (value: string) =>
+  `${slugify(value)}-${createHash("sha256").update(value).digest("hex")}`;
 
 const inferFormatFromPath = (path: string) => {
   const extension = extname(path).toLowerCase();
@@ -8148,7 +8152,7 @@ export const createRAGMediaFileExtractor = (
       input.path ??
       input.name ??
       `${slugify(input.title ?? DEFAULT_BINARY_NAME)}.media.txt`;
-    const baseDocumentId = slugify(
+    const baseDocumentId = documentIdentity(
       source || input.title || input.name || input.path || DEFAULT_BINARY_NAME,
     );
     const segmentCount = rawSegments.length;
@@ -10077,12 +10081,9 @@ export const prepareRAGDocument = (
   );
   const documentId =
     document.id?.trim() ||
-    slugify(
-      document.source ||
-        document.title ||
-        normalizedText.slice(0, RAG_DOCUMENT_ID_PREVIEW_LENGTH),
-    );
-  const title = document.title?.trim() || documentId;
+    documentIdentity(document.source || document.title || normalizedText);
+  const title = document.title?.trim() || document.id?.trim() ||
+    slugify(document.source || normalizedText);
   let sourceExtension = "txt";
   if (format === "markdown") {
     sourceExtension = "md";
