@@ -6,6 +6,16 @@
 			"changes": [
 				{
 					"kind": "fixed",
+					"summary": "Republish the complete document identity fix as 0.22.5 while npm validation of 0.22.4 remains pending; runtime behavior is unchanged"
+				}
+			],
+			"date": "2026-10-11",
+			"version": "0.22.5"
+		},
+		{
+			"changes": [
+				{
+					"kind": "fixed",
 					"summary": "Include PDF page and OCR region coordinates in derived document identities so paged extraction cannot overwrite earlier pages sharing the same source",
 					"symbols": [
 						"prepareRAGDocument",
