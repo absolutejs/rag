@@ -6,6 +6,44 @@
 			"changes": [
 				{
 					"kind": "fixed",
+					"summary": "Republish the complete document identity fix as 0.22.5 while npm validation of 0.22.4 remains pending; runtime behavior is unchanged"
+				}
+			],
+			"date": "2026-10-11",
+			"version": "0.22.5"
+		},
+		{
+			"changes": [
+				{
+					"kind": "fixed",
+					"summary": "Include PDF page and OCR region coordinates in derived document identities so paged extraction cannot overwrite earlier pages sharing the same source",
+					"symbols": [
+						"prepareRAGDocument",
+						"createRAGPagedPDFExtractor"
+					]
+				}
+			],
+			"date": "2026-10-10",
+			"version": "0.22.4"
+		},
+		{
+			"changes": [
+				{
+					"kind": "fixed",
+					"summary": "Prevent derived document and chunk IDs from colliding across long sources, revisions, pages, Unicode and media assets; rebuild existing derived-ID indexes to remove overwritten vectors",
+					"symbols": [
+						"prepareRAGDocument",
+						"buildRAGUpsertInputFromUploads"
+					]
+				}
+			],
+			"date": "2026-10-10",
+			"version": "0.22.3"
+		},
+		{
+			"changes": [
+				{
+					"kind": "fixed",
 					"summary": "Replace backtracking HTML app-shell detection with DOM inspection and allow isolated reader clients to fail without in-process parsing",
 					"symbols": [
 						"readRAGWebpage",
