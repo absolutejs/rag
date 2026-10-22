@@ -304,14 +304,14 @@ describe("RAG sync helpers", () => {
         listDocuments() {
           return [
             {
-              id: "guide-md",
+              id: "guide-md-dc0dbe13416a77d17f112b7668fb77ba60dc51e684d2cc20e8850df204e53846",
               metadata: {
                 syncFingerprint: "old-hash",
                 syncKey: "guide.md",
                 syncSourceId: "docs-folder",
               },
               source: "guide.md",
-              title: "guide-md",
+              title: "guide-md-dc0dbe13416a77d17f112b7668fb77ba60dc51e684d2cc20e8850df204e53846",
             },
             {
               id: "stale-md",
@@ -341,7 +341,7 @@ describe("RAG sync helpers", () => {
           id: "docs-folder",
           reconciliation: {
             refreshMode: "targeted",
-            refreshedDocumentIds: ["guide-md"],
+            refreshedDocumentIds: ["guide-md-dc0dbe13416a77d17f112b7668fb77ba60dc51e684d2cc20e8850df204e53846"],
             refreshedSyncKeys: ["guide.md"],
             staleDocumentIds: ["stale-md"],
             staleSyncKeys: ["stale.md"],
@@ -389,7 +389,7 @@ describe("RAG sync helpers", () => {
           id: "docs-folder",
           reconciliation: {
             refreshMode: "targeted",
-            refreshedDocumentIds: ["guide-md"],
+            refreshedDocumentIds: ["guide-md-dc0dbe13416a77d17f112b7668fb77ba60dc51e684d2cc20e8850df204e53846"],
             refreshedSyncKeys: ["guide.md"],
             staleDocumentIds: [],
             staleSyncKeys: [],
@@ -522,7 +522,7 @@ describe("RAG sync helpers", () => {
         listDocuments() {
           return [
             {
-              id: "guide-md",
+              id: "guide-md-dc0dbe13416a77d17f112b7668fb77ba60dc51e684d2cc20e8850df204e53846",
               metadata: {
                 syncFingerprint: previousFingerprint,
                 syncKey: "guide.md",
@@ -567,7 +567,7 @@ describe("RAG sync helpers", () => {
       expect(hits[0]?.metadata?.syncLineageId).toBe(previousLineageId);
       expect(hits[0]?.metadata?.syncVersionNumber).toBe(3);
       expect(hits[0]?.metadata?.syncPreviousVersionId).toBe(previousVersionId);
-      expect(hits[0]?.metadata?.syncPreviousDocumentId).toBe("guide-md");
+      expect(hits[0]?.metadata?.syncPreviousDocumentId).toBe("guide-md-dc0dbe13416a77d17f112b7668fb77ba60dc51e684d2cc20e8850df204e53846");
       expect(hits[0]?.metadata?.syncVersionId).not.toBe(previousVersionId);
       expect(hits[0]?.metadata?.syncIsLatestVersion).toBe(true);
     } finally {
