@@ -1,3 +1,4 @@
+import { selectResearchExcerpts } from "./sourceExcerpts";
 import { createResearchBudgetAdmission } from "./budget";
 import { generateObjectAI } from "@absolutejs/ai";
 import {
@@ -211,8 +212,8 @@ export const createResearch = (config: ResearchConfig): ResearchRuntime => {
           (remaining * weight(source)) / remainingWeight,
         );
         remainingWeight -= weight(source);
-        source.excerpts = [text.slice(0, allowance)];
-        remaining -= source.excerpts[0]!.length;
+        source.excerpts = selectResearchExcerpts(text, allowance, [input.query, ...(input.queries ?? [])].join(" "));
+        remaining -= source.excerpts.reduce((sum, excerpt) => sum + excerpt.length, 0);
       }
       evidenceChars = limits.evidenceChars - remaining;
     };
@@ -317,7 +318,7 @@ export const createResearch = (config: ResearchConfig): ResearchRuntime => {
         if (prior) {
           // Replace snippets with page context; do not duplicate them or starve
           // later primary sources when the initial search filled the budget.
-          sourceText.set(prior.url, page.text.slice(0, limits.evidenceChars));
+          sourceText.set(prior.url, page.fullText ?? page.text);
           prior.contentFetchedAt = page.fetchedAt;
           prior.metadata = { ...prior.metadata, readFinalUrl: page.finalUrl };
           if (page.finalUrl !== prior.url)
@@ -484,6 +485,7 @@ export const createResearch = (config: ResearchConfig): ResearchRuntime => {
       result.status = result.sources.length ? "partial" : "unavailable";
       return result;
     } finally {
+      result.documents = result.sources.filter(source => source.contentFetchedAt).map(source => ({ sourceId: source.id, url: source.url, text: sourceText.get(source.url) ?? "", originalChars: (sourceText.get(source.url) ?? "").length }));
       result.limitations = [...new Set(result.limitations)];
       input.onProgress?.({
         phase: "complete",

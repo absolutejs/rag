@@ -3,6 +3,24 @@
 	"name": "@absolutejs/rag",
 	"releases": [
 		{
+			"version": "0.22.9",
+			"date": "2026-10-28",
+			"changes": [
+				{
+					"kind": "fixed",
+					"summary": "Retain complete extracted source text separately from bounded previews; select exact model passages across full documents and preserve originals for continued research.",
+					"symbols": [
+						"WebReadResult",
+						"ResearchResult",
+						"readRAGWebpage",
+						"readRAGWebsite",
+						"createWebpageReaderClient",
+						"createResearch"
+					]
+				}
+			]
+		},
+		{
 			"changes": [
 				{
 					"kind": "fixed",

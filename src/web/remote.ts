@@ -159,7 +159,7 @@ export const createWebpageReaderClient = (
       throw new Error(error?.message ?? "Isolated page read failed");
     }
     const documents = result.documents as
-      | Array<{ sourceId: string; text: string; truncated?: boolean }>
+      | Array<{ sourceId: string; text: string; fullText?: string; truncated?: boolean; sourceTruncated?: boolean }>
       | undefined;
     const sources = result.sources as
       | Array<{ id: string; url: string }>
@@ -189,12 +189,15 @@ export const createWebpageReaderClient = (
     if (![evidence.links, evidence.images, evidence.media].every(Array.isArray))
       throw new Error("Invalid page evidence");
     const limit = Math.max(1000, Math.min(input.maxChars ?? 24000, 100000));
+    const fullText = typeof document.fullText === "string" ? document.fullText : document.text;
     return {
       status: result.status,
       url: input.url,
       finalUrl: result.finalUrl,
       title: typeof result.title === "string" ? result.title : null,
-      text: document.text.slice(0, limit),
+      text: fullText.slice(0, limit),
+      fullText,
+      originalChars: fullText.length,
       method: result.method as WebReadResult["method"],
       truncated:
         result.truncated === true ||

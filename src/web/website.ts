@@ -55,7 +55,7 @@ export const readRAGWebsite = async (
     const page = await readRAGWebpage({
       ...options,
       url: next.url,
-      maxChars: Math.min(maxChars, 12000),
+      maxChars,
       signal: AbortSignal.any([signal, AbortSignal.timeout(30000)]),
     });
     pages.push(page);
@@ -141,14 +141,14 @@ export const readRAGWebsite = async (
     const page = pages.find(
       (item) => item.finalUrl === source.url && item.text,
     );
-    if (!page || remainingDocumentChars <= 0) return [];
+    if (!page) return [];
     const imageLabels = page.evidence.images
       .filter((image) => image.label)
       .map(
         (image) => `${image.context ? `${image.context}: ` : ""}${image.label}`,
       );
     const fullText = [
-      page.text,
+      page.fullText ?? page.text,
       ...(imageLabels.length
         ? [
             "Image labels supplied by the website (not independently verified customer relationships):",
@@ -156,13 +156,16 @@ export const readRAGWebsite = async (
           ]
         : []),
     ].join("\n");
-    const text = fullText.slice(0, remainingDocumentChars);
+    const text = fullText.slice(0, Math.max(0, remainingDocumentChars));
     remainingDocumentChars -= text.length;
     return [
       {
         sourceId: source.id,
         text,
-        truncated: page.truncated || text.length < fullText.length,
+        fullText,
+        originalChars: fullText.length,
+        sourceTruncated: page.status !== "ok" || (page.fullText === undefined && page.truncated),
+        truncated: (page.fullText === undefined && page.truncated) || text.length < fullText.length,
       },
     ];
   });
@@ -186,6 +189,7 @@ export const readRAGWebsite = async (
     citationRequirements:
       "The final answer must contain clickable Markdown source links, not just source names or bare domain mentions. Reuse sources[].citation beside the factual paragraph, list or table row it supports. Cite the actual supporting page, not the homepage for everything. Every factual section needs its supporting links. Do not invent sources or use unread links as evidence. Before responding, check that company facts, service descriptions, customer examples and numerical claims have supporting links; retrieve or omit unsupported claims. A list of large customers does not prove smaller customers are excluded. Preserve the brands actually named in the evidence; do not append parent companies, ownership relationships, current-account status, market rankings or rebrand history from memory. Label reasoned inferences as such. A verified brand change needs at most one short, cited sentence unless the user asks for its history.",
     ...first,
+    fullText: undefined,
     status: (readable.length
       ? incomplete
         ? "partial"
@@ -194,7 +198,7 @@ export const readRAGWebsite = async (
     text: evidenceText.slice(0, maxChars),
     truncated:
       evidenceText.length > maxChars || pages.some((page) => page.truncated),
-    pages: pages.map(({ text: _text, ...page }) => page),
+    pages: pages.map(({ text: _text, fullText: _fullText, ...page }) => page),
     captionEvidence,
     coverage: {
       pagesRead: pages.length,
@@ -210,11 +214,11 @@ export const readRAGWebsite = async (
           ? "page_limit"
           : "links_exhausted",
       incompleteReads: pages
-        .filter((page) => page.status !== "ok" || page.truncated)
+        .filter((page) => page.status !== "ok" || (page.fullText === undefined && page.truncated))
         .map((page) => ({
           url: page.finalUrl,
           status: page.status,
-          truncated: page.truncated,
+          truncated: page.fullText === undefined && page.truncated,
           error: page.error,
         })),
     },

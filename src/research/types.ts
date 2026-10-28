@@ -36,6 +36,8 @@ export type ResearchField = {
   };
 };
 export type ResearchResult<T = unknown> = {
+  /** Complete fetched text retained separately from model-facing excerpts. */
+  documents?: Array<{ sourceId: string; url: string; text: string; originalChars: number }>;
   id: string;
   status: "reviewed" | "partial" | "empty" | "unavailable";
   /** Only populated when every primitive field passed evidence review. */

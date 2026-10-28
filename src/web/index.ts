@@ -37,6 +37,9 @@ export type WebReadResult = {
   finalUrl: string;
   title: string | null;
   text: string;
+  /** Complete extracted source, independent of the model-facing preview budget. */
+  fullText?: string;
+  originalChars?: number;
   method: "http" | "browser";
   truncated: boolean;
   attempts: WebReadAttempt[];
@@ -122,6 +125,8 @@ export const readRAGWebpage = async (
     finalUrl,
     title,
     text: text.slice(0, maxChars),
+    fullText: text,
+    originalChars: text.length,
     method,
     truncated: text.length > maxChars,
     attempts,
