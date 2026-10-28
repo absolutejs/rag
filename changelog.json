@@ -3,6 +3,19 @@
 	"name": "@absolutejs/rag",
 	"releases": [
 		{
+			"version": "0.22.10",
+			"date": "2026-10-28",
+			"changes": [
+				{
+					"kind": "fixed",
+					"summary": "Preserve complete newly discovered source documents as well as initially searched pages; model excerpt budgets never cap retained source storage.",
+					"symbols": [
+						"createResearch"
+					]
+				}
+			]
+		},
+		{
 			"version": "0.22.9",
 			"date": "2026-10-28",
 			"changes": [

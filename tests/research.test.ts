@@ -666,7 +666,7 @@ test("reads discovered product links without promoting unread links to evidence 
     ], calls),
     reader: async options => {
       reads.push(options.url);
-      return { status: "ok", url: options.url, finalUrl: options.url, text: source.excerpts[0]!, title: "Example", method: "http", truncated: false, fetchedAt: "2026-10-28T00:00:00Z", attempts: [], redirects: [], limitations: [], evidence: { links: options.url === source.url ? [{ url: product, label: "Product details" }, { url: unread, label: "Unread" }, { url: "http://localhost/private", label: "Unsafe" }, { url: "javascript:alert(1)", label: "Unsafe" }] : [], images: [], media: [], canonicalUrl: null } };
+      return { status: "ok", url: options.url, finalUrl: options.url, text: source.excerpts[0]!, fullText: options.url === product ? "Context ".repeat(10000) + "Membership price: USD 975 monthly." : source.excerpts[0]!, title: "Example", method: "http", truncated: false, fetchedAt: "2026-10-28T00:00:00Z", attempts: [], redirects: [], limitations: [], evidence: { links: options.url === source.url ? [{ url: product, label: "Product details" }, { url: unread, label: "Unread" }, { url: "http://localhost/private", label: "Unsafe" }, { url: "javascript:alert(1)", label: "Unsafe" }] : [], images: [], media: [], canonicalUrl: null } };
     },
   });
   const result = await runtime.extract({ schema: Type.Object({ name: Type.String() }) }, { query: "pricing", queries: ["pricing"] });
@@ -675,4 +675,5 @@ test("reads discovered product links without promoting unread links to evidence 
   expect(JSON.stringify(calls[1])).toContain("Product details");
   expect(JSON.stringify(calls[1])).not.toContain("localhost/private");
   expect(result.sources.some(item => item.url === unread)).toBe(false);
+  expect(result.documents?.find(item => item.url === product)?.text).toContain("Membership price: USD 975 monthly.");
 });

@@ -243,7 +243,7 @@ export const createResearch = (config: ResearchConfig): ResearchRuntime => {
       } catch {
         return;
       }
-      const text = source.excerpts.join("\n").slice(0, limits.evidenceChars);
+      const text = source.excerpts.join("\n");
       if (!text.trim()) return;
       sourceText.set(source.url, text);
       result.sources.push({
@@ -331,7 +331,7 @@ export const createResearch = (config: ResearchConfig): ResearchRuntime => {
             id: "",
             url: page.finalUrl,
             title: page.title ?? url,
-            excerpts: [page.text],
+            excerpts: [page.fullText ?? page.text],
             retrievedAt: page.fetchedAt,
             contentFetchedAt: page.fetchedAt,
           });
