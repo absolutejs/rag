@@ -58,6 +58,9 @@ export const researchManifest = defineManifest<
       },
       input: Type.Object({
         query: Type.String({ minLength: 1, maxLength: 8000 }),
+        queryMode: Type.Optional(
+          Type.Union([Type.Literal("search"), Type.Literal("task")]),
+        ),
         task: Type.Optional(Type.String({ maxLength: 128 })),
       }),
       handler: async (input, runtime) =>

@@ -619,3 +619,35 @@ test("invalid planning preserves retrieved evidence without retrying or bypassin
     { kind: "review", status: "fulfilled" },
   ]);
 });
+
+test("long briefs plan a concise initial query within the existing model-call budget", async () => {
+  const searches: string[] = [];
+  const models: unknown[] = [];
+  const runtime = createResearch({
+    search: search(searches),
+    provider: model(
+      [
+        {
+          queries: ["industrial water reuse distributors UK"],
+          urls: [],
+          done: false,
+        },
+        { name: "Example" },
+        modelReview,
+      ],
+      models,
+    ),
+    model: "fixture",
+    limits: { rounds: 1, searches: 1 },
+  });
+  const result = await runtime.extract(
+    { schema: Type.Object({ name: Type.String() }) },
+    {
+      query: `INTERNAL_CONTEXT ${JSON.stringify({ business: "Industrial wastewater", requirements: "Evidence-backed partners. ".repeat(50) })}`,
+      queryMode: "task",
+    },
+  );
+  expect(searches).toEqual(["industrial water reuse distributors UK"]);
+  expect(result.status).toBe("reviewed");
+  expect(models).toHaveLength(3);
+});

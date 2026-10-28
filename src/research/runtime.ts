@@ -183,7 +183,9 @@ export const createResearch = (config: ResearchConfig): ResearchRuntime => {
       text.normalize("NFKC").toLowerCase().replace(/\s+/gu, " ").trim();
     const requiredPhrases =
       input.requiredPhrases ??
-      [...input.query.matchAll(/"([^"\n]+)"/gu)].map((match) => match[1]!);
+      (input.queryMode === "task"
+        ? []
+        : [...input.query.matchAll(/"([^"\n]+)"/gu)].map((match) => match[1]!));
     const urls = new Set<string>();
     const queries = new Set<string>();
     let evidenceChars = 0;
@@ -322,8 +324,35 @@ export const createResearch = (config: ResearchConfig): ResearchRuntime => {
       }
     };
     try {
-      for (const query of input.queries ?? [input.query]) await doSearch(query);
-      for (let round = 0; round < limits.rounds; round++) {
+      // A long task is research context, not a search-engine query. Spending the
+      // only search on its first arbitrary chunk can strand the entire workflow.
+      // Reuse one planning round so this does not silently add model calls.
+      const needsInitialPlan =
+        !input.queries &&
+        (input.queryMode === "task" ||
+          boundedQueries(input.query).length > 1) &&
+        limits.rounds > 0;
+      if (needsInitialPlan) {
+        const initial = await generate(
+          "plan",
+          PlanSchema,
+          "Turn the research task into concise search-engine queries. Preserve the requested company identity and target criteria, but never copy instructions, JSON, internal markers, or the whole brief into a query. Prioritize the most useful query first. Return at most remainingSearches queries. Return no URLs: source URLs must be discovered rather than invented.",
+          {
+            query: input.query,
+            instructions: task.instructions,
+            remainingSearches: limits.searches,
+          },
+        );
+        for (const query of initial.queries) await doSearch(query);
+      } else {
+        for (const query of input.queries ?? [input.query])
+          await doSearch(query);
+      }
+      for (
+        let round = needsInitialPlan ? 1 : 0;
+        round < limits.rounds;
+        round++
+      ) {
         if (!result.sources.length && queries.size >= limits.searches) break;
         let plan: ResearchStatic<typeof PlanSchema>;
         try {

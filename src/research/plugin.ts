@@ -38,6 +38,7 @@ export type ResearchPluginOptions = {
 const bodySchema = t.Object(
   {
     query: t.String({ minLength: 1, maxLength: 8000 }),
+    queryMode: t.Optional(t.Union([t.Literal("search"), t.Literal("task")])),
     task: t.Optional(t.String({ maxLength: 128 })),
     freshness: t.Optional(t.String({ maxLength: 64 })),
   },

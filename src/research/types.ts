@@ -57,6 +57,8 @@ export type ResearchTask<S extends ResearchSchema = ResearchSchema> = {
   instructions?: string;
 };
 export type ResearchInput = {
+  /** Tasks may contain instructions/JSON; quotes are not literal search filters. */
+  queryMode?: "search" | "task";
   queries?: string[];
   requiredPhrases?: string[];
   query: string;
