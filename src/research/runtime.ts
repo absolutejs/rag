@@ -13,6 +13,7 @@ import {
   type ResearchStatic,
 } from "./schema";
 import { readRAGWebpage } from "../web";
+import { validatePublicWebUrl } from "../web/transport";
 import {
   bindResearchReview,
   researchLeaves,
@@ -188,6 +189,7 @@ export const createResearch = (config: ResearchConfig): ResearchRuntime => {
         : [...input.query.matchAll(/"([^"\n]+)"/gu)].map((match) => match[1]!));
     const urls = new Set<string>();
     const queries = new Set<string>();
+    const discoveredLinks = new Map<string, { url: string; label: string; discoveredOn: string }>();
     let evidenceChars = 0;
     const sourceText = new Map<string, string>();
     const rebalanceEvidence = () => {
@@ -280,8 +282,9 @@ export const createResearch = (config: ResearchConfig): ResearchRuntime => {
     };
     const doRead = async (url: string) => {
       if (urls.has(url) || urls.size >= limits.reads) return;
-      // Planning may choose only URLs actually returned by retrieval.
+      // Planning may choose retrieved URLs or validated links from a fetched page.
       if (
+        !discoveredLinks.has(url) &&
         !result.searches.some((search) =>
           search.sources.some((source) => source.url === url),
         )
@@ -300,6 +303,16 @@ export const createResearch = (config: ResearchConfig): ResearchRuntime => {
       if (page.status !== "ok")
         result.limitations.push(`Page read ${page.status}: ${url}`);
       if (page.text && page.status !== "error") {
+        for (const link of page.evidence.links) {
+          if (discoveredLinks.size >= 64) break;
+          try {
+            const target = validatePublicWebUrl(new URL(link.url, page.finalUrl).href);
+            target.hash = "";
+            if (!discoveredLinks.has(target.href)) discoveredLinks.set(target.href, { url: target.href, label: link.label.slice(0, 200), discoveredOn: page.finalUrl });
+          } catch {
+            // Unsafe or malformed links never reach the planner or reader.
+          }
+        }
         const prior = result.sources.find((source) => source.url === url);
         if (prior) {
           // Replace snippets with page context; do not duplicate them or starve
@@ -359,12 +372,13 @@ export const createResearch = (config: ResearchConfig): ResearchRuntime => {
           plan = await generate(
             "plan",
             PlanSchema,
-            "Select follow-up searches for missing evidence and primary-source URLs to read. For current people or roles, seek the organization’s own leadership/about/team pages; testimonials, package authors, and job listings are not staff identity evidence. For policies, read the full policy or agreement to preserve section scope and exceptions. URLs must come from the supplied search results. done means available evidence addresses the requested schema, not merely that some results exist. Return no actions if further work is not useful.",
+            "Select follow-up searches for missing evidence and primary-source URLs to read. For current people or roles, seek the organization’s own leadership/about/team pages; testimonials, package authors, and job listings are not staff identity evidence. For policies, read the full policy or agreement to preserve section scope and exceptions. URLs must come from the supplied search results or discoveredLinks. Discovered links are unread navigation hints, not evidence; read relevant product, pricing, checkout or policy details before concluding information is absent. done means available evidence addresses the requested schema, not merely that some results exist. Return no actions if further work is not useful.",
             {
               query: input.query,
               schema: task.schema,
               instructions: task.instructions,
               sources: result.sources,
+              discoveredLinks: [...discoveredLinks.values()].filter(link => !urls.has(link.url)),
               searched: [...queries],
               read: [...urls],
               remainingSearches: limits.searches - queries.size,

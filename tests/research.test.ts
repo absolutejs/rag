@@ -651,3 +651,28 @@ test("long briefs plan a concise initial query within the existing model-call bu
   expect(result.status).toBe("reviewed");
   expect(models).toHaveLength(3);
 });
+
+test("reads discovered product links without promoting unread links to evidence or bypassing limits", async () => {
+  const product = "https://example.com/store/product";
+  const unread = "https://example.com/unread";
+  const reads: string[] = [];
+  const calls: any[] = [];
+  const runtime = createResearch({
+    search: search(), model: "fixture", limits: { reads: 2, searches: 1, rounds: 2 },
+    provider: model([
+      { urls: [source.url], queries: [], done: false },
+      { urls: ["http://localhost/private", "https://example.com/invented", product, unread], queries: [], done: true },
+      { name: "Example" }, modelReview,
+    ], calls),
+    reader: async options => {
+      reads.push(options.url);
+      return { status: "ok", url: options.url, finalUrl: options.url, text: source.excerpts[0]!, title: "Example", method: "http", truncated: false, fetchedAt: "2026-10-28T00:00:00Z", attempts: [], redirects: [], limitations: [], evidence: { links: options.url === source.url ? [{ url: product, label: "Product details" }, { url: unread, label: "Unread" }, { url: "http://localhost/private", label: "Unsafe" }, { url: "javascript:alert(1)", label: "Unsafe" }] : [], images: [], media: [], canonicalUrl: null } };
+    },
+  });
+  const result = await runtime.extract({ schema: Type.Object({ name: Type.String() }) }, { query: "pricing", queries: ["pricing"] });
+  expect(reads).toEqual([source.url, product]);
+  expect(result.sources.map(item => item.url)).toEqual([source.url, product]);
+  expect(JSON.stringify(calls[1])).toContain("Product details");
+  expect(JSON.stringify(calls[1])).not.toContain("localhost/private");
+  expect(result.sources.some(item => item.url === unread)).toBe(false);
+});
