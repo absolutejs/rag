@@ -3,8 +3,26 @@
 	"name": "@absolutejs/rag",
 	"releases": [
 		{
-			"version": "0.22.10",
-			"date": "2026-10-28",
+			"changes": [
+				{
+					"kind": "added",
+					"summary": "Expose bounded validationRepairs and server-side onError callbacks for research recovery",
+					"symbols": [
+						"ResearchConfig"
+					]
+				},
+				{
+					"kind": "fixed",
+					"summary": "Recover schema-invalid research output with bounded separately admitted corrections and preserve private operation diagnostics",
+					"symbols": [
+						"createResearch"
+					]
+				}
+			],
+			"date": "2026-10-29",
+			"version": "0.22.11"
+		},
+		{
 			"changes": [
 				{
 					"kind": "fixed",
@@ -13,11 +31,11 @@
 						"createResearch"
 					]
 				}
-			]
+			],
+			"date": "2026-10-28",
+			"version": "0.22.10"
 		},
 		{
-			"version": "0.22.9",
-			"date": "2026-10-28",
 			"changes": [
 				{
 					"kind": "fixed",
@@ -31,7 +49,9 @@
 						"createResearch"
 					]
 				}
-			]
+			],
+			"date": "2026-10-28",
+			"version": "0.22.9"
 		},
 		{
 			"changes": [

@@ -37,7 +37,12 @@ export type ResearchField = {
 };
 export type ResearchResult<T = unknown> = {
   /** Complete fetched text retained separately from model-facing excerpts. */
-  documents?: Array<{ sourceId: string; url: string; text: string; originalChars: number }>;
+  documents?: Array<{
+    sourceId: string;
+    url: string;
+    text: string;
+    originalChars: number;
+  }>;
   id: string;
   status: "reviewed" | "partial" | "empty" | "unavailable";
   /** Only populated when every primitive field passed evidence review. */
@@ -79,6 +84,15 @@ export type ResearchLimits = {
   fields: number;
 };
 export type ResearchConfig = {
+  /** Extra schema-validation attempts per extract/review, each separately admitted. Default 1; 0 disables repair. Provider/network failures are never retried. */
+  validationRepairs?: number;
+  /** Server-side diagnostics only. Errors are never serialized into public research results. */
+  onError?: (event: {
+    runId: string;
+    phase: ResearchOperation;
+    error: unknown;
+  }) => void;
+
   /** Optional host accounting adapter; defaults to the standard AI generator. */
   generateObject?: typeof import("@absolutejs/ai").generateObjectAI;
   budget?: import("./budget").ResearchBudgetConfig;

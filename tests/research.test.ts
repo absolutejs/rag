@@ -658,22 +658,157 @@ test("reads discovered product links without promoting unread links to evidence 
   const reads: string[] = [];
   const calls: any[] = [];
   const runtime = createResearch({
-    search: search(), model: "fixture", limits: { reads: 2, searches: 1, rounds: 2 },
-    provider: model([
-      { urls: [source.url], queries: [], done: false },
-      { urls: ["http://localhost/private", "https://example.com/invented", product, unread], queries: [], done: true },
-      { name: "Example" }, modelReview,
-    ], calls),
-    reader: async options => {
+    search: search(),
+    model: "fixture",
+    limits: { reads: 2, searches: 1, rounds: 2 },
+    provider: model(
+      [
+        { urls: [source.url], queries: [], done: false },
+        {
+          urls: [
+            "http://localhost/private",
+            "https://example.com/invented",
+            product,
+            unread,
+          ],
+          queries: [],
+          done: true,
+        },
+        { name: "Example" },
+        modelReview,
+      ],
+      calls,
+    ),
+    reader: async (options) => {
       reads.push(options.url);
-      return { status: "ok", url: options.url, finalUrl: options.url, text: source.excerpts[0]!, fullText: options.url === product ? "Context ".repeat(10000) + "Membership price: USD 975 monthly." : source.excerpts[0]!, title: "Example", method: "http", truncated: false, fetchedAt: "2026-10-28T00:00:00Z", attempts: [], redirects: [], limitations: [], evidence: { links: options.url === source.url ? [{ url: product, label: "Product details" }, { url: unread, label: "Unread" }, { url: "http://localhost/private", label: "Unsafe" }, { url: "javascript:alert(1)", label: "Unsafe" }] : [], images: [], media: [], canonicalUrl: null } };
+      return {
+        status: "ok",
+        url: options.url,
+        finalUrl: options.url,
+        text: source.excerpts[0]!,
+        fullText:
+          options.url === product
+            ? "Context ".repeat(10000) + "Membership price: USD 975 monthly."
+            : source.excerpts[0]!,
+        title: "Example",
+        method: "http",
+        truncated: false,
+        fetchedAt: "2026-10-28T00:00:00Z",
+        attempts: [],
+        redirects: [],
+        limitations: [],
+        evidence: {
+          links:
+            options.url === source.url
+              ? [
+                  { url: product, label: "Product details" },
+                  { url: unread, label: "Unread" },
+                  { url: "http://localhost/private", label: "Unsafe" },
+                  { url: "javascript:alert(1)", label: "Unsafe" },
+                ]
+              : [],
+          images: [],
+          media: [],
+          canonicalUrl: null,
+        },
+      };
     },
   });
-  const result = await runtime.extract({ schema: Type.Object({ name: Type.String() }) }, { query: "pricing", queries: ["pricing"] });
+  const result = await runtime.extract(
+    { schema: Type.Object({ name: Type.String() }) },
+    { query: "pricing", queries: ["pricing"] },
+  );
   expect(reads).toEqual([source.url, product]);
-  expect(result.sources.map(item => item.url)).toEqual([source.url, product]);
+  expect(result.sources.map((item) => item.url)).toEqual([source.url, product]);
   expect(JSON.stringify(calls[1])).toContain("Product details");
   expect(JSON.stringify(calls[1])).not.toContain("localhost/private");
-  expect(result.sources.some(item => item.url === unread)).toBe(false);
-  expect(result.documents?.find(item => item.url === product)?.text).toContain("Membership price: USD 975 monthly.");
+  expect(result.sources.some((item) => item.url === unread)).toBe(false);
+  expect(
+    result.documents?.find((item) => item.url === product)?.text,
+  ).toContain("Membership price: USD 975 monthly.");
+});
+
+test("schema repair is bounded, separately admitted, and retains diagnostic causes privately", async () => {
+  const calls: any[] = [];
+  const admissions: string[] = [];
+  const errors: any[] = [];
+  const runtime = createResearch({
+    search: search(),
+    model: "fixture",
+    provider: model(
+      [plan, { name: 123 }, { name: "Example" }, modelReview],
+      calls,
+    ),
+    onError: (event) => errors.push(event),
+    admit: async ({ kind }) => {
+      admissions.push(kind);
+      return { settle: async () => {} };
+    },
+  });
+  const result = await runtime.extract(
+    { schema: Type.Object({ name: Type.String() }) },
+    { query: "Example launch" },
+  );
+  expect(result.status).toBe("reviewed");
+  expect(admissions).toEqual([
+    "search",
+    "plan",
+    "extract",
+    "extract",
+    "review",
+  ]);
+  expect(
+    result.operations.filter((operation) => operation.kind === "extract"),
+  ).toHaveLength(2);
+  expect(JSON.stringify(calls[2].messages)).toContain("/name");
+  expect(errors[0].phase).toBe("extract");
+  expect(errors[0].error.message).toContain("Invalid extract output");
+  expect(JSON.stringify(result)).not.toContain("123");
+});
+
+test("repair cannot bypass admission or retry an accounting failure", async () => {
+  for (const accountingFailure of [false, true]) {
+    const calls: any[] = [];
+    let extracts = 0;
+    const runtime = createResearch({
+      search: search(),
+      model: "fixture",
+      provider: model([plan, { name: 123 }, { name: "Example" }], calls),
+      admit: async ({ kind }) => {
+        if (kind === "extract" && ++extracts > 1) return false;
+        return {
+          settle: async ({ status }) => {
+            if (accountingFailure && status === "unknown")
+              throw new Error("Accounting failed");
+          },
+        };
+      },
+    });
+    const result = await runtime.extract(
+      { schema: Type.Object({ name: Type.String() }) },
+      { query: "Example launch" },
+    );
+    expect(calls).toHaveLength(2);
+    expect(result.data).toBeNull();
+    expect(extracts).toBe(accountingFailure ? 1 : 2);
+  }
+});
+
+test("invalid output gets at most one repair by default and may disable repair", async () => {
+  for (const validationRepairs of [0, 1]) {
+    const calls: any[] = [];
+    const runtime = createResearch({
+      search: search(),
+      model: "fixture",
+      validationRepairs,
+      provider: model([plan, { name: 123 }, { name: 456 }], calls),
+    });
+    const result = await runtime.extract(
+      { schema: Type.Object({ name: Type.String() }) },
+      { query: "Example launch" },
+    );
+    expect(calls).toHaveLength(2 + validationRepairs);
+    expect(result.limitations).toContain("Invalid extract output");
+    expect(result.data).toBeNull();
+  }
 });
