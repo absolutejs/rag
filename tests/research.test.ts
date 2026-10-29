@@ -812,3 +812,53 @@ test("invalid output gets at most one repair by default and may disable repair",
     expect(result.data).toBeNull();
   }
 });
+
+test("oversized plans preserve valid reads while runtime budgets bound all actions", async () => {
+  const searches: string[] = [];
+  const reads: string[] = [];
+  const errors: unknown[] = [];
+  const runtime = createResearch({
+    search: search(searches),
+    model: "fixture",
+    provider: model([
+      {
+        queries: Array.from({ length: 10 }, (_, index) => `followup ${index}`),
+        urls: Array.from({ length: 10 }, () => source.url),
+        done: false,
+      },
+      { name: "Example" },
+      modelReview,
+    ]),
+    limits: { searches: 2, reads: 1, rounds: 1 },
+    onError: (event) => errors.push(event),
+    reader: async (options) => {
+      reads.push(options.url);
+      return {
+        status: "ok",
+        url: options.url,
+        finalUrl: options.url,
+        text: source.excerpts[0]!,
+        title: source.title,
+        method: "http",
+        truncated: false,
+        fetchedAt: "",
+        attempts: [],
+        redirects: [],
+        limitations: [],
+        evidence: { links: [], images: [], media: [], canonicalUrl: null },
+      };
+    },
+  });
+  const result = await runtime.extract(
+    { schema: Type.Object({ name: Type.String() }) },
+    { query: "Example launch" },
+  );
+  expect(searches).toEqual(["Example launch", "followup 0"]);
+  expect(reads).toEqual([source.url]);
+  expect(errors).toEqual([]);
+  expect(result.fields[0]!.verdict).toBe("supported");
+  expect(result.limitations).toContain("Search limit reached");
+  expect(result.limitations).not.toContain(
+    "Invalid planning output; continued with retrieved evidence",
+  );
+});

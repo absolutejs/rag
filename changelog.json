@@ -5,6 +5,19 @@
 		{
 			"changes": [
 				{
+					"kind": "fixed",
+					"summary": "Preserve valid reads from oversized research plans while enforcing action limits at runtime",
+					"symbols": [
+						"createResearch"
+					]
+				}
+			],
+			"date": "2026-10-29",
+			"version": "0.22.12"
+		},
+		{
+			"changes": [
+				{
 					"kind": "added",
 					"summary": "Expose bounded validationRepairs and server-side onError callbacks for research recovery",
 					"symbols": [

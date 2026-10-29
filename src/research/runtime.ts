@@ -37,8 +37,10 @@ const DefaultSchema = Type.Object({
   findings: Type.Array(Type.String(), { maxItems: 6 }),
 });
 const PlanSchema = Type.Object({
-  queries: Type.Array(Type.String({ maxLength: 600 }), { maxItems: 8 }),
-  urls: Type.Array(Type.String(), { maxItems: 8 }),
+  // Runtime search/read admission owns action counts. An overlong plan must
+  // not discard otherwise valid URLs and evidence before those limits apply.
+  queries: Type.Array(Type.String({ maxLength: 600 })),
+  urls: Type.Array(Type.String()),
   done: Type.Boolean(),
 });
 const defaults: ResearchLimits = {
