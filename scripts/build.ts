@@ -71,3 +71,6 @@ if (!browserBuild.success) {
 }
 
 await $`tsc --emitDeclarationOnly --project tsconfig.build.json`;
+
+// Exercise the published boundaries, not only shared source-module identity.
+await $`bun scripts/verify-research-entrypoints.mjs`;

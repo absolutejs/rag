@@ -15,7 +15,7 @@ import {
   type ResearchStatic,
 } from "./schema";
 import { readRAGWebpage } from "../web";
-import { WebReadError, validatePublicWebUrl } from "../web/transport";
+import { WebReadError, isWebReadError, validatePublicWebUrl } from "../web/transport";
 import {
   bindResearchReview,
   researchLeaves,
@@ -405,7 +405,7 @@ export const createResearch = (config: ResearchConfig): ResearchRuntime => {
             fetch_failed: "Page could not be retrieved",
             timeout: "Page retrieval timed out",
           };
-          if (!(error instanceof WebReadError) || !messages[error.code])
+          if (!isWebReadError(error) || !messages[error.code])
             throw error;
           return {
             status: "error" as const,

@@ -6,6 +6,21 @@
 			"changes": [
 				{
 					"kind": "fixed",
+					"summary": "Preserve web reader errors across built package entrypoints so inaccessible sources cannot abort usable research",
+					"symbols": [
+						"createResearch",
+						"WebReadError",
+						"isWebReadError"
+					]
+				}
+			],
+			"date": "2026-10-31",
+			"version": "0.22.14"
+		},
+		{
+			"changes": [
+				{
+					"kind": "fixed",
 					"summary": "Continue research after inaccessible sources without hiding accounting failures; preserve typed reader reasons and remove duplicated review context",
 					"symbols": [
 						"createResearch"

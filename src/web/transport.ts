@@ -6,7 +6,10 @@ import { lookup } from "node:dns/promises";
 import { isIP } from "node:net";
 import { brotliDecompressSync, gunzipSync, inflateSync } from "node:zlib";
 
+// Package entrypoints are bundled independently; constructor identity is not shared.
+const WEB_READ_ERROR = Symbol.for("@absolutejs/rag/WebReadError");
 export class WebReadError extends Error {
+  readonly [WEB_READ_ERROR] = true;
   constructor(
     public code: string,
     message: string,
@@ -15,6 +18,10 @@ export class WebReadError extends Error {
     this.name = "WebReadError";
   }
 }
+export const isWebReadError = (error: unknown): error is WebReadError =>
+  error instanceof Error &&
+  Reflect.get(error, WEB_READ_ERROR) === true &&
+  typeof Reflect.get(error, "code") === "string";
 export const isPublicWebAddress = (address: string) =>
   isPublicNetworkAddress(address);
 export type WebRedirect = {

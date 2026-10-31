@@ -16,6 +16,7 @@ import {
   fetchPublicWebResource,
   validatePublicWebUrl,
   WebReadError,
+  isWebReadError,
   type WebFetchResult,
 } from "./transport";
 export {
@@ -23,6 +24,7 @@ export {
   validatePublicWebUrl,
   isPublicWebAddress,
   WebReadError,
+  isWebReadError,
 } from "./transport";
 export type { WebFetchResult, WebFetchOptions } from "./transport";
 export type WebReadAttempt = {
@@ -71,7 +73,7 @@ export type ReadWebpageOptions = {
 const messageFor = (error: unknown) =>
   error instanceof Error ? error.message : "Website retrieval failed.";
 const codeFor = (error: unknown) =>
-  error instanceof WebReadError
+  isWebReadError(error)
     ? error.code
     : error instanceof Error &&
         /^(?:AbortError|TimeoutError)$/u.test(error.name)
@@ -146,7 +148,7 @@ export const readRAGWebpage = async (
       );
     } catch (error) {
       attempts.push({ method: "http", status: codeFor(error) });
-      if (error instanceof WebReadError && error.code === "blocked_url")
+      if (isWebReadError(error) && error.code === "blocked_url")
         throw error;
       if (!options.render) throw error;
     }
