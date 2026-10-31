@@ -15,7 +15,7 @@ import {
   type ResearchStatic,
 } from "./schema";
 import { readRAGWebpage } from "../web";
-import { validatePublicWebUrl } from "../web/transport";
+import { WebReadError, validatePublicWebUrl } from "../web/transport";
 import {
   bindResearchReview,
   researchLeaves,
@@ -105,6 +105,15 @@ export const createResearch = (config: ResearchConfig): ResearchRuntime => {
   ): Promise<ResearchResult<ResearchStatic<S>>> => {
     if (!input.query.trim() || input.query.length > 8000)
       throw new Error("Research query must contain 1–8000 characters");
+    if (
+      task.collection &&
+      (!/^\/(?:[^~]|~[01])+$/.test(task.collection.path) ||
+        !Number.isSafeInteger(task.collection.minimum) ||
+        task.collection.minimum < 1 ||
+        !task.collection.requiredFields.length ||
+        task.collection.requiredFields.some((key) => !key || key.includes("/")))
+    )
+      throw new Error("Invalid research collection requirement");
     const signal = AbortSignal.any([
       AbortSignal.timeout(limits.timeoutMs),
       ...(input.signal ? [input.signal] : []),
@@ -119,6 +128,15 @@ export const createResearch = (config: ResearchConfig): ResearchRuntime => {
       limitations: [],
       generatedAt: new Date().toISOString(),
       operations: [],
+      ...(task.collection
+        ? {
+            coverage: {
+              requested: task.collection.minimum,
+              supported: 0,
+              complete: false,
+            },
+          }
+        : {}),
     };
     const operationLimit =
       limits.searches +
@@ -369,18 +387,72 @@ export const createResearch = (config: ResearchConfig): ResearchRuntime => {
       )
         return;
       urls.add(url);
-      const page = await operate("read", () =>
-        (config.reader ?? readRAGWebpage)({
-          url,
-          signal,
-          render: config.render,
-          maxChars: Math.min(limits.evidenceChars, 24000),
-        }),
-      );
+      const page = await operate("read", async () => {
+        try {
+          return await (config.reader ?? readRAGWebpage)({
+            url,
+            signal,
+            render: config.render,
+            maxChars: Math.min(limits.evidenceChars, 24000),
+          });
+        } catch (error) {
+          signal.throwIfAborted();
+          const messages: Record<string, string> = {
+            access_blocked: "Website blocked automated access",
+            authentication_required: "Page requires sign-in",
+            http_error: "Page returned an HTTP error",
+            reader_unavailable: "Website reader unavailable",
+            fetch_failed: "Page could not be retrieved",
+            timeout: "Page retrieval timed out",
+          };
+          if (!(error instanceof WebReadError) || !messages[error.code])
+            throw error;
+          return {
+            status: "error" as const,
+            url,
+            finalUrl: url,
+            title: null,
+            text: "",
+            method: "http" as const,
+            truncated: false,
+            attempts: [],
+            fetchedAt: new Date().toISOString(),
+            redirects: [],
+            evidence: { links: [], images: [], media: [], canonicalUrl: null },
+            limitations: [],
+            error: { code: error.code, message: messages[error.code]! },
+          };
+        }
+      });
+      if (page.status === "error") {
+        const code = page.error?.code ?? "read_failed";
+        if (
+          [
+            "unsafe_url",
+            "blocked_address",
+            "blocked_url",
+            "invalid_url",
+          ].includes(code)
+        )
+          throw new WebReadError(code, "Unsafe research source URL");
+        const message = "Source unavailable (" + code + ")";
+        (result.sourceFailures ??= []).push({ url, code, message });
+        result.limitations.push(`${message}: ${url}`);
+        try {
+          config.onError?.({
+            runId: result.id,
+            phase: "read",
+            error: new WebReadError(code, message),
+          });
+        } catch {
+          /* Diagnostics cannot interrupt usable evidence. */
+        }
+        return;
+      }
       result.limitations.push(...page.limitations);
       if (page.status !== "ok")
         result.limitations.push(`Page read ${page.status}: ${url}`);
-      if (page.text && page.status !== "error") {
+      if (page.text) {
         for (const link of page.evidence.links) {
           if (discoveredLinks.size >= 64) break;
           try {
@@ -434,7 +506,7 @@ export const createResearch = (config: ResearchConfig): ResearchRuntime => {
         const initial = await generate(
           "plan",
           PlanSchema,
-          "Turn the research task into concise search-engine queries. Preserve the requested company identity and target criteria, but never copy instructions, JSON, internal markers, or the whole brief into a query. Prioritize the most useful query first. Return at most remainingSearches queries. Return no URLs: source URLs must be discovered rather than invented.",
+          "Turn the research task into concise search-engine queries. Search for the requested answer entities, not merely the client named in the brief. For new partners, pursue external candidate companies across the requested categories; client background and existing partnerships do not fulfill that task.  Preserve the requested company identity and target criteria, but never copy instructions, JSON, internal markers, or the whole brief into a query. Prioritize the most useful query first. Return at most remainingSearches queries. Return no URLs: source URLs must be discovered rather than invented.",
           {
             query: input.query,
             instructions: task.instructions,
@@ -528,7 +600,13 @@ export const createResearch = (config: ResearchConfig): ResearchRuntime => {
           instructions: task.instructions,
           schema: task.schema,
           fields: leaves,
-          sources: reviewSources,
+          // Adjacent passages already preserve full section context in order.
+          // Keep the rich citation helper contract, but do not repeat each passage
+          // up to four times in the model request.
+          sources: reviewSources.map(({ passages, ...source }) => ({
+            ...source,
+            passages: passages.map(({ id, text }) => ({ id, text })),
+          })),
         },
       );
       result.fields = bindResearchReview(
@@ -539,6 +617,36 @@ export const createResearch = (config: ResearchConfig): ResearchRuntime => {
         })),
         result.sources,
       );
+      if (task.collection) {
+        const { path, minimum, requiredFields } = task.collection;
+        const indices = new Set(
+          result.fields.flatMap((field) => {
+            if (!field.path.startsWith(path + "/")) return [];
+            const index = field.path.slice(path.length + 1).split("/")[0]!;
+            return /^\d+$/.test(index) ? [index] : [];
+          }),
+        );
+        const supported = [...indices].filter((index) =>
+          requiredFields.every((key) =>
+            result.fields.some(
+              (field) =>
+                field.path === `${path}/${index}/${key}` &&
+                field.verdict === "supported" &&
+                field.value !== null &&
+                field.value !== "",
+            ),
+          ),
+        ).length;
+        result.coverage = {
+          requested: minimum,
+          supported,
+          complete: supported >= minimum,
+        };
+        if (!result.coverage.complete)
+          result.limitations.push(
+            `Requested ${minimum} evidence-backed items; established ${supported}.`,
+          );
+      }
       const complete =
         result.fields.length > 0 &&
         result.fields.every((field) => field.verdict === "supported");

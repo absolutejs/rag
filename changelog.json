@@ -6,6 +6,27 @@
 			"changes": [
 				{
 					"kind": "fixed",
+					"summary": "Continue research after inaccessible sources without hiding accounting failures; preserve typed reader reasons and remove duplicated review context",
+					"symbols": [
+						"createResearch"
+					]
+				},
+				{
+					"kind": "added",
+					"summary": "Track evidence-backed collection coverage independently of execution completion",
+					"symbols": [
+						"ResearchTask",
+						"ResearchResult"
+					]
+				}
+			],
+			"date": "2026-10-31",
+			"version": "0.22.13"
+		},
+		{
+			"changes": [
+				{
+					"kind": "fixed",
 					"summary": "Preserve valid reads from oversized research plans while enforcing action limits at runtime",
 					"symbols": [
 						"createResearch"

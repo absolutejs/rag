@@ -1,3 +1,4 @@
+import { WebReadError } from "./transport";
 import type { ReadWebpageOptions, WebReadResult } from "./index";
 /** Typed boundary for a host-managed isolated website reader. The service URL is
  * trusted host configuration; public destination validation stays in the reader. */
@@ -155,11 +156,22 @@ export const createWebpageReaderClient = (
       signal: input.signal,
     });
     if (result.status === "error") {
-      const error = result.error as { message?: string } | undefined;
-      throw new Error(error?.message ?? "Isolated page read failed");
+      const error = result.error as
+        | { code?: string; message?: string }
+        | undefined;
+      throw new WebReadError(
+        error?.code ?? "reader_unavailable",
+        error?.message ?? "Isolated page read failed",
+      );
     }
     const documents = result.documents as
-      | Array<{ sourceId: string; text: string; fullText?: string; truncated?: boolean; sourceTruncated?: boolean }>
+      | Array<{
+          sourceId: string;
+          text: string;
+          fullText?: string;
+          truncated?: boolean;
+          sourceTruncated?: boolean;
+        }>
       | undefined;
     const sources = result.sources as
       | Array<{ id: string; url: string }>
@@ -189,7 +201,8 @@ export const createWebpageReaderClient = (
     if (![evidence.links, evidence.images, evidence.media].every(Array.isArray))
       throw new Error("Invalid page evidence");
     const limit = Math.max(1000, Math.min(input.maxChars ?? 24000, 100000));
-    const fullText = typeof document.fullText === "string" ? document.fullText : document.text;
+    const fullText =
+      typeof document.fullText === "string" ? document.fullText : document.text;
     return {
       status: result.status,
       url: input.url,

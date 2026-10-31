@@ -43,6 +43,8 @@ export type ResearchResult<T = unknown> = {
     text: string;
     originalChars: number;
   }>;
+  sourceFailures?: Array<{ url: string; code: string; message: string }>;
+  coverage?: { requested: number; supported: number; complete: boolean };
   id: string;
   status: "reviewed" | "partial" | "empty" | "unavailable";
   /** Only populated when every primitive field passed evidence review. */
@@ -61,6 +63,8 @@ export type ResearchResult<T = unknown> = {
 };
 export type ResearchTask<S extends ResearchSchema = ResearchSchema> = {
   schema: S;
+  /** Count only items whose required fields passed evidence review. JSON pointer to an array. */
+  collection?: { path: string; minimum: number; requiredFields: string[] };
   instructions?: string;
 };
 export type ResearchInput = {

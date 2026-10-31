@@ -862,3 +862,148 @@ test("oversized plans preserve valid reads while runtime budgets bound all actio
     "Invalid planning output; continued with retrieved evidence",
   );
 });
+
+test("blocked reader preserves retrieved evidence and settles the known read", async () => {
+  const { WebReadError } = await import("../src/web/transport");
+  const outcomes: string[] = [];
+  const runtime = createResearch({
+    search: search(),
+    model: "fixture",
+    provider: model([
+      { queries: [], urls: [source.url], done: true },
+      { name: "Example" },
+      modelReview,
+    ]),
+    reader: async () => {
+      throw new WebReadError("access_blocked", "Private provider detail");
+    },
+    admit: async () => ({
+      settle: async (outcome) => {
+        outcomes.push(outcome.status);
+      },
+    }),
+  });
+  const result = await runtime.extract(
+    { schema: Type.Object({ name: Type.String() }) },
+    { query: "Example launch" },
+  );
+  expect(result.fields[0]?.verdict).toBe("supported");
+  expect(result.sourceFailures).toEqual([
+    {
+      url: source.url,
+      code: "access_blocked",
+      message: "Source unavailable (access_blocked)",
+    },
+  ]);
+  expect(result.limitations.join(" ")).not.toContain("Private provider detail");
+  expect(outcomes.every((status) => status === "fulfilled")).toBe(true);
+});
+
+test("read recovery never masks settlement failures or unsafe destinations", async () => {
+  const { WebReadError } = await import("../src/web/transport");
+  for (const code of ["blocked_url", "accounting_failure"]) {
+    let extraction = false;
+    const runtime = createResearch({
+      search: search(),
+      model: "fixture",
+      provider: model([{ queries: [], urls: [source.url], done: true }]),
+      reader: async () => {
+        throw new WebReadError(code, "failed");
+      },
+      onError: (event) => {
+        if (event.phase === "extract") extraction = true;
+      },
+    });
+    const result = await runtime.extract(
+      { schema: Type.Object({ name: Type.String() }) },
+      { query: "Example" },
+    );
+    expect(result.fields).toEqual([]);
+    expect(result.sourceFailures).toBeUndefined();
+    expect(extraction).toBe(false);
+  }
+  const runtime = createResearch({
+    search: search(),
+    model: "fixture",
+    provider: model([{ queries: [], urls: [source.url], done: true }]),
+    reader: async () => {
+      throw new WebReadError("access_blocked", "blocked");
+    },
+    admit: async ({ kind }) => ({
+      settle: async () => {
+        if (kind === "read")
+          throw new WebReadError("access_blocked", "settlement failed");
+      },
+    }),
+  });
+  expect(
+    (
+      await runtime.extract(
+        { schema: Type.Object({ name: Type.String() }) },
+        { query: "Example" },
+      )
+    ).sourceFailures,
+  ).toBeUndefined();
+});
+
+test("collection coverage counts only complete supported items, not arbitrary facts", async () => {
+  const fields = ["name", "qualification"].map((key) => ({
+    ...modelReview.fields[0]!,
+    path: `/candidates/0/${key}`,
+  }));
+  const runtime = createResearch({
+    search: search(),
+    model: "fixture",
+    provider: model([
+      plan,
+      {
+        candidates: [
+          {
+            name: "Example",
+            qualification: "Example announced its launch in 2026.",
+          },
+        ],
+      },
+      { fields },
+    ]),
+  });
+  const result = await runtime.extract(
+    {
+      schema: Type.Object({
+        candidates: Type.Array(
+          Type.Object({ name: Type.String(), qualification: Type.String() }),
+        ),
+      }),
+      collection: {
+        path: "/candidates",
+        minimum: 2,
+        requiredFields: ["name", "qualification"],
+      },
+    },
+    { query: "Find two companies with a documented launch" },
+  );
+  expect(result.coverage).toEqual({
+    requested: 2,
+    supported: 1,
+    complete: false,
+  });
+  expect(result.status).toBe("partial");
+});
+
+test("review payload retains ordered passages without duplicated context", async () => {
+  const calls: any[] = [];
+  const runtime = createResearch({
+    search: search(),
+    model: "fixture",
+    provider: model([plan, { name: "Example" }, modelReview], calls),
+  });
+  await runtime.extract(
+    { schema: Type.Object({ name: Type.String() }) },
+    { query: "Example launch" },
+  );
+  const payload = JSON.parse(calls[2].messages[0].content);
+  expect(payload.sources[0].passages.map((p: any) => p.text).join("")).toBe(
+    source.excerpts[0],
+  );
+  expect(payload.sources[0].passages[0].context).toBeUndefined();
+});
