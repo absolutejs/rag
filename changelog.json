@@ -6,6 +6,19 @@
 			"changes": [
 				{
 					"kind": "fixed",
+					"summary": "Omit display-only favicon and thumbnail URL payloads from research model requests while retaining all original evidence, dates, citations, and source metadata in saved results.",
+					"symbols": [
+						"createResearch"
+					]
+				}
+			],
+			"date": "2026-11-01",
+			"version": "0.22.15"
+		},
+		{
+			"changes": [
+				{
+					"kind": "fixed",
 					"summary": "Preserve web reader errors across built package entrypoints so inaccessible sources cannot abort usable research",
 					"symbols": [
 						"createResearch",

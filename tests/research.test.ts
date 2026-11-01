@@ -1007,3 +1007,45 @@ test("review payload retains ordered passages without duplicated context", async
   );
   expect(payload.sources[0].passages[0].context).toBeUndefined();
 });
+
+test("text research omits display image URLs from every model phase without dropping evidence or retained metadata", async () => {
+  const metadata = {
+    favicon: "ICON_NOT_EVIDENCE".repeat(1000),
+    thumbnail: { src: "THUMBNAIL_NOT_EVIDENCE".repeat(1000) },
+    description: "Source publication description",
+    readFinalUrl: source.url,
+  };
+  const original = { ...source, metadata, publishedAt: "2026-09-23T00:00:00Z" };
+  const provider: SearchProvider = {
+    name: "fixture",
+    search: async (input) => ({
+      provider: "fixture",
+      query: input.query,
+      status: "ok",
+      sources: [original],
+      attempts: [],
+      limitations: [],
+    }),
+  };
+  const calls: any[] = [];
+  const result = await createResearch({
+    search: provider,
+    provider: model([plan, { name: "Example" }, modelReview], calls),
+    model: "fixture",
+  }).extract(
+    { schema: Type.Object({ name: Type.String() }) },
+    { query: "Example launch" },
+  );
+  expect(result.status).toBe("reviewed");
+  expect(result.fields[0]!.citations).toEqual([citation]);
+  expect(result.sources[0]!.metadata).toEqual(metadata);
+  expect(result.sources[0]!.excerpts).toEqual(source.excerpts);
+  for (const call of calls) {
+    const payload = JSON.parse(call.messages.at(-1).content);
+    expect(JSON.stringify(payload)).not.toContain("ICON_NOT_EVIDENCE");
+    expect(JSON.stringify(payload)).not.toContain("THUMBNAIL_NOT_EVIDENCE");
+    expect(payload.sources[0].publishedAt).toBe(original.publishedAt);
+    expect(payload.sources[0].metadata.description).toBe(metadata.description);
+    expect(payload.sources[0].metadata.readFinalUrl).toBe(source.url);
+  }
+});
