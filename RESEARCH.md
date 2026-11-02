@@ -305,3 +305,11 @@ to a different model. A stronger reviewer does not repair missing retrieval.
 An invalid planner schema no longer discards retrieved evidence: extraction and
 review continue without retry, while the result remains partial and the failed
 plan retains unknown settlement. Budget denial and cancellation still stop work.
+
+## Correcting reviewed evidence gaps
+
+Set `evidenceRepairs: 1` (maximum 2, default 0) to allow a bounded correction after incomplete collection coverage or rejected fields. `repairSearches` and `repairReads` reserve part of the existing total retrieval limits for review-identified gaps; they do not increase those limits. Each correction extracts again and independently reviews every new leaf. Drafts and review reasons are hints, never evidence. `reviewPasses` retains the reviewed drafts and coverage for audit. Provider failures and admission denial stop work without automatic replay.
+
+Collection tasks can set `minimumSupportedFields: { qualificationFacts: 1 }` alongside `requiredFields: ["name", "website"]` to require a minimum number of supported string leaves in an atomic fact array. Unsupported leaves remain rejected; callers must project only supported fields when `data` is null.
+
+Budget for each correction's optional retrieval plan, extraction and review, including configured schema repairs. Every model and retrieval operation follows the same admission and settlement path as initial research. Correction is disabled unless explicitly configured.

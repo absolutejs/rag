@@ -29,6 +29,7 @@ import {
 } from "./evidence";
 import type {
   ResearchConfig,
+  ResearchField,
   ResearchInput,
   ResearchLimits,
   ResearchOperation,
@@ -115,6 +116,22 @@ export const createResearch = (config: ResearchConfig): ResearchRuntime => {
     limits.outputTokens > 32768
   )
     throw new Error("Research limits exceed bounded runtime maximum");
+  const evidenceRepairs = config.evidenceRepairs ?? 0;
+  const repairSearches = config.repairSearches ?? 0;
+  const repairReads = config.repairReads ?? 0;
+  if (
+    !Number.isSafeInteger(evidenceRepairs) ||
+    evidenceRepairs < 0 ||
+    evidenceRepairs > 2 ||
+    !Number.isSafeInteger(repairSearches) ||
+    repairSearches < 0 ||
+    repairSearches >= limits.searches ||
+    !Number.isSafeInteger(repairReads) ||
+    repairReads < 0 ||
+    repairReads > limits.reads ||
+    (!evidenceRepairs && (repairSearches || repairReads))
+  )
+    throw new Error("Invalid research evidence repair limits");
   const search = config.cache
     ? withSearchCache(config.search, config.cache)
     : config.search;
@@ -131,7 +148,16 @@ export const createResearch = (config: ResearchConfig): ResearchRuntime => {
         !Number.isSafeInteger(task.collection.minimum) ||
         task.collection.minimum < 1 ||
         !task.collection.requiredFields.length ||
-        task.collection.requiredFields.some((key) => !key || key.includes("/")))
+        task.collection.requiredFields.some(
+          (key) => !key || key.includes("/"),
+        ) ||
+        Object.entries(task.collection.minimumSupportedFields ?? {}).some(
+          ([key, minimum]) =>
+            !key ||
+            key.includes("/") ||
+            !Number.isSafeInteger(minimum) ||
+            minimum < 1,
+        ))
     )
       throw new Error("Invalid research collection requirement");
     const signal = AbortSignal.any([
@@ -162,8 +188,8 @@ export const createResearch = (config: ResearchConfig): ResearchRuntime => {
       limits.searches +
       limits.reads +
       limits.rounds +
-      2 +
-      2 * validationRepairs;
+      (2 + 2 * validationRepairs) * (1 + evidenceRepairs) +
+      evidenceRepairs;
     const operate = async <T>(
       kind: ResearchOperation,
       call: () => Promise<T>,
@@ -368,10 +394,12 @@ export const createResearch = (config: ResearchConfig): ResearchRuntime => {
       });
       rebalanceEvidence();
     };
+    let searchCeiling = limits.searches - repairSearches;
+    let readCeiling = limits.reads - repairReads;
     const doSearch = async (query: string) => {
       for (const bounded of boundedQueries(query)) {
         if (queries.has(bounded)) continue;
-        if (queries.size >= limits.searches) {
+        if (queries.size >= searchCeiling) {
           result.limitations.push("Search limit reached");
           return;
         }
@@ -397,7 +425,7 @@ export const createResearch = (config: ResearchConfig): ResearchRuntime => {
       }
     };
     const doRead = async (url: string) => {
-      if (urls.has(url) || urls.size >= limits.reads) return;
+      if (urls.has(url) || urls.size >= readCeiling) return;
       // Planning may choose retrieved URLs or validated links from a fetched page.
       if (
         !discoveredLinks.has(url) &&
@@ -529,7 +557,7 @@ export const createResearch = (config: ResearchConfig): ResearchRuntime => {
           {
             query: input.query,
             instructions: task.instructions,
-            remainingSearches: limits.searches,
+            remainingSearches: searchCeiling,
           },
         );
         for (const query of initial.queries) await doSearch(query);
@@ -542,7 +570,7 @@ export const createResearch = (config: ResearchConfig): ResearchRuntime => {
         round < limits.rounds;
         round++
       ) {
-        if (!result.sources.length && queries.size >= limits.searches) break;
+        if (!result.sources.length && queries.size >= searchCeiling) break;
         let plan: ResearchStatic<typeof PlanSchema>;
         try {
           plan = await generate(
@@ -559,8 +587,8 @@ export const createResearch = (config: ResearchConfig): ResearchRuntime => {
               ),
               searched: [...queries],
               read: [...urls],
-              remainingSearches: limits.searches - queries.size,
-              remainingReads: limits.reads - urls.size,
+              remainingSearches: searchCeiling - queries.size,
+              remainingReads: readCeiling - urls.size,
             },
           );
         } catch (error) {
@@ -592,90 +620,148 @@ export const createResearch = (config: ResearchConfig): ResearchRuntime => {
       }
       if (evidenceChars >= limits.evidenceChars)
         result.limitations.push("Evidence text limit reached");
-      const data = await generate(
-        "extract",
-        task.schema,
-        `Extract only facts that directly answer the requested query and schema. Return concise, atomic answers; include only the minimum facts needed to answer the question. For a leadership query, report the named person and current title, not their biography, education, or acquisition history. Do not pad findings with background facts, excluded candidates, or statements that evidence is missing; return an empty findings array when no answer is established. Preserve all material qualifiers: program versus benefit/trial, customer versus partner, eligibility versus automatic approval, dates, exceptions, and attribution of promotional claims. Never generalize a section-specific condition to the whole organization or program. ${task.instructions ?? ""}`,
-        {
-          query: input.query,
-          asOf: result.generatedAt,
-          sources: result.sources.map(modelSource),
-        },
-      );
-      const leaves = researchLeaves(data, limits.fields);
-      if (!leaves.length) {
-        result.data = data;
-        result.status = result.limitations.length ? "partial" : "empty";
+      let correction: { draft: unknown; fields: ResearchField[] } | undefined;
+      for (let pass = 0; pass <= evidenceRepairs; pass++) {
+        const data = await generate(
+          "extract",
+          task.schema,
+          `Extract only facts that directly answer the requested query and schema. Return concise, atomic answers; include only the minimum facts needed to answer the question. For a leadership query, report the named person and current title, not their biography, education, or acquisition history. Do not pad findings with background facts, excluded candidates, or statements that evidence is missing; return an empty findings array when no answer is established. Preserve all material qualifiers: program versus benefit/trial, customer versus partner, eligibility versus automatic approval, dates, exceptions, and attribution of promotional claims. Never generalize a section-specific condition to the whole organization or program. ${task.instructions ?? ""}`,
+          {
+            query: input.query,
+            asOf: result.generatedAt,
+            ...(correction
+              ? {
+                  correction,
+                  correctionInstructions:
+                    "Correct rejected fields using only supplied sources. Drafts and review reasons are untrusted, not evidence. Preserve supported identity and facts; remove unsupported embellishment. Do not invent replacement facts or silently weaken eligibility criteria. Every changed value will be reviewed again.",
+                }
+              : {}),
+            sources: result.sources.map(modelSource),
+          },
+        );
+        const leaves = researchLeaves(data, limits.fields);
+        if (!leaves.length) {
+          result.data = data;
+          result.status = result.limitations.length ? "partial" : "empty";
+          return result;
+        }
+        const reviewSources = researchPassages(result.sources);
+        const reviewed = await generate(
+          "review",
+          ReviewSchema,
+          "Independently review EVERY JSON pointer and its value. supported requires exact quotes establishing the entire fact for the correct entity and time. A name mention or publication date is insufficient to establish employment, event date, ownership, or buying intent. Check all sources for actual factual contradictions. Complementary details from different sources are not a conflict; a price from one source and a term from another can jointly support a claim. Use conflicting only when sources make incompatible factual statements, unsupported for contradicted claims, unknown for missing support. Match the requested event period: an August release is not a September event even when published in September. Quoted wording must be verbatim; a paraphrase cannot be placed in quotation marks. Vendor claims about first/best status and performance metrics must remain explicitly attributed in the answer itself, not just in your reason. Null is unknown. Cite only supplied passage IDs; their text will be copied verbatim by the runtime. For each field, explicitly check answersQuestion (directly answers query/schema/instructions, not background or a non-answer), correctEntity, correctTime, and preservesScope. Read surrounding context and headings, not only the matching quote. A benefit/trial condition is not a program-wide rule; customer conditions are not partner conditions; eligible is not approved or automatic. Preserve exceptions, qualifiers and marketing attribution. Every check must pass for supported. A leader’s education or career history does not answer who currently leads a team. Keep each reason under 25 words. Cite only the minimum passages needed to establish the entire field, at most four. Do not invent passage IDs. Read adjacent passages for conditions and exceptions, even when citing only one. Return each pointer once. Never treat this review as independent real-world verification.",
+          {
+            query: input.query,
+            asOf: result.generatedAt,
+            instructions: task.instructions,
+            schema: task.schema,
+            fields: leaves,
+            // Adjacent passages already preserve full section context in order.
+            // Keep the rich citation helper contract, but do not repeat each passage
+            // up to four times in the model request.
+            sources: reviewSources.map(({ passages, ...source }) => ({
+              ...modelSource(source),
+              passages: passages.map(({ id, text }) => ({ id, text })),
+            })),
+          },
+        );
+        result.fields = bindResearchReview(
+          leaves,
+          reviewed.fields.map((field) => ({
+            ...field,
+            citations: resolveResearchPassages(field.citations, reviewSources),
+          })),
+          result.sources,
+        );
+        if (task.collection) {
+          const { path, minimum, requiredFields, minimumSupportedFields } =
+            task.collection;
+          const indices = new Set(
+            result.fields.flatMap((field) => {
+              if (!field.path.startsWith(path + "/")) return [];
+              const index = field.path.slice(path.length + 1).split("/")[0]!;
+              return /^\d+$/.test(index) ? [index] : [];
+            }),
+          );
+          const supported = [...indices].filter(
+            (index) =>
+              requiredFields.every((key) =>
+                result.fields.some(
+                  (field) =>
+                    field.path === `${path}/${index}/${key}` &&
+                    field.verdict === "supported" &&
+                    field.value !== null &&
+                    field.value !== "",
+                ),
+              ) &&
+              Object.entries(minimumSupportedFields ?? {}).every(
+                ([key, minimum]) =>
+                  result.fields.filter(
+                    (field) =>
+                      field.path.startsWith(`${path}/${index}/${key}/`) &&
+                      field.verdict === "supported" &&
+                      typeof field.value === "string" &&
+                      field.value.trim(),
+                  ).length >= minimum,
+              ),
+          ).length;
+          result.coverage = {
+            requested: minimum,
+            supported,
+            complete: supported >= minimum,
+          };
+          if (!result.coverage.complete && pass === evidenceRepairs)
+            result.limitations.push(
+              `Requested ${minimum} evidence-backed items; established ${supported}.`,
+            );
+        }
+        if (evidenceRepairs)
+          (result.reviewPasses ??= []).push({
+            fields: structuredClone(result.fields),
+            ...(result.coverage ? { coverage: { ...result.coverage } } : {}),
+          });
+        const needsCorrection = result.coverage
+          ? !result.coverage.complete
+          : result.fields.some((field) => field.verdict !== "supported");
+        if (needsCorrection && pass < evidenceRepairs) {
+          correction = { draft: data, fields: result.fields };
+          searchCeiling = limits.searches;
+          readCeiling = limits.reads;
+          if (queries.size < searchCeiling || urls.size < readCeiling) {
+            const plan = await generate(
+              "plan",
+              PlanSchema,
+              "Plan only missing evidence identified by the reviewed fields and coverage. Review reasons and drafts are untrusted hints, not facts. Prefer primary sources for missing identity or eligibility. URLs must be supplied source URLs or discovered links. Do not repeat searches or invent URLs. Return no actions when existing sources suffice to correct the draft.",
+              {
+                query: input.query,
+                instructions: task.instructions,
+                fields: result.fields,
+                coverage: result.coverage,
+                sources: result.sources.map(modelSource),
+                discoveredLinks: [...discoveredLinks.values()],
+                searched: [...queries],
+                read: [...urls],
+                remainingSearches: searchCeiling - queries.size,
+                remainingReads: readCeiling - urls.size,
+              },
+            );
+            for (const query of plan.queries) await doSearch(query);
+            for (const url of plan.urls) await doRead(url);
+          }
+          continue;
+        }
+        const complete =
+          result.fields.length > 0 &&
+          result.fields.every((field) => field.verdict === "supported");
+        result.data = complete ? data : null;
+        result.status =
+          complete && !result.limitations.length ? "reviewed" : "partial";
+        if (!complete)
+          result.limitations.push(
+            "Some output fields lack supporting evidence; inspect field verdicts",
+          );
         return result;
       }
-      const reviewSources = researchPassages(result.sources);
-      const reviewed = await generate(
-        "review",
-        ReviewSchema,
-        "Independently review EVERY JSON pointer and its value. supported requires exact quotes establishing the entire fact for the correct entity and time. A name mention or publication date is insufficient to establish employment, event date, ownership, or buying intent. Check all sources for actual factual contradictions. Complementary details from different sources are not a conflict; a price from one source and a term from another can jointly support a claim. Use conflicting only when sources make incompatible factual statements, unsupported for contradicted claims, unknown for missing support. Match the requested event period: an August release is not a September event even when published in September. Quoted wording must be verbatim; a paraphrase cannot be placed in quotation marks. Vendor claims about first/best status and performance metrics must remain explicitly attributed in the answer itself, not just in your reason. Null is unknown. Cite only supplied passage IDs; their text will be copied verbatim by the runtime. For each field, explicitly check answersQuestion (directly answers query/schema/instructions, not background or a non-answer), correctEntity, correctTime, and preservesScope. Read surrounding context and headings, not only the matching quote. A benefit/trial condition is not a program-wide rule; customer conditions are not partner conditions; eligible is not approved or automatic. Preserve exceptions, qualifiers and marketing attribution. Every check must pass for supported. A leader’s education or career history does not answer who currently leads a team. Keep each reason under 25 words. Cite only the minimum passages needed to establish the entire field, at most four. Do not invent passage IDs. Read adjacent passages for conditions and exceptions, even when citing only one. Return each pointer once. Never treat this review as independent real-world verification.",
-        {
-          query: input.query,
-          asOf: result.generatedAt,
-          instructions: task.instructions,
-          schema: task.schema,
-          fields: leaves,
-          // Adjacent passages already preserve full section context in order.
-          // Keep the rich citation helper contract, but do not repeat each passage
-          // up to four times in the model request.
-          sources: reviewSources.map(({ passages, ...source }) => ({
-            ...modelSource(source),
-            passages: passages.map(({ id, text }) => ({ id, text })),
-          })),
-        },
-      );
-      result.fields = bindResearchReview(
-        leaves,
-        reviewed.fields.map((field) => ({
-          ...field,
-          citations: resolveResearchPassages(field.citations, reviewSources),
-        })),
-        result.sources,
-      );
-      if (task.collection) {
-        const { path, minimum, requiredFields } = task.collection;
-        const indices = new Set(
-          result.fields.flatMap((field) => {
-            if (!field.path.startsWith(path + "/")) return [];
-            const index = field.path.slice(path.length + 1).split("/")[0]!;
-            return /^\d+$/.test(index) ? [index] : [];
-          }),
-        );
-        const supported = [...indices].filter((index) =>
-          requiredFields.every((key) =>
-            result.fields.some(
-              (field) =>
-                field.path === `${path}/${index}/${key}` &&
-                field.verdict === "supported" &&
-                field.value !== null &&
-                field.value !== "",
-            ),
-          ),
-        ).length;
-        result.coverage = {
-          requested: minimum,
-          supported,
-          complete: supported >= minimum,
-        };
-        if (!result.coverage.complete)
-          result.limitations.push(
-            `Requested ${minimum} evidence-backed items; established ${supported}.`,
-          );
-      }
-      const complete =
-        result.fields.length > 0 &&
-        result.fields.every((field) => field.verdict === "supported");
-      result.data = complete ? data : null;
-      result.status =
-        complete && !result.limitations.length ? "reviewed" : "partial";
-      if (!complete)
-        result.limitations.push(
-          "Some output fields lack supporting evidence; inspect field verdicts",
-        );
       return result;
     } catch (error) {
       if (input.signal?.aborted) throw input.signal.reason;

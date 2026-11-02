@@ -45,6 +45,11 @@ export type ResearchResult<T = unknown> = {
   }>;
   sourceFailures?: Array<{ url: string; code: string; message: string }>;
   coverage?: { requested: number; supported: number; complete: boolean };
+  /** Reviewed drafts, including rejected fields, retained for audit. */
+  reviewPasses?: Array<{
+    fields: ResearchField[];
+    coverage?: { requested: number; supported: number; complete: boolean };
+  }>;
   id: string;
   status: "reviewed" | "partial" | "empty" | "unavailable";
   /** Only populated when every primitive field passed evidence review. */
@@ -64,7 +69,12 @@ export type ResearchResult<T = unknown> = {
 export type ResearchTask<S extends ResearchSchema = ResearchSchema> = {
   schema: S;
   /** Count only items whose required fields passed evidence review. JSON pointer to an array. */
-  collection?: { path: string; minimum: number; requiredFields: string[] };
+  collection?: {
+    path: string;
+    minimum: number;
+    requiredFields: string[];
+    minimumSupportedFields?: Record<string, number>;
+  };
   instructions?: string;
 };
 export type ResearchInput = {
@@ -88,6 +98,11 @@ export type ResearchLimits = {
   fields: number;
 };
 export type ResearchConfig = {
+  /** Bounded factual correction passes after review. Default 0, maximum 2. Every correction is extracted and independently reviewed again. */
+  evidenceRepairs?: number;
+  /** Capacity reserved within the existing limits for review-identified gaps. */
+  repairSearches?: number;
+  repairReads?: number;
   /** Extra schema-validation attempts per extract/review, each separately admitted. Default 1; 0 disables repair. Provider/network failures are never retried. */
   validationRepairs?: number;
   /** Server-side diagnostics only. Errors are never serialized into public research results. */

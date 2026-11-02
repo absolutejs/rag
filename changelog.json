@@ -3,6 +3,22 @@
 	"name": "@absolutejs/rag",
 	"releases": [
 		{
+			"version": "0.23.0",
+			"date": "2026-11-02",
+			"changes": [
+				{
+					"kind": "added",
+					"summary": "Opt-in bounded evidence correction with fresh independent review, reserved retrieval, retained review history and atomic collection fact coverage.",
+					"symbols": [
+						"createResearch",
+						"ResearchConfig",
+						"ResearchResult",
+						"ResearchTask"
+					]
+				}
+			]
+		},
+		{
 			"changes": [
 				{
 					"kind": "fixed",
