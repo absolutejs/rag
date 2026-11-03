@@ -722,6 +722,14 @@ export const createResearch = (config: ResearchConfig): ResearchRuntime => {
             result.limitations.push(
               "Invalid planning output; continued with retrieved evidence",
             );
+            // A confirmed malformed response consumes this round, not every
+            // remaining discovery round. Never repeat unknown provider work.
+            if (
+              round + 1 < limits.rounds &&
+              !admit &&
+              (await config.isReviewFailureSettled?.(error)) === true
+            )
+              continue;
             break;
           }
           for (const url of plan.urls) await doRead(url);

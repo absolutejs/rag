@@ -134,7 +134,7 @@ export type ResearchConfig = {
   reviewBatchSize?: number;
   /** Per-batch output ceiling, independent of extraction size. */
   reviewOutputTokens?: number;
-  /** Host must confirm completed response AND durable accounting. Never retries automatically. Unused with package admission. */
+  /** Host must confirm completed response AND durable accounting. Allows a malformed plan to consume another already-configured discovery round; review retry still requires explicit continuation. Unused with package admission. */
   isReviewFailureSettled?: (error: unknown) => Promise<boolean>;
   /** Server-side diagnostics only. Errors are never serialized into public research results. */
   onError?: (event: {

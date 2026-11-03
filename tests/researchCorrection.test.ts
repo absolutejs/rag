@@ -217,3 +217,39 @@ test("provider failure during correction is never automatically replayed", async
   expect(result.data).toBeNull();
   expect(result.fields[0]?.value).toBe("Invented");
 });
+
+for (const [settled, rounds, expectedPlans] of [
+  [true, 2, 2],
+  [false, 2, 1],
+  [true, 1, 1],
+] as const) {
+  test(`malformed discovery plan respects settled=${settled} and rounds=${rounds}`, async () => {
+    const calls: unknown[] = [];
+    const searches: string[] = [];
+    const outputs: unknown[] = [{ urls: [], done: false }];
+    if (expectedPlans === 2)
+      outputs.push({
+        queries: ["verified primary evidence"],
+        urls: [],
+        done: true,
+      });
+    outputs.push({ name: "Example" }, reviewed("supported"));
+    const result = await createResearch({
+      ...config(outputs, calls, searches),
+      evidenceRepairs: 0,
+      limits: { rounds, reads: 0, searches: 2 },
+      isReviewFailureSettled: async () => settled,
+    }).extract(task, { query: "water treatment companies" });
+    expect(result.data).toEqual({ name: "Example" });
+    expect(result.sources).toHaveLength(expectedPlans);
+    expect(searches).toHaveLength(expectedPlans);
+    expect(calls).toHaveLength(expectedPlans + 2);
+    expect(
+      result.operations.filter((operation) => operation.kind === "plan"),
+    ).toHaveLength(expectedPlans);
+    expect(result.limitations).toContain(
+      "Invalid planning output; continued with retrieved evidence",
+    );
+    expect(outputs).toEqual([]);
+  });
+}
