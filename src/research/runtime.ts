@@ -198,6 +198,10 @@ export const createResearch = (config: ResearchConfig): ResearchRuntime => {
       (resumed.version !== 1 ||
         resumed.fingerprint !== fingerprint ||
         resumed.pending ||
+        (resumed.nextBatchSize !== undefined &&
+          (!Number.isSafeInteger(resumed.nextBatchSize) ||
+            resumed.nextBatchSize < 1 ||
+            resumed.nextBatchSize > reviewBatchSize)) ||
         !Number.isSafeInteger(resumed.nextField) ||
         resumed.nextField < 0 ||
         !Number.isSafeInteger(resumed.pass) ||
@@ -207,6 +211,18 @@ export const createResearch = (config: ResearchConfig): ResearchRuntime => {
       throw new Error(
         "Review checkpoint requires reconciliation or does not match this task",
       );
+    // Older safe checkpoints have no size hint. A settled failed review is
+    // distinguishable from a completed batch by its last operation receipt.
+    const legacyFailedReview =
+      resumed &&
+      !resumed.pending &&
+      resumed.result.operations.at(-1)?.kind === "review" &&
+      resumed.result.operations.at(-1)?.status === "unknown";
+    let nextBatchSize =
+      resumed?.nextBatchSize ??
+      (legacyFailedReview
+        ? Math.max(1, Math.floor(reviewBatchSize / 2))
+        : reviewBatchSize);
     const result: ResearchResult<ResearchStatic<S>> = resumed
       ? (structuredClone(resumed.result) as ResearchResult<ResearchStatic<S>>)
       : {
@@ -252,6 +268,7 @@ export const createResearch = (config: ResearchConfig): ResearchRuntime => {
         pass,
         stage,
         nextField,
+        nextBatchSize,
         pending,
         finished,
         draft: structuredClone(draft),
@@ -790,7 +807,7 @@ export const createResearch = (config: ResearchConfig): ResearchRuntime => {
           let offset = reviewStart;
           offset < leaves.length;
           offset += Math.min(
-            reviewBatchSize,
+            nextBatchSize,
             limits.fields - (offset - reviewStart),
           )
         ) {
@@ -804,7 +821,7 @@ export const createResearch = (config: ResearchConfig): ResearchRuntime => {
           const batch = leaves.slice(
             offset,
             offset +
-              Math.min(reviewBatchSize, limits.fields - (offset - reviewStart)),
+              Math.min(nextBatchSize, limits.fields - (offset - reviewStart)),
           );
           await persistReview(pass, offset, true, data);
           let reviewed: ResearchStatic<typeof ReviewSchema>;
@@ -836,6 +853,14 @@ export const createResearch = (config: ResearchConfig): ResearchRuntime => {
                 error.message === "Research budget denied") ||
               (!admit &&
                 (await config.isReviewFailureSettled?.(error)) === true);
+            if (
+              known &&
+              !(
+                error instanceof Error &&
+                error.message === "Research budget denied"
+              )
+            )
+              nextBatchSize = Math.max(1, Math.floor(batch.length / 2));
             await persistReview(pass, offset, !known, data);
             throw error;
           }

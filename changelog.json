@@ -6,6 +6,20 @@
 			"changes": [
 				{
 					"kind": "fixed",
+					"summary": "Shrink settled failed review batches on explicit continuation, preserving prior verdicts and legacy checkpoints without automatic retries.",
+					"symbols": [
+						"createResearch",
+						"ResearchReviewCheckpoint"
+					]
+				}
+			],
+			"date": "2026-11-03",
+			"version": "0.24.2"
+		},
+		{
+			"changes": [
+				{
+					"kind": "fixed",
 					"summary": "Mark empty extractions complete and retain retrieval cursors across review continuation without repeating searches or reads.",
 					"symbols": [
 						"createResearch",

@@ -225,3 +225,61 @@ test("empty extraction is finished and reopening it performs no generation", asy
   });
   expect(count).toBe(1);
 });
+
+test("settled oversized batches shrink on explicit resume without repeating reviewed fields", async () => {
+  const sizes: number[] = [];
+  const pointers: string[] = [];
+  let fail = true;
+  const adaptive: AIProviderConfig = {
+    ...provider,
+    async *stream(input) {
+      const payload = JSON.parse(input.messages.at(-1)!.content as string);
+      if (payload.fields) {
+        sizes.push(payload.fields.length);
+        pointers.push(payload.fields[0].path);
+        if (payload.fields[0].path === "/facts/8" && fail) {
+          fail = false;
+          throw Error("settled output exhaustion");
+        }
+      }
+      yield* provider.stream(input);
+    },
+  };
+  const runtime = createResearch({
+    search,
+    provider: adaptive,
+    model: "fixture",
+    limits: { rounds: 0 },
+    isReviewFailureSettled: async () => true,
+  });
+  const first = await runtime.extract(task, { query: "Example" });
+  expect(sizes).toEqual([8, 8]);
+  expect(first.fields).toHaveLength(8);
+  expect(first.reviewCheckpoint).toMatchObject({
+    nextField: 8,
+    nextBatchSize: 4,
+    pending: false,
+  });
+  const legacy = structuredClone(first.reviewCheckpoint!);
+  delete legacy.nextBatchSize;
+  const recovered = await runtime.extract(task, {
+    query: "Example",
+    resumeReview: legacy,
+  });
+  expect(pointers.slice(2)).toEqual([
+    "/facts/8",
+    "/facts/12",
+    "/facts/16",
+    "/facts/20",
+    "/facts/24",
+    "/facts/28",
+  ]);
+  expect(sizes.slice(2)).toEqual([4, 4, 4, 4, 4, 2]);
+  expect(recovered.data).toEqual(draft);
+  await expect(
+    runtime.extract(task, {
+      query: "Example",
+      resumeReview: { ...legacy, nextBatchSize: 99 },
+    }),
+  ).rejects.toThrow("reconciliation");
+});

@@ -346,3 +346,5 @@ review processing finished, not that every claim was supported. Reopening a
 finished checkpoint performs no provider work. Checkpoints during evidence
 correction remain pending until the new extraction is safely retained, preventing
 replay of uncertain correction calls.
+
+Settled failed review batches retain a reduced `nextBatchSize` in the private checkpoint. Explicit continuation halves the failed batch down to one field while retaining completed verdicts; it does not increase output limits or automatically repeat calls. Safe checkpoints written before this hint was introduced remain resumable. Unknown or pending calls still require reconciliation.

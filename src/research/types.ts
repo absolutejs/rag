@@ -42,6 +42,8 @@ export type ResearchReviewCheckpoint = {
   pass: number;
   stage?: "extract" | "review";
   nextField: number;
+  /** Reduced after a settled failed batch; never increases the configured maximum. */
+  nextBatchSize?: number;
   pending: boolean;
   finished?: boolean;
   draft: unknown;
