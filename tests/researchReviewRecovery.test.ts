@@ -194,3 +194,34 @@ test("a settled malformed review preserves the draft without an automatic retry"
   }).extract(task, { query: "Example" });
   expect(unknown.reviewCheckpoint?.pending).toBe(true);
 });
+
+test("empty extraction is finished and reopening it performs no generation", async () => {
+  let count = 0;
+  const emptyProvider: AIProviderConfig = {
+    name: "fixture",
+    async *stream(input) {
+      count++;
+      yield {
+        type: "tool_use",
+        id: "empty",
+        name: input.tools![0]!.name,
+        input: { facts: [] },
+      };
+      yield { type: "done" };
+    },
+  };
+  const runtime = createResearch({
+    search,
+    provider: emptyProvider,
+    model: "fixture",
+    limits: { rounds: 0 },
+  });
+  const result = await runtime.extract(task, { query: "Example" });
+  expect(result.reviewCheckpoint?.finished).toBe(true);
+  expect(result.reviewCheckpoint?.searched).toEqual(["Example"]);
+  await runtime.extract(task, {
+    query: "Example",
+    resumeReview: result.reviewCheckpoint,
+  });
+  expect(count).toBe(1);
+});

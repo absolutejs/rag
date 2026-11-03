@@ -256,6 +256,9 @@ export const createResearch = (config: ResearchConfig): ResearchRuntime => {
         finished,
         draft: structuredClone(draft),
         result: structuredClone(snapshot),
+        searched: [...queries],
+        read: [...urls],
+        links: [...discoveredLinks.values()],
       };
       try {
         await input.onReviewCheckpoint?.(checkpoint);
@@ -419,7 +422,12 @@ export const createResearch = (config: ResearchConfig): ResearchRuntime => {
         document.text,
       ]),
     );
-    for (const prior of result.searches) queries.add(prior.query);
+    for (const prior of resumed?.searched ??
+      result.searches.map((search) => search.query))
+      queries.add(prior);
+    for (const prior of resumed?.read ?? []) urls.add(prior);
+    for (const link of resumed?.links ?? [])
+      discoveredLinks.set(link.url, link);
     for (const prior of result.sources)
       if (prior.contentFetchedAt) urls.add(prior.url);
     const rebalanceEvidence = () => {
@@ -773,6 +781,7 @@ export const createResearch = (config: ResearchConfig): ResearchRuntime => {
         if (!leaves.length) {
           result.data = data;
           result.status = result.limitations.length ? "partial" : "empty";
+          await persistReview(pass, 0, false, data, true);
           return result;
         }
         const reviewSources = researchPassages(result.sources);

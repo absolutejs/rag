@@ -45,6 +45,9 @@ export type ResearchReviewCheckpoint = {
   pending: boolean;
   finished?: boolean;
   draft: unknown;
+  searched?: string[];
+  read?: string[];
+  links?: Array<{ url: string; label: string; discoveredOn: string }>;
   result: ResearchResult;
 };
 export type ResearchResult<T = unknown> = {

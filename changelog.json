@@ -5,6 +5,20 @@
 		{
 			"changes": [
 				{
+					"kind": "fixed",
+					"summary": "Mark empty extractions complete and retain retrieval cursors across review continuation without repeating searches or reads.",
+					"symbols": [
+						"createResearch",
+						"ResearchReviewCheckpoint"
+					]
+				}
+			],
+			"date": "2026-11-03",
+			"version": "0.24.1"
+		},
+		{
+			"changes": [
+				{
 					"kind": "added",
 					"summary": "Bounded review batches with durable unreviewed drafts, fenced host checkpoints, explicit resume and preserved partial verdicts.",
 					"symbols": [
