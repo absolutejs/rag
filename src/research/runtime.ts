@@ -573,6 +573,14 @@ export const createResearch = (config: ResearchConfig): ResearchRuntime => {
             reader_unavailable: "Website reader unavailable",
             fetch_failed: "Page could not be retrieved",
             timeout: "Page retrieval timed out",
+            ...(config.excludeBlockedSources
+              ? {
+                  unsafe_url: "Unsafe source excluded",
+                  blocked_address: "Unsafe source excluded",
+                  blocked_url: "Unsafe source excluded",
+                  invalid_url: "Invalid source excluded",
+                }
+              : {}),
           };
           if (!isWebReadError(error) || !messages[error.code]) throw error;
           return {
@@ -601,8 +609,14 @@ export const createResearch = (config: ResearchConfig): ResearchRuntime => {
             "blocked_url",
             "invalid_url",
           ].includes(code)
-        )
-          throw new WebReadError(code, "Unsafe research source URL");
+        ) {
+          if (!config.excludeBlockedSources)
+            throw new WebReadError(code, "Unsafe research source URL");
+          result.sources = result.sources.filter(
+            (source) => source.url !== url,
+          );
+          sourceText.delete(url);
+        }
         const message = "Source unavailable (" + code + ")";
         (result.sourceFailures ??= []).push({ url, code, message });
         result.limitations.push(`${message}: ${url}`);

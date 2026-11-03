@@ -6,6 +6,20 @@
 			"changes": [
 				{
 					"kind": "fixed",
+					"summary": "Allow trusted hosts to isolate blocked destinations while retaining their failures and excluding their evidence; preserve URL protections and fatal accounting failures.",
+					"symbols": [
+						"createResearch",
+						"ResearchConfig"
+					]
+				}
+			],
+			"date": "2026-11-03",
+			"version": "0.24.8"
+		},
+		{
+			"changes": [
+				{
+					"kind": "fixed",
 					"summary": "Use remaining configured discovery rounds after a host-confirmed settled malformed plan; preserve unknown-outcome blocking and existing call limits.",
 					"symbols": [
 						"createResearch",

@@ -1049,3 +1049,85 @@ test("text research omits display image URLs from every model phase without drop
     expect(payload.sources[0].metadata.readFinalUrl).toBe(source.url);
   }
 });
+
+test("explicit blocked-source isolation keeps the destination blocked and excludes its evidence", async () => {
+  const { WebReadError } = await import("../src/web/transport");
+  const blocked = {
+    ...source,
+    id: "blocked",
+    url: "https://blocked.example/page",
+    excerpts: ["UNTRUSTED_BLOCKED_CONTENT"],
+  };
+  const calls: unknown[] = [];
+  const reads: string[] = [];
+  const runtime = createResearch({
+    excludeBlockedSources: true,
+    search: {
+      ...search(),
+      search: async (input) => ({
+        provider: "fixture",
+        version: "1",
+        query: input.query,
+        status: "ok",
+        sources: [source, blocked],
+        attempts: [],
+        limitations: [],
+      }),
+    },
+    model: "fixture",
+    provider: model(
+      [
+        { queries: [], urls: [blocked.url], done: true },
+        { name: "Example" },
+        modelReview,
+      ],
+      calls,
+    ),
+    reader: async (input) => {
+      reads.push(input.url);
+      throw new WebReadError("blocked_address", "Private network details");
+    },
+  });
+  const result = await runtime.extract(
+    { schema: Type.Object({ name: Type.String() }) },
+    { query: "Example" },
+  );
+  expect(reads).toEqual([blocked.url]);
+  expect(result.fields[0]?.verdict).toBe("supported");
+  expect(result.sources.map((item) => item.url)).toEqual([source.url]);
+  expect(result.sourceFailures).toEqual([
+    {
+      url: blocked.url,
+      code: "blocked_address",
+      message: "Source unavailable (blocked_address)",
+    },
+  ]);
+  expect(JSON.stringify(calls.slice(1))).not.toContain(
+    "UNTRUSTED_BLOCKED_CONTENT",
+  );
+  expect(result.limitations.join(" ")).not.toContain("Private network details");
+});
+
+test("blocked-source isolation cannot recover uncertain read settlement", async () => {
+  const { WebReadError } = await import("../src/web/transport");
+  const runtime = createResearch({
+    excludeBlockedSources: true,
+    search: search(),
+    model: "fixture",
+    provider: model([{ queries: [], urls: [source.url], done: true }]),
+    reader: async () => {
+      throw new WebReadError("blocked_address", "Blocked");
+    },
+    admit: async ({ kind }) => ({
+      settle: async () => {
+        if (kind === "read") throw Error("Unknown settlement");
+      },
+    }),
+  });
+  const result = await runtime.extract(
+    { schema: Type.Object({ name: Type.String() }) },
+    { query: "Example" },
+  );
+  expect(result.fields).toEqual([]);
+  expect(result.sourceFailures).toBeUndefined();
+});

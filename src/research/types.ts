@@ -123,6 +123,8 @@ export type ResearchLimits = {
   fields: number;
 };
 export type ResearchConfig = {
+  /** Trusted host opt-in: retain blocked destination failures, exclude their source evidence, and continue other sources. The reader still enforces all URL/DNS protections. Default false; never recovers accounting failures. */
+  excludeBlockedSources?: boolean;
   /** Bounded factual correction passes after review. Default 0, maximum 2. Every correction is extracted and independently reviewed again. */
   evidenceRepairs?: number;
   /** Capacity reserved within the existing limits for review-identified gaps. */

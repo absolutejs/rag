@@ -348,3 +348,5 @@ correction remain pending until the new extraction is safely retained, preventin
 replay of uncertain correction calls.
 
 Settled failed review batches retain a reduced `nextBatchSize` in the private checkpoint. Explicit continuation halves the failed batch down to one field while retaining completed verdicts; it does not increase output limits or automatically repeat calls. Safe checkpoints written before this hint was introduced remain resumable. Unknown or pending calls still require reconciliation.
+
+Trusted hosts may set `excludeBlockedSources: true` to isolate a URL/DNS-blocked source during multi-source research. The reader still rejects that destination; the runtime removes its evidence from extraction/review, retains the source failure, and continues other sources. This is disabled by default and never recovers an uncertain provider or accounting settlement.
