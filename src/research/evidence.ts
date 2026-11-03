@@ -26,6 +26,28 @@ export const ReviewSchema = Type.Object({
   ),
 });
 
+/** Make the tool contract match this batch rather than inviting a full-draft review. */
+export const reviewSchemaForPaths = (paths: string[]) =>
+  Type.Object(
+    {
+      fields: Type.Array(
+        Type.Object(
+          {
+            ...ReviewSchema.properties.fields.items.properties,
+            path: Type.Union(paths.map((path) => Type.Literal(path))),
+            reason: Type.String({ maxLength: 180 }),
+            citations: Type.Array(Type.Object({ passageId: Type.String() }), {
+              maxItems: 4,
+            }),
+          },
+          { additionalProperties: false },
+        ),
+        { minItems: paths.length, maxItems: paths.length },
+      ),
+    },
+    { additionalProperties: false },
+  );
+
 export const researchLeaves = (value: unknown, maxFields = 128) => {
   const fields: Pick<ResearchField, "path" | "value">[] = [];
   const visit = (item: unknown, path: string, depth: number) => {

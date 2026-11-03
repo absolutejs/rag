@@ -2,6 +2,8 @@ import { expect, test } from "bun:test";
 import { Type } from "@sinclair/typebox";
 import type { AIProviderConfig } from "@absolutejs/ai";
 import type { ResearchReviewCheckpoint } from "../src/research/types";
+import { reviewSchemaForPaths } from "../src/research/evidence";
+import { checkResearchValue } from "../src/research/schema";
 import { createResearch } from "../src/research/runtime";
 
 const task = { schema: Type.Object({ facts: Type.Array(Type.String()) }) };
@@ -22,6 +24,15 @@ const provider: AIProviderConfig = {
     if (payload.fields) {
       calls.push(`review:${payload.fields[0].path}`);
       expect(payload.fields.length).toBeLessThanOrEqual(8);
+      const reviewSchema = input.tools![0]!.input_schema as {
+        properties: { fields: { minItems: number; maxItems: number } };
+      };
+      expect(reviewSchema.properties.fields.minItems).toBe(
+        payload.fields.length,
+      );
+      expect(reviewSchema.properties.fields.maxItems).toBe(
+        payload.fields.length,
+      );
       output = {
         fields: payload.fields.map((field: { path: string }) => ({
           path: field.path,
@@ -353,4 +364,34 @@ test("JSON storage key reordering resumes by pointer without losing or repeating
   });
   expect(rejected.data).toBeNull();
   expect(seen).toHaveLength(4);
+});
+
+test("batch response schema rejects extra pointers, oversized reasons and a full-draft response", () => {
+  const schema = reviewSchemaForPaths(["/name"]);
+  const field = {
+    path: "/name",
+    verdict: "unknown",
+    citations: [],
+    reason: "Missing identity evidence",
+    checks: {
+      answersQuestion: true,
+      correctEntity: false,
+      correctTime: true,
+      preservesScope: true,
+    },
+  };
+  expect(checkResearchValue(schema, { fields: [field] })).toBe(true);
+  expect(
+    checkResearchValue(schema, {
+      fields: [field, { ...field, path: "/website" }],
+    }),
+  ).toBe(false);
+  expect(
+    checkResearchValue(schema, { fields: [{ ...field, path: "/website" }] }),
+  ).toBe(false);
+  expect(
+    checkResearchValue(schema, {
+      fields: [{ ...field, reason: "x".repeat(181) }],
+    }),
+  ).toBe(false);
 });

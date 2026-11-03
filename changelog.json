@@ -6,6 +6,19 @@
 			"changes": [
 				{
 					"kind": "fixed",
+					"summary": "Bind each review tool response to the exact batch pointers and cardinality, with bounded reasons and citations, instead of permitting a full-draft response.",
+					"symbols": [
+						"createResearch"
+					]
+				}
+			],
+			"date": "2026-11-03",
+			"version": "0.24.4"
+		},
+		{
+			"changes": [
+				{
+					"kind": "fixed",
 					"summary": "Resume persisted review drafts by JSON pointer and value across database key reordering, preserving completed verdicts and rejecting changed identities.",
 					"symbols": [
 						"createResearch"
