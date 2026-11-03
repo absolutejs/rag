@@ -6,6 +6,19 @@
 			"changes": [
 				{
 					"kind": "fixed",
+					"summary": "Resume persisted review drafts by JSON pointer and value across database key reordering, preserving completed verdicts and rejecting changed identities.",
+					"symbols": [
+						"createResearch"
+					]
+				}
+			],
+			"date": "2026-11-03",
+			"version": "0.24.3"
+		},
+		{
+			"changes": [
+				{
+					"kind": "fixed",
 					"summary": "Shrink settled failed review batches on explicit continuation, preserving prior verdicts and legacy checkpoints without automatic retries.",
 					"symbols": [
 						"createResearch",

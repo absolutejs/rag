@@ -783,18 +783,30 @@ export const createResearch = (config: ResearchConfig): ResearchRuntime => {
           false,
           data,
         );
-        const leaves = researchLeaves(data, Number.MAX_SAFE_INTEGER);
-        if (
-          continuing &&
-          (resumed.nextField > leaves.length ||
+        let leaves = researchLeaves(data, Number.MAX_SAFE_INTEGER);
+        if (continuing) {
+          // JSON stores may reorder object keys. Identity is the pointer/value,
+          // never the serialization position. Retain completed review order.
+          const byPath = new Map(leaves.map((field) => [field.path, field]));
+          const completedPaths = new Set(
+            result.fields.map((field) => field.path),
+          );
+          if (
+            resumed.nextField > leaves.length ||
             result.fields.length !== resumed.nextField ||
+            completedPaths.size !== result.fields.length ||
             result.fields.some(
-              (field, index) =>
-                field.path !== leaves[index]?.path ||
-                field.value !== leaves[index]?.value,
-            ))
-        )
-          throw new Error("Review checkpoint fields do not match draft");
+              (field) =>
+                !byPath.has(field.path) ||
+                byPath.get(field.path)!.value !== field.value,
+            )
+          )
+            throw new Error("Review checkpoint fields do not match draft");
+          leaves = [
+            ...result.fields.map(({ path, value }) => ({ path, value })),
+            ...leaves.filter((field) => !completedPaths.has(field.path)),
+          ];
+        }
         if (!leaves.length) {
           result.data = data;
           result.status = result.limitations.length ? "partial" : "empty";

@@ -283,3 +283,74 @@ test("settled oversized batches shrink on explicit resume without repeating revi
     }),
   ).rejects.toThrow("reconciliation");
 });
+
+test("JSON storage key reordering resumes by pointer without losing or repeating verdicts", async () => {
+  const objectTask = {
+    schema: Type.Object({
+      name: Type.String(),
+      website: Type.String(),
+      qualificationFacts: Type.Array(Type.String()),
+      proposedPartnershipType: Type.String(),
+    }),
+  };
+  const objectDraft = {
+    name: "Example",
+    proposedPartnershipType: "Channel",
+    qualificationFacts: ["Example exists"],
+    website: "https://example.com",
+  };
+  const seen: string[] = [];
+  const objectProvider: AIProviderConfig = {
+    name: "fixture",
+    async *stream(input) {
+      const payload = JSON.parse(input.messages.at(-1)!.content as string);
+      if (payload.fields) {
+        seen.push(...payload.fields.map((f: { path: string }) => f.path));
+        yield* provider.stream(input);
+      } else {
+        yield {
+          type: "tool_use",
+          id: "draft",
+          name: input.tools![0]!.name,
+          input: objectDraft,
+        };
+        yield { type: "done" };
+      }
+    },
+  };
+  const runtime = createResearch({
+    search,
+    provider: objectProvider,
+    model: "fixture",
+    limits: { rounds: 0, fields: 2 },
+    reviewBatchSize: 2,
+  });
+  const first = await runtime.extract(objectTask, { query: "Example" });
+  const checkpoint = structuredClone(first.reviewCheckpoint!);
+  checkpoint.draft = {
+    name: objectDraft.name,
+    website: objectDraft.website,
+    qualificationFacts: objectDraft.qualificationFacts,
+    proposedPartnershipType: objectDraft.proposedPartnershipType,
+  };
+  const recovered = await runtime.extract(objectTask, {
+    query: "Example",
+    resumeReview: checkpoint,
+  });
+  expect(seen).toEqual([
+    "/name",
+    "/proposedPartnershipType",
+    "/website",
+    "/qualificationFacts/0",
+  ]);
+  expect(recovered.data).toEqual(objectDraft);
+  expect(recovered.reviewCheckpoint?.finished).toBe(true);
+  const changed = structuredClone(checkpoint);
+  changed.draft = { ...objectDraft, name: "Changed identity" };
+  const rejected = await runtime.extract(objectTask, {
+    query: "Example",
+    resumeReview: changed,
+  });
+  expect(rejected.data).toBeNull();
+  expect(seen).toHaveLength(4);
+});
