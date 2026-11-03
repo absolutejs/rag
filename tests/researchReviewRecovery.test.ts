@@ -1,0 +1,196 @@
+import { expect, test } from "bun:test";
+import { Type } from "@sinclair/typebox";
+import type { AIProviderConfig } from "@absolutejs/ai";
+import type { ResearchReviewCheckpoint } from "../src/research/types";
+import { createResearch } from "../src/research/runtime";
+
+const task = { schema: Type.Object({ facts: Type.Array(Type.String()) }) };
+const draft = { facts: Array.from({ length: 30 }, () => "Example exists") };
+const source = {
+  id: "s",
+  url: "https://example.com",
+  title: "Example",
+  excerpts: ["Example exists"],
+  retrievedAt: "2026-11-03",
+};
+const calls: string[] = [];
+const provider: AIProviderConfig = {
+  name: "fixture",
+  async *stream(input) {
+    const payload = JSON.parse(input.messages.at(-1)!.content as string);
+    let output: unknown;
+    if (payload.fields) {
+      calls.push(`review:${payload.fields[0].path}`);
+      expect(payload.fields.length).toBeLessThanOrEqual(8);
+      output = {
+        fields: payload.fields.map((field: { path: string }) => ({
+          path: field.path,
+          verdict: "supported",
+          citations: [{ passageId: "s1:0" }],
+          reason: "Source states it",
+          checks: {
+            answersQuestion: true,
+            correctEntity: true,
+            correctTime: true,
+            preservesScope: true,
+          },
+        })),
+      };
+    } else {
+      calls.push("extract");
+      output = draft;
+    }
+    yield {
+      type: "tool_use",
+      id: "1",
+      name: input.tools![0]!.name,
+      input: output as Record<string, unknown>,
+    };
+    yield { type: "done" };
+  },
+};
+const search = {
+  name: "fixture",
+  version: "1",
+  search: async () => {
+    calls.push("search");
+    return {
+      provider: "fixture",
+      version: "1",
+      query: "Example",
+      status: "ok" as const,
+      sources: [source],
+      attempts: [],
+      limitations: [],
+    };
+  },
+};
+
+test("30-field extraction survives budget stop and resumes only unfinished batches", async () => {
+  calls.length = 0;
+  let stored: ResearchReviewCheckpoint | undefined;
+  let reviews = 0;
+  const runtime = createResearch({
+    search,
+    provider,
+    model: "fixture",
+    reviewBatchSize: 8,
+    limits: { rounds: 0 },
+    admit: async ({ kind }) =>
+      kind === "review" && ++reviews === 3 ? false : { settle: async () => {} },
+  });
+  const first = await runtime.extract(task, {
+    query: "Example",
+    onReviewCheckpoint: async (checkpoint) => {
+      stored = structuredClone(checkpoint);
+    },
+  });
+  expect(first.data).toBeNull();
+  expect(first.draft).toEqual(draft);
+  expect(first.fields).toHaveLength(16);
+  expect(stored?.pending).toBe(false);
+  expect(stored?.nextField).toBe(16);
+  expect(stored?.result.documents?.[0]?.text).toBe("Example exists");
+  const before = calls.length;
+  const recovered = await runtime.extract(task, {
+    query: "Example",
+    resumeReview: stored,
+  });
+  expect(calls.slice(before)).toEqual(["review:/facts/16", "review:/facts/24"]);
+  expect(recovered.data).toEqual(draft);
+  expect(recovered.fields).toHaveLength(30);
+  expect(recovered.reviewCheckpoint?.finished).toBe(true);
+  const done = await runtime.extract(task, {
+    query: "Example",
+    resumeReview: recovered.reviewCheckpoint,
+  });
+  expect(done.data).toEqual(draft);
+  expect(calls.length).toBe(before + 2);
+});
+
+test("pending review, changed task, and failed persistence never trigger paid replay", async () => {
+  let saved: ResearchReviewCheckpoint | undefined;
+  const runtime = createResearch({
+    search,
+    provider,
+    model: "fixture",
+    reviewBatchSize: 8,
+    limits: { rounds: 0 },
+  });
+  await expect(
+    runtime.extract(task, {
+      query: "Example",
+      onReviewCheckpoint: async (checkpoint) => {
+        saved = structuredClone(checkpoint);
+        if (checkpoint.pending) throw Error("disk unavailable");
+      },
+    }),
+  ).rejects.toThrow("checkpoint persistence failed");
+  const before = calls.length;
+  await expect(
+    runtime.extract(task, { query: "Example", resumeReview: saved }),
+  ).rejects.toThrow("reconciliation");
+  await expect(
+    runtime.extract(task, {
+      query: "Changed",
+      resumeReview: { ...saved!, pending: false },
+    }),
+  ).rejects.toThrow("does not match");
+  expect(calls.length).toBe(before);
+});
+
+test("field allowance pauses without discarding a larger extracted draft", async () => {
+  const runtime = createResearch({
+    search,
+    provider,
+    model: "fixture",
+    reviewBatchSize: 8,
+    limits: { rounds: 0, fields: 16 },
+  });
+  const first = await runtime.extract(task, { query: "Example" });
+  expect(first.draft).toEqual(draft);
+  expect(first.fields).toHaveLength(16);
+  expect(first.reviewCheckpoint?.pending).toBe(false);
+  const recovered = await runtime.extract(task, {
+    query: "Example",
+    resumeReview: first.reviewCheckpoint,
+  });
+  expect(recovered.fields).toHaveLength(30);
+  expect(recovered.data).toEqual(draft);
+});
+
+test("a settled malformed review preserves the draft without an automatic retry", async () => {
+  const failure = Error("confirmed malformed output");
+  let attempts = 0;
+  const broken: AIProviderConfig = {
+    ...provider,
+    async *stream(input) {
+      const payload = JSON.parse(input.messages.at(-1)!.content as string);
+      if (payload.fields) {
+        attempts++;
+        throw failure;
+      }
+      yield* provider.stream(input);
+    },
+  };
+  const runtime = createResearch({
+    search,
+    provider: broken,
+    model: "fixture",
+    limits: { rounds: 0 },
+    isReviewFailureSettled: async () => true,
+  });
+  const result = await runtime.extract(task, { query: "Example" });
+  expect(result.draft).toEqual(draft);
+  expect(result.data).toBeNull();
+  expect(attempts).toBe(1);
+  expect(result.reviewCheckpoint?.pending).toBe(false);
+  // Unknown failures stay quarantined unless the host proves settlement.
+  const unknown = await createResearch({
+    search,
+    provider: broken,
+    model: "fixture",
+    limits: { rounds: 0 },
+  }).extract(task, { query: "Example" });
+  expect(unknown.reviewCheckpoint?.pending).toBe(true);
+});

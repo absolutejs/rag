@@ -35,7 +35,23 @@ export type ResearchField = {
     preservesScope: boolean;
   };
 };
+/** Host-owned private checkpoint. Never accept this from an untrusted client. */
+export type ResearchReviewCheckpoint = {
+  version: 1;
+  fingerprint: string;
+  pass: number;
+  stage?: "extract" | "review";
+  nextField: number;
+  pending: boolean;
+  finished?: boolean;
+  draft: unknown;
+  result: ResearchResult;
+};
 export type ResearchResult<T = unknown> = {
+  /** Unreviewed extraction is retained for recovery, never an endorsed answer. */
+  draft?: unknown;
+  reviewCheckpoint?: ResearchReviewCheckpoint;
+
   /** Complete fetched text retained separately from model-facing excerpts. */
   documents?: Array<{
     sourceId: string;
@@ -87,6 +103,10 @@ export type ResearchInput = {
   freshness?: string;
   signal?: AbortSignal;
   onProgress?: (event: ResearchProgress) => void;
+  /** Trusted, tenant-bound host storage only; pending calls require reconciliation. */
+  resumeReview?: ResearchReviewCheckpoint;
+  /** Awaited before review and after each batch. Persistence failure stops work. */
+  onReviewCheckpoint?: (checkpoint: ResearchReviewCheckpoint) => Promise<void>;
 };
 export type ResearchLimits = {
   searches: number;
@@ -105,6 +125,12 @@ export type ResearchConfig = {
   repairReads?: number;
   /** Extra schema-validation attempts per extract/review, each separately admitted. Default 1; 0 disables repair. Provider/network failures are never retried. */
   validationRepairs?: number;
+  /** Maximum fields in one review call. Default 12, additionally bounded by outputTokens. */
+  reviewBatchSize?: number;
+  /** Per-batch output ceiling, independent of extraction size. */
+  reviewOutputTokens?: number;
+  /** Host must confirm completed response AND durable accounting. Never retries automatically. Unused with package admission. */
+  isReviewFailureSettled?: (error: unknown) => Promise<boolean>;
   /** Server-side diagnostics only. Errors are never serialized into public research results. */
   onError?: (event: {
     runId: string;

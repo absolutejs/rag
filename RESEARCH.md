@@ -313,3 +313,36 @@ Set `evidenceRepairs: 1` (maximum 2, default 0) to allow a bounded correction af
 Collection tasks can set `minimumSupportedFields: { qualificationFacts: 1 }` alongside `requiredFields: ["name", "website"]` to require a minimum number of supported string leaves in an atomic fact array. Unsupported leaves remain rejected; callers must project only supported fields when `data` is null.
 
 Budget for each correction's optional retrieval plan, extraction and review, including configured schema repairs. Every model and retrieval operation follows the same admission and settlement path as initial research. Correction is disabled unless explicitly configured.
+
+## Durable batched review (0.24)
+
+Review now runs in small field batches rather than requiring the complete review
+in one model response. `reviewOutputTokens` defaults to the smaller of the global
+output limit and 2,048; `reviewBatchSize` defaults to 12 and is further bounded to
+one field per 256 output tokens (eight fields at the default review ceiling).
+Price every batch, validation repair and evidence-correction pass separately.
+`limits.fields` bounds work per review attempt; excess fields remain in the draft
+for explicit continuation, rather than invalidating the extraction.
+
+`result.draft` is **unreviewed**, never a supported answer. Only `fields` carry
+review verdicts; `data` still requires all fields to pass. `documents` retain
+original text for both search snippets and fetched pages independently of the
+model-facing excerpt allowance.
+
+For durable operation, supply `input.onReviewCheckpoint` and await a tenant-bound,
+compare-and-swap write in that callback. The runtime calls it before extraction,
+before each review batch, and after each completed batch. Persistence failure
+stops execution. Reopen trusted stored state with `input.resumeReview` to reuse
+sources, extraction and completed batches. Task/model/batch identity must match.
+Checkpoints and drafts are private host state, never client-supplied proof.
+
+A `pending` checkpoint cannot resume: the provider outcome or checkpoint write
+requires reconciliation. Admission denial leaves a safe continuation. A host
+using its own metering may implement `isReviewFailureSettled` only when it can
+prove the failed generation completed and its usage is durably accounted for;
+this hook also applies to extraction failures. It never triggers an automatic
+retry. Package-budget failures remain conservatively pending. `finished` means
+review processing finished, not that every claim was supported. Reopening a
+finished checkpoint performs no provider work. Checkpoints during evidence
+correction remain pending until the new extraction is safely retained, preventing
+replay of uncertain correction calls.

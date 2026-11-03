@@ -3,8 +3,23 @@
 	"name": "@absolutejs/rag",
 	"releases": [
 		{
-			"version": "0.23.0",
-			"date": "2026-11-02",
+			"changes": [
+				{
+					"kind": "added",
+					"summary": "Bounded review batches with durable unreviewed drafts, fenced host checkpoints, explicit resume and preserved partial verdicts.",
+					"symbols": [
+						"createResearch",
+						"ResearchConfig",
+						"ResearchInput",
+						"ResearchResult",
+						"ResearchReviewCheckpoint"
+					]
+				}
+			],
+			"date": "2026-11-03",
+			"version": "0.24.0"
+		},
+		{
 			"changes": [
 				{
 					"kind": "added",
@@ -16,7 +31,9 @@
 						"ResearchTask"
 					]
 				}
-			]
+			],
+			"date": "2026-11-02",
+			"version": "0.23.0"
 		},
 		{
 			"changes": [
