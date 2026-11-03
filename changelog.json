@@ -8,7 +8,8 @@
 					"kind": "fixed",
 					"summary": "Use remaining configured discovery rounds after a host-confirmed settled malformed plan; preserve unknown-outcome blocking and existing call limits.",
 					"symbols": [
-						"createResearch"
+						"createResearch",
+						"ResearchConfig"
 					]
 				}
 			],
