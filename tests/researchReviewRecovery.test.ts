@@ -397,3 +397,71 @@ test("batch response schema rejects extra pointers but retains complete review e
     }),
   ).toBe(true);
 });
+
+test("isolated relationship fields retain unreviewed entity context without expanding the response batch", async () => {
+  const candidates = {
+    candidates: [
+      { name: "Example", proposal: "Channel" },
+      { name: "Another", proposal: "Customer" },
+    ],
+  };
+  const candidateTask = {
+    schema: Type.Object({
+      candidates: Type.Array(
+        Type.Object({ name: Type.String(), proposal: Type.String() }),
+      ),
+    }),
+  };
+  const contexts: string[] = [];
+  const contextualProvider: AIProviderConfig = {
+    name: "fixture",
+    async *stream(input) {
+      const payload = JSON.parse(input.messages.at(-1)!.content as string);
+      if (!payload.fields) {
+        yield {
+          type: "tool_use",
+          id: "draft",
+          name: input.tools![0]!.name,
+          input: candidates,
+        };
+      } else {
+        const index = Number(payload.fields[0].path.split("/")[2]);
+        const name = payload.draftContext?.candidates[index]?.name;
+        contexts.push(name);
+        yield {
+          type: "tool_use",
+          id: "review",
+          name: input.tools![0]!.name,
+          input: {
+            fields: [
+              {
+                path: payload.fields[0].path,
+                verdict: name ? "supported" : "unknown",
+                citations: [{ passageId: "s1:0" }],
+                reason:
+                  "Correct entity context supplied; source remains required",
+                checks: {
+                  answersQuestion: true,
+                  correctEntity: Boolean(name),
+                  correctTime: true,
+                  preservesScope: true,
+                },
+              },
+            ],
+          },
+        };
+      }
+      yield { type: "done" };
+    },
+  };
+  const result = await createResearch({
+    search,
+    provider: contextualProvider,
+    model: "fixture",
+    reviewBatchSize: 1,
+    limits: { rounds: 0 },
+  }).extract(candidateTask, { query: "Example" });
+  expect(contexts).toEqual(["Example", "Example", "Another", "Another"]);
+  expect(result.fields).toHaveLength(4);
+  expect(result.data).toEqual(candidates);
+});

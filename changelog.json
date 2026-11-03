@@ -6,6 +6,19 @@
 			"changes": [
 				{
 					"kind": "fixed",
+					"summary": "Retain unreviewed entity and sibling context in bounded field reviews; distinguish proposed relationships from factual claims while requiring cited premises.",
+					"symbols": [
+						"createResearch"
+					]
+				}
+			],
+			"date": "2026-11-03",
+			"version": "0.24.6"
+		},
+		{
+			"changes": [
+				{
+					"kind": "fixed",
 					"summary": "Preserve complete review explanations and citation evidence without rejecting valid verdicts over cosmetic length constraints; retain exact batch pointer and count bounds.",
 					"symbols": [
 						"createResearch"
