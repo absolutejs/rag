@@ -366,7 +366,7 @@ test("JSON storage key reordering resumes by pointer without losing or repeating
   expect(seen).toHaveLength(4);
 });
 
-test("batch response schema rejects extra pointers, oversized reasons and a full-draft response", () => {
+test("batch response schema rejects extra pointers but retains complete review explanations", () => {
   const schema = reviewSchemaForPaths(["/name"]);
   const field = {
     path: "/name",
@@ -391,7 +391,9 @@ test("batch response schema rejects extra pointers, oversized reasons and a full
   ).toBe(false);
   expect(
     checkResearchValue(schema, {
-      fields: [{ ...field, reason: "x".repeat(181) }],
+      fields: [
+        { ...field, reason: "Useful detailed explanation. ".repeat(20) },
+      ],
     }),
-  ).toBe(false);
+  ).toBe(true);
 });

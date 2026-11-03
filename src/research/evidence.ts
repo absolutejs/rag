@@ -35,10 +35,6 @@ export const reviewSchemaForPaths = (paths: string[]) =>
           {
             ...ReviewSchema.properties.fields.items.properties,
             path: Type.Union(paths.map((path) => Type.Literal(path))),
-            reason: Type.String({ maxLength: 180 }),
-            citations: Type.Array(Type.Object({ passageId: Type.String() }), {
-              maxItems: 4,
-            }),
           },
           { additionalProperties: false },
         ),

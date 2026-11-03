@@ -6,6 +6,19 @@
 			"changes": [
 				{
 					"kind": "fixed",
+					"summary": "Preserve complete review explanations and citation evidence without rejecting valid verdicts over cosmetic length constraints; retain exact batch pointer and count bounds.",
+					"symbols": [
+						"createResearch"
+					]
+				}
+			],
+			"date": "2026-11-03",
+			"version": "0.24.5"
+		},
+		{
+			"changes": [
+				{
+					"kind": "fixed",
 					"summary": "Bind each review tool response to the exact batch pointers and cardinality, with bounded reasons and citations, instead of permitting a full-draft response.",
 					"symbols": [
 						"createResearch"
