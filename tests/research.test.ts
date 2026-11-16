@@ -1198,3 +1198,169 @@ test("isolated source failure diagnostics retain attempts without URL secrets an
   );
   expect(result.sourceFailures?.[0]?.code).toBe("access_blocked");
 });
+
+test("omitted no-action arrays recover without extra calls or failed accounting", async () => {
+  for (const output of [
+    { urls: [], done: true },
+    { queries: [], done: true },
+    { done: true },
+  ]) {
+    const calls: unknown[] = [];
+    const errors: unknown[] = [];
+    const outcomes: string[] = [];
+    const runtime = createResearch({
+      search: search(),
+      model: "fixture",
+      provider: model([output, { name: "Example" }, modelReview], calls),
+      onError: (event) => {
+        errors.push(event);
+      },
+      admit: async () => ({
+        settle: async ({ status }) => {
+          outcomes.push(status);
+        },
+      }),
+    });
+    const result = await runtime.extract(
+      { schema: Type.Object({ name: Type.String() }) },
+      { query: "Example" },
+    );
+    expect(result.status).toBe("reviewed");
+    expect(errors).toEqual([]);
+    expect(outcomes.every((status) => status === "fulfilled")).toBe(true);
+    expect(calls).toHaveLength(3);
+    expect(JSON.stringify(calls[0])).toContain("Use [] for each action list");
+  }
+});
+
+test("omitted queries preserve valid URL actions and existing URL admission", async () => {
+  const reads: string[] = [];
+  const runtime = createResearch({
+    search: search(),
+    model: "fixture",
+    limits: { rounds: 1 },
+    provider: model([
+      {
+        urls: [
+          "http://localhost/private",
+          "https://example.com/invented",
+          source.url,
+        ],
+        done: true,
+      },
+      { name: "Example" },
+      modelReview,
+    ]),
+    reader: async ({ url }) => {
+      reads.push(url);
+      return {
+        status: "ok",
+        url,
+        finalUrl: url,
+        text: source.excerpts[0]!,
+        title: "Example",
+        method: "http",
+        truncated: false,
+        fetchedAt: source.retrievedAt,
+        attempts: [],
+        redirects: [],
+        limitations: [],
+        evidence: { links: [], images: [], media: [], canonicalUrl: null },
+      };
+    },
+  });
+  const result = await runtime.extract(
+    { schema: Type.Object({ name: Type.String() }) },
+    { query: "Example" },
+  );
+  expect(reads).toEqual([source.url]);
+  expect(result.status).toBe("reviewed");
+});
+
+test("omitted urls preserve follow-up queries and initial task planning", async () => {
+  for (const queryMode of ["search", "task"] as const) {
+    const searches: string[] = [];
+    const runtime = createResearch({
+      search: search(searches),
+      model: "fixture",
+      limits: { rounds: 1 },
+      provider: model([
+        { queries: ["Example primary sources"], done: true },
+        { name: "Example" },
+        modelReview,
+      ]),
+    });
+    const result = await runtime.extract(
+      { schema: Type.Object({ name: Type.String() }) },
+      { query: "Example", ...(queryMode === "task" ? { queryMode } : {}) },
+    );
+    expect(searches).toEqual(
+      queryMode === "task"
+        ? ["Example primary sources"]
+        : ["Example", "Example primary sources"],
+    );
+    expect(result.status).toBe("reviewed");
+  }
+});
+
+test("malformed plans remain invalid and only retained-evidence fallback is marked recovered", async () => {
+  for (const output of [
+    { queries: null, urls: [], done: true },
+    { queries: [], urls: "bad", done: true },
+    { queries: [], urls: [] },
+    { done: false },
+    null,
+    [],
+  ]) {
+    const errors: any[] = [];
+    const runtime = createResearch({
+      search: search(),
+      model: "fixture",
+      limits: { rounds: 1 },
+      provider: model([
+        output ?? { done: "true" },
+        { name: "Example" },
+        modelReview,
+      ]),
+      onError: (event) => {
+        errors.push(event);
+      },
+    });
+    const result = await runtime.extract(
+      { schema: Type.Object({ name: Type.String() }) },
+      { query: "Example" },
+    );
+    expect(result.status).toBe("partial");
+    expect(result.data).toEqual({ name: "Example" });
+    expect(errors).toHaveLength(1);
+    expect(errors[0].recovery).toBe("continued_with_retrieved_evidence");
+  }
+});
+
+test("terminal planner failure is reported once without a recovery claim", async () => {
+  for (const initial of [false, true]) {
+    const errors: any[] = [];
+    const failure = new Error("Deferred approval is closed");
+    const runtime = createResearch({
+      search: search(),
+      model: "fixture",
+      provider: {
+        name: "fixture",
+        async *stream() {
+          throw failure;
+        },
+      },
+      onError: (event) => {
+        errors.push(event);
+      },
+    });
+    const result = await runtime.extract(
+      { schema: Type.Object({ name: Type.String() }) },
+      { query: "Example", ...(initial ? { queryMode: "task" as const } : {}) },
+    );
+    expect(result.status).toBe(initial ? "unavailable" : "partial");
+    expect(result.data).toBeNull();
+    expect(errors).toHaveLength(1);
+    expect(errors[0].recovery).toBeUndefined();
+  }
+});

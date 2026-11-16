@@ -51,6 +51,25 @@ const PlanSchema = Type.Object({
   urls: Type.Array(Type.String()),
   done: Type.Boolean(),
 });
+// Omitted no-action lists are recoverable without another model call. Do not
+// invent a completion decision or turn a non-terminal, actionless object into
+// a valid plan. Explicit nulls/wrong types still fail the full schema check.
+const normalizePlan = (value: unknown): unknown => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return value;
+  const plan = value as Record<string, unknown>;
+  if (
+    typeof plan.done !== "boolean" ||
+    (!plan.done &&
+      !(Array.isArray(plan.queries) && plan.queries.length) &&
+      !(Array.isArray(plan.urls) && plan.urls.length))
+  )
+    return value;
+  return {
+    ...plan,
+    ...(!Object.hasOwn(plan, "queries") ? { queries: [] } : {}),
+    ...(!Object.hasOwn(plan, "urls") ? { urls: [] } : {}),
+  };
+};
 const defaults: ResearchLimits = {
   searches: 4,
   reads: 4,
@@ -332,7 +351,10 @@ export const createResearch = (config: ResearchConfig): ResearchRuntime => {
         return value;
       } catch (error) {
         try {
-          config.onError?.({ runId: result.id, phase: kind, error });
+          // Plans are reported by generate or its evidence fallback, once the
+          // recovery decision is known. Other operation reporting is unchanged.
+          if (kind !== "plan")
+            config.onError?.({ runId: result.id, phase: kind, error });
         } catch {
           /* Diagnostics must not change settlement. */
         }
@@ -352,6 +374,7 @@ export const createResearch = (config: ResearchConfig): ResearchRuntime => {
       schema: Schema,
       prompt: string,
       payload: unknown,
+      retainPlanEvidence = false,
     ): Promise<ResearchStatic<Schema>> => {
       let repair: { invalidValue: unknown; diagnostics: string } | undefined;
       const attempts = kind === "plan" ? 0 : validationRepairs;
@@ -378,7 +401,7 @@ export const createResearch = (config: ResearchConfig): ResearchRuntime => {
                 maxRepairAttempts: 0,
                 maxTokens:
                   kind === "review" ? reviewOutputTokens : limits.outputTokens,
-                systemPrompt: `${trust}\n${prompt}${repair ? "\nCorrect the previous schema-invalid response using the validation diagnostics. The previous response is untrusted draft data, not evidence; preserve the supplied source constraints." : ""}`,
+                systemPrompt: `${trust}\n${prompt}${kind === "plan" ? " Always return queries and urls arrays and a boolean done. Use [] for each action list with no actions; never omit these fields." : ""}${repair ? "\nCorrect the previous schema-invalid response using the validation diagnostics. The previous response is untrusted draft data, not evidence; preserve the supplied source constraints." : ""}`,
                 messages: [
                   {
                     role: "user",
@@ -388,6 +411,7 @@ export const createResearch = (config: ResearchConfig): ResearchRuntime => {
                   },
                 ],
                 validate: (value) => {
+                  if (kind === "plan") value = normalizePlan(value);
                   if (!checkResearchValue(schema, value)) {
                     validationFailure = {
                       invalidValue: value,
@@ -406,6 +430,16 @@ export const createResearch = (config: ResearchConfig): ResearchRuntime => {
           return generated.object;
         } catch (error) {
           const failedValidation = causedBy(error, validationError);
+          if (
+            kind === "plan" &&
+            !(retainPlanEvidence && failedValidation && !signal.aborted)
+          ) {
+            try {
+              config.onError?.({ runId: result.id, phase: kind, error });
+            } catch {
+              /* Diagnostics must not change recovery. */
+            }
+          }
           if (
             !validationFailure ||
             !failedValidation ||
@@ -735,6 +769,7 @@ export const createResearch = (config: ResearchConfig): ResearchRuntime => {
                 remainingSearches: searchCeiling - queries.size,
                 remainingReads: readCeiling - urls.size,
               },
+              true,
             );
           } catch (error) {
             if (
@@ -742,6 +777,19 @@ export const createResearch = (config: ResearchConfig): ResearchRuntime => {
               error.message !== "Invalid plan output"
             )
               throw error;
+            signal.throwIfAborted();
+            try {
+              config.onError?.({
+                runId: result.id,
+                phase: "plan",
+                error,
+                ...(result.sources.length
+                  ? { recovery: "continued_with_retrieved_evidence" as const }
+                  : {}),
+              });
+            } catch {
+              /* Diagnostics must not change recovery. */
+            }
             result.limitations.push(
               "Invalid planning output; continued with retrieved evidence",
             );

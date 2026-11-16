@@ -143,6 +143,8 @@ export type ResearchConfig = {
     runId: string;
     phase: ResearchOperation;
     error: unknown;
+    /** The malformed follow-up plan was dropped; extraction continues from retained sources. This does not assert final task success. */
+    recovery?: "continued_with_retrieved_evidence";
     /** Present for a completed source read failure; excludes URL secrets and page content. */
     read?: import("../web/transport").WebReadDiagnostics & { code: string };
   }) => void;

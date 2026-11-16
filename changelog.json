@@ -6,6 +6,20 @@
 			"changes": [
 				{
 					"kind": "fixed",
+					"summary": "Recover omitted empty research-plan action lists without paid retries, preserve valid actions and strict validation, and distinguish retained-evidence fallback in diagnostics.",
+					"symbols": [
+						"createResearch",
+						"ResearchConfig"
+					]
+				}
+			],
+			"date": "2026-11-16",
+			"version": "0.24.11"
+		},
+		{
+			"changes": [
+				{
+					"kind": "fixed",
 					"summary": "Preserve bounded source-read diagnostics across isolated readers and research callbacks without exposing URL credentials or page content.",
 					"symbols": [
 						"createResearch",
