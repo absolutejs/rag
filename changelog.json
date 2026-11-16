@@ -6,6 +6,21 @@
 			"changes": [
 				{
 					"kind": "fixed",
+					"summary": "Preserve bounded source-read diagnostics across isolated readers and research callbacks without exposing URL credentials or page content.",
+					"symbols": [
+						"createResearch",
+						"createWebpageReaderClient",
+						"ResearchConfig"
+					]
+				}
+			],
+			"date": "2026-11-16",
+			"version": "0.24.10"
+		},
+		{
+			"changes": [
+				{
+					"kind": "fixed",
 					"summary": "Review the precise claimed attribute; treat equivalent roles and additional unclaimed qualifiers as compatible while retaining rejection of genuine factual contradictions.",
 					"symbols": [
 						"createResearch"

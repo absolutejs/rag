@@ -1131,3 +1131,70 @@ test("blocked-source isolation cannot recover uncertain read settlement", async 
   expect(result.fields).toEqual([]);
   expect(result.sourceFailures).toBeUndefined();
 });
+
+test("isolated source failure diagnostics retain attempts without URL secrets and cannot interrupt research", async () => {
+  const { createWebpageReaderClient } = await import("../src/web/remote");
+  const errors: unknown[] = [];
+  const runtime = createResearch({
+    search: search(),
+    model: "fixture",
+    provider: model([
+      { queries: [], urls: [source.url], done: true },
+      { name: "Example" },
+      modelReview,
+    ]),
+    reader: createWebpageReaderClient({
+      endpoint: "http://reader/read",
+      fetch: (async () =>
+        Response.json({
+          status: "error",
+          text: "",
+          url: source.url,
+          finalUrl:
+            "https://user:password@example.com/challenge?token=secret#private",
+          method: "browser",
+          attempts: [
+            {
+              method: "browser",
+              status: "extracted",
+              httpStatus: 403,
+              extractedChars: 25,
+              headers: { authorization: "secret" },
+            },
+          ],
+          error: { code: "access_blocked", message: "Private provider detail" },
+        })) as typeof fetch,
+    }),
+    onError: (event) => {
+      errors.push(event);
+      throw new Error("Diagnostic sink failed");
+    },
+  });
+  const result = await runtime.extract(
+    { schema: Type.Object({ name: Type.String() }) },
+    { query: "Example launch" },
+  );
+  expect(result.fields[0]?.verdict).toBe("supported");
+  expect(errors).toHaveLength(1);
+  expect(errors[0]).toMatchObject({
+    phase: "read",
+    read: {
+      code: "access_blocked",
+      url: source.url,
+      finalUrl: "https://example.com/challenge",
+      method: "browser",
+      attempts: [
+        {
+          method: "browser",
+          status: "extracted",
+          httpStatus: 403,
+          extractedChars: 25,
+        },
+      ],
+    },
+  });
+  expect(JSON.stringify(errors)).not.toMatch(
+    /secret|password|authorization|Private provider detail/u,
+  );
+  expect(result.sourceFailures?.[0]?.code).toBe("access_blocked");
+});

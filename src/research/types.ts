@@ -143,6 +143,8 @@ export type ResearchConfig = {
     runId: string;
     phase: ResearchOperation;
     error: unknown;
+    /** Present for a completed source read failure; excludes URL secrets and page content. */
+    read?: import("../web/transport").WebReadDiagnostics & { code: string };
   }) => void;
 
   /** Optional host accounting adapter; defaults to the standard AI generator. */

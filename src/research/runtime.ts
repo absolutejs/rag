@@ -1,3 +1,4 @@
+import { webReadDiagnostics } from "../web/transport";
 import { researchKey } from "./store";
 import { selectResearchExcerpts } from "./sourceExcerpts";
 import { createResearchBudgetAdmission } from "./budget";
@@ -556,6 +557,9 @@ export const createResearch = (config: ResearchConfig): ResearchRuntime => {
       )
         return;
       urls.add(url);
+      let readDiagnostics:
+        | import("../web/transport").WebReadDiagnostics
+        | undefined;
       const page = await operate("read", async () => {
         try {
           return await (config.reader ?? readRAGWebpage)({
@@ -573,6 +577,9 @@ export const createResearch = (config: ResearchConfig): ResearchRuntime => {
             reader_unavailable: "Website reader unavailable",
             fetch_failed: "Page could not be retrieved",
             timeout: "Page retrieval timed out",
+            renderer_timeout: "Browser navigation timed out",
+            renderer_disconnected: "Browser disconnected",
+            renderer_failed: "Browser rendering failed",
             ...(config.excludeBlockedSources
               ? {
                   unsafe_url: "Unsafe source excluded",
@@ -583,6 +590,7 @@ export const createResearch = (config: ResearchConfig): ResearchRuntime => {
               : {}),
           };
           if (!isWebReadError(error) || !messages[error.code]) throw error;
+          readDiagnostics = error.diagnostics;
           return {
             status: "error" as const,
             url,
@@ -625,6 +633,7 @@ export const createResearch = (config: ResearchConfig): ResearchRuntime => {
             runId: result.id,
             phase: "read",
             error: new WebReadError(code, message),
+            read: { ...(readDiagnostics ?? webReadDiagnostics(page)), code },
           });
         } catch {
           /* Diagnostics cannot interrupt usable evidence. */

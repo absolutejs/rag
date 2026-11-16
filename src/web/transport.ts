@@ -6,6 +6,67 @@ import { lookup } from "node:dns/promises";
 import { isIP } from "node:net";
 import { brotliDecompressSync, gunzipSync, inflateSync } from "node:zlib";
 
+import type { WebReadAttempt } from "./index";
+
+/** Diagnostic metadata only: no page bodies, headers, URL credentials, queries or fragments. */
+export type WebReadDiagnostics = {
+  url?: string;
+  finalUrl?: string;
+  method?: "http" | "browser";
+  attempts: WebReadAttempt[];
+};
+const diagnosticUrl = (value: unknown): string | undefined => {
+  if (typeof value !== "string") return undefined;
+  try {
+    const url = new URL(value);
+    if (!["http:", "https:"].includes(url.protocol)) return undefined;
+    return `${url.origin}${url.pathname}`;
+  } catch {
+    return undefined;
+  }
+};
+/** Copy only bounded diagnostic fields from an isolated reader response. */
+export const webReadDiagnostics = (value: {
+  url?: unknown;
+  finalUrl?: unknown;
+  method?: unknown;
+  attempts?: unknown;
+}): WebReadDiagnostics => ({
+  url: diagnosticUrl(value.url),
+  finalUrl: diagnosticUrl(value.finalUrl),
+  method:
+    value.method === "http" || value.method === "browser"
+      ? value.method
+      : undefined,
+  attempts: Array.isArray(value.attempts)
+    ? value.attempts.slice(0, 16).flatMap((attempt) => {
+        if (
+          !attempt ||
+          typeof attempt !== "object" ||
+          !["http", "browser"].includes(attempt.method) ||
+          typeof attempt.status !== "string" ||
+          !/^[a-z_]{1,64}$/u.test(attempt.status)
+        )
+          return [];
+        return [
+          {
+            method: attempt.method as "http" | "browser",
+            status: attempt.status,
+            ...(Number.isInteger(attempt.httpStatus) &&
+            attempt.httpStatus >= 100 &&
+            attempt.httpStatus <= 599
+              ? { httpStatus: attempt.httpStatus as number }
+              : {}),
+            ...(Number.isInteger(attempt.extractedChars) &&
+            attempt.extractedChars >= 0
+              ? { extractedChars: attempt.extractedChars as number }
+              : {}),
+          },
+        ];
+      })
+    : [],
+});
+
 // Package entrypoints are bundled independently; constructor identity is not shared.
 const WEB_READ_ERROR = Symbol.for("@absolutejs/rag/WebReadError");
 export class WebReadError extends Error {
@@ -13,6 +74,7 @@ export class WebReadError extends Error {
   constructor(
     public code: string,
     message: string,
+    public diagnostics?: WebReadDiagnostics,
   ) {
     super(message);
     this.name = "WebReadError";

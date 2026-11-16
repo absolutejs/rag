@@ -1,4 +1,4 @@
-import { WebReadError } from "./transport";
+import { WebReadError, webReadDiagnostics } from "./transport";
 import type { ReadWebpageOptions, WebReadResult } from "./index";
 /** Typed boundary for a host-managed isolated website reader. The service URL is
  * trusted host configuration; public destination validation stays in the reader. */
@@ -162,6 +162,7 @@ export const createWebpageReaderClient = (
       throw new WebReadError(
         error?.code ?? "reader_unavailable",
         error?.message ?? "Isolated page read failed",
+        webReadDiagnostics({ ...result, url: input.url }),
       );
     }
     const documents = result.documents as
