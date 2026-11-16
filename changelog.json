@@ -10,7 +10,24 @@
 					"symbols": [
 						"createResearch",
 						"createWebpageReaderClient",
-						"ResearchConfig"
+						"ResearchConfig",
+						"WebReadError"
+					]
+				},
+				{
+					"kind": "changed",
+					"summary": "Rebuilt declarations reorder equivalent union members and object properties in framework helpers and plugins; accepted inputs and runtime behavior are unchanged.",
+					"symbols": [
+						"useRAG",
+						"useRAGGrounding",
+						"useRAGWorkflow",
+						"useRAGStream",
+						"createRAG",
+						"createRAGGrounding",
+						"readRAGWebsite",
+						"researchPlugin",
+						"researchLeaves",
+						"webIndexPlugin"
 					]
 				}
 			],
