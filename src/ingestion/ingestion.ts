@@ -75,6 +75,26 @@ const TEXT_FILE_EXTENSIONS = new Set([
   ".js",
   ".jsx",
 ]);
+const OFFICE_MIME_EXTENSIONS: Record<string, string> = {
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+    ".docx",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": ".xlsx",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation":
+    ".pptx",
+  "application/vnd.oasis.opendocument.text": ".odt",
+  "application/vnd.oasis.opendocument.spreadsheet": ".ods",
+  "application/vnd.oasis.opendocument.presentation": ".odp",
+};
+const officeExtension = (input: {
+  contentType?: string;
+  path?: string;
+  name?: string;
+  source?: string;
+}) =>
+  OFFICE_MIME_EXTENSIONS[
+    (input.contentType ?? "").split(";", 1)[0]!.trim().toLowerCase()
+  ] ?? inferExtensionFromInput(input);
+
 const OFFICE_FILE_EXTENSIONS = new Set([
   ".docx",
   ".xlsx",
@@ -2723,7 +2743,11 @@ const inferFormatFromName = (value: string | undefined) => {
 };
 
 const inferFormatFromContentType = (contentType: string | null) => {
-  const normalizedType = (contentType || "").toLowerCase();
+  const normalizedType = (contentType || "")
+    .split(";", 1)[0]!
+    .trim()
+    .toLowerCase();
+  if (OFFICE_MIME_EXTENSIONS[normalizedType]) return undefined;
   if (normalizedType.includes("html")) {
     return "html";
   }
@@ -3778,9 +3802,67 @@ const isZipData = (data: Uint8Array) =>
   data[2] === 0x03 &&
   data[3] === 0x04;
 
+// Resolve central-directory offsets rather than scanning compressed bytes for
+// header-like signatures. Retain support for local-header-only archive inputs.
+const zipDirectory = (
+  data: Uint8Array,
+): { offset: number; size: number }[] | undefined => {
+  for (
+    let end = data.length - 22;
+    end >= Math.max(0, data.length - 22 - 65535);
+    end--
+  ) {
+    if (
+      readUInt32LE(data, end) !== 0x06054b50 ||
+      end + 22 + readUInt16LE(data, end + 20) !== data.length
+    )
+      continue;
+    const count = readUInt16LE(data, end + 10);
+    const size = readUInt32LE(data, end + 12);
+    let cursor = readUInt32LE(data, end + 16);
+    if (count === 0xffff || cursor === 0xffffffff || size === 0xffffffff)
+      throw new Error("ZIP64 archives are unsupported");
+    if (
+      readUInt16LE(data, end + 4) ||
+      readUInt16LE(data, end + 6) ||
+      readUInt16LE(data, end + 8) !== count
+    )
+      throw new Error("Multi-disk ZIP archives are unsupported");
+    const limit = cursor + size;
+    if (limit > end) throw new Error("Truncated ZIP central directory");
+    const result: { offset: number; size: number }[] = [];
+    for (let index = 0; index < count; index++) {
+      if (cursor + 46 > limit || readUInt32LE(data, cursor) !== 0x02014b50)
+        throw new Error("Invalid ZIP central directory");
+      const offset = readUInt32LE(data, cursor + 42);
+      const compressedSize = readUInt32LE(data, cursor + 20);
+      if (offset === 0xffffffff || compressedSize === 0xffffffff)
+        throw new Error("ZIP64 entries are unsupported");
+      if (
+        offset + 30 > data.length ||
+        readUInt32LE(data, offset) !== 0x04034b50
+      )
+        throw new Error("Invalid ZIP local header offset");
+      result.push({ offset, size: compressedSize });
+      cursor +=
+        46 +
+        readUInt16LE(data, cursor + 28) +
+        readUInt16LE(data, cursor + 30) +
+        readUInt16LE(data, cursor + 32);
+      if (cursor > limit) throw new Error("Truncated ZIP directory entry");
+    }
+    return result;
+  }
+  return undefined;
+};
+
 const unzipEntries = (data: Uint8Array): RAGArchiveEntry[] => {
   const entries: RAGArchiveEntry[] = [];
-  let offset = 0;
+  // Streaming ZIP writers leave sizes zero in local headers and append data
+  // descriptors. The central directory is authoritative for those entries.
+  const directory = zipDirectory(data);
+  let entryIndex = 0;
+  let offset = directory?.[0]?.offset ?? 0;
 
   while (offset + 30 <= data.length) {
     const signature = readUInt32LE(data, offset);
@@ -3789,7 +3871,12 @@ const unzipEntries = (data: Uint8Array): RAGArchiveEntry[] => {
     }
 
     const compressionMethod = readUInt16LE(data, offset + 8);
-    const compressedSize = readUInt32LE(data, offset + 18);
+    const flags = readUInt16LE(data, offset + 6);
+    if (flags & 1) throw new Error("Encrypted ZIP entries are unsupported");
+    if (flags & 8 && !directory)
+      throw new Error("ZIP data descriptor requires a central directory");
+    const compressedSize =
+      directory?.[entryIndex]?.size ?? readUInt32LE(data, offset + 18);
     const fileNameLength = readUInt16LE(data, offset + 26);
     const extraFieldLength = readUInt16LE(data, offset + 28);
     const fileNameStart = offset + 30;
@@ -3797,6 +3884,12 @@ const unzipEntries = (data: Uint8Array): RAGArchiveEntry[] => {
     const fileName = decodeUtf8(data.subarray(fileNameStart, fileNameEnd));
     const dataStart = fileNameEnd + extraFieldLength;
     const dataEnd = dataStart + compressedSize;
+    if (
+      fileNameEnd > data.length ||
+      dataStart > data.length ||
+      dataEnd > data.length
+    )
+      throw new Error("Truncated ZIP entry");
     const raw = data.subarray(dataStart, dataEnd);
     let entryData: Uint8Array;
 
@@ -3817,7 +3910,11 @@ const unzipEntries = (data: Uint8Array): RAGArchiveEntry[] => {
       });
     }
 
-    offset = dataEnd;
+    if (directory) {
+      entryIndex += 1;
+      if (entryIndex === directory.length) break;
+      offset = directory[entryIndex]!.offset;
+    } else offset = dataEnd;
   }
 
   return entries;
@@ -4666,10 +4763,14 @@ const presentationSlides = (entries: RAGArchiveEntry[]) => {
       (entry) =>
         entry.path.startsWith("ppt/slides/") && entry.path.endsWith(".xml"),
     )
-    .sort((left, right) => left.path.localeCompare(right.path))
+    .sort((left, right) =>
+      left.path.localeCompare(right.path, undefined, { numeric: true }),
+    )
     .map((entry, index) => {
       const textRuns = [
-        ...decodeUtf8(entry.data).matchAll(/<a:t[^>]*>([\s\S]*?)<\/a:t>/gi),
+        ...decodeUtf8(entry.data).matchAll(
+          /<a:t(?:\s[^>]*)?>([\s\S]*?)<\/a:t>/gi,
+        ),
       ]
         .map((match) => normalizeWhitespace(decodeHtmlEntities(match[1] ?? "")))
         .filter(Boolean);
@@ -7626,7 +7727,7 @@ const mediaExtractorSupports = (input: RAGFileExtractionInput) => {
 };
 
 const officeExtractorSupports = (input: RAGFileExtractionInput) => {
-  const extension = inferExtensionFromInput(input);
+  const extension = officeExtension(input);
 
   return OFFICE_FILE_EXTENSIONS.has(extension);
 };
@@ -7983,7 +8084,7 @@ export const createOfficeDocumentExtractor = (): RAGFileExtractor => ({
   name: "absolute_office_document",
   supports: officeExtractorSupports,
   extract: (input) => {
-    const extension = inferExtensionFromInput(input);
+    const extension = officeExtension(input);
     const entries = unzipEntries(input.data);
     let text = "";
     let officeMetadata: Record<string, unknown> = {};

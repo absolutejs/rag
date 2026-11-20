@@ -6,6 +6,16 @@
 			"changes": [
 				{
 					"kind": "fixed",
+					"summary": "Extract Office files from opaque signed URLs by MIME type, read streamed ZIP data descriptors, and preserve PowerPoint text runs and numeric slide ordering"
+				}
+			],
+			"date": "2026-11-20",
+			"version": "0.24.13"
+		},
+		{
+			"changes": [
+				{
+					"kind": "fixed",
 					"summary": "Prevent binary image archive and media payloads from falling through to text extraction on signed URLs"
 				}
 			],
