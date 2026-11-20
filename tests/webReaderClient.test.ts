@@ -84,3 +84,29 @@ test("isolated reader failures never need an in-process parser", async () => {
     });
   }
 });
+
+test("isolated worker failures retain actionable codes without raw service messages", async () => {
+  for (const code of [
+    "reader_deadline",
+    "reader_worker_exit",
+    "reader_protocol_error",
+    "reader_parse_failed",
+  ]) {
+    const read = createWebsiteReaderClient({
+      endpoint: "http://reader/read",
+      fetch: fake(async () =>
+        Response.json(
+          {
+            status: "error",
+            text: "secret",
+            error: { code, message: "secret" },
+          },
+          { status: 502 },
+        ),
+      ),
+    });
+    const result = await read({ url: "https://example.com" });
+    expect(result).toMatchObject({ status: "error", error: { code } });
+    expect(JSON.stringify(result)).not.toContain("secret");
+  }
+});

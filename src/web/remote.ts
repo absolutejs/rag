@@ -112,6 +112,35 @@ export const createWebsiteReaderClient =
             retryAfterSeconds: 2,
           },
         };
+      if (response.status === 502 && !options.fallback) {
+        const value: unknown = await response.json().catch(() => null);
+        if (value && typeof value === "object") {
+          const failure = Reflect.get(value, "error");
+          const code =
+            failure && typeof failure === "object"
+              ? Reflect.get(failure, "code")
+              : undefined;
+          if (
+            [
+              "reader_deadline",
+              "reader_worker_exit",
+              "reader_protocol_error",
+              "reader_parse_failed",
+              "renderer_disconnected",
+              "reader_failed",
+            ].includes(code)
+          )
+            return {
+              status: "error" as const,
+              text: "",
+              ...webReadDiagnostics(value),
+              error: {
+                code: code as string,
+                message: `Isolated website reader failed (${code}).`,
+              },
+            };
+        }
+      }
       if (!response.ok)
         throw new Error(`Website reader returned ${response.status}`);
       const result = parseWebsiteServiceResult(await response.json());

@@ -8,12 +8,123 @@ import { brotliDecompressSync, gunzipSync, inflateSync } from "node:zlib";
 
 import type { WebReadAttempt } from "./index";
 
+/** Allowlisted diagnostic data; never carries transport messages, headers or content. */
+export type WebReadFailureDetails = {
+  stage: "dns" | "request" | "decode" | "navigation" | "render";
+  transportCode?: string;
+  limitBytes?: number;
+};
+const transportCodes = new Set([
+  "ENOTFOUND",
+  "EAI_AGAIN",
+  "ECONNREFUSED",
+  "ECONNRESET",
+  "ETIMEDOUT",
+  "ENETUNREACH",
+  "EHOSTUNREACH",
+  "HPE_HEADER_OVERFLOW",
+  "ERR_RESPONSE_BODY_TOO_LARGE",
+  "ERR_BUFFER_TOO_LARGE",
+  "CERT_HAS_EXPIRED",
+  "DEPTH_ZERO_SELF_SIGNED_CERT",
+  "SELF_SIGNED_CERT_IN_CHAIN",
+  "UNABLE_TO_VERIFY_LEAF_SIGNATURE",
+  "ERR_TLS_CERT_ALTNAME_INVALID",
+  "CERT_NOT_YET_VALID",
+  "UNABLE_TO_GET_ISSUER_CERT_LOCALLY",
+  "Z_DATA_ERROR",
+]);
+export const webReadFailureDetails = (
+  value: unknown,
+): WebReadFailureDetails | undefined => {
+  if (!value || typeof value !== "object") return undefined;
+  const stage = Reflect.get(value, "stage");
+  if (!["dns", "request", "decode", "navigation", "render"].includes(stage))
+    return undefined;
+  const code = Reflect.get(value, "transportCode"),
+    limit = Reflect.get(value, "limitBytes");
+  return {
+    stage,
+    ...(typeof code === "string" && transportCodes.has(code)
+      ? { transportCode: code }
+      : {}),
+    ...(Number.isSafeInteger(limit) && limit > 0
+      ? { limitBytes: limit as number }
+      : {}),
+  };
+};
+/** Normalize known transport causes without serializing provider-controlled messages. */
+export const webTransportFailure = (
+  error: unknown,
+  stage: WebReadFailureDetails["stage"],
+  limitBytes?: number,
+): WebReadError => {
+  if (isWebReadError(error)) return error;
+  let current = error,
+    transportCode: string | undefined;
+  for (
+    let depth = 0;
+    depth < 4 && current && typeof current === "object";
+    depth++
+  ) {
+    const code = Reflect.get(current, "code");
+    if (typeof code === "string" && transportCodes.has(code)) {
+      transportCode = code;
+      break;
+    }
+    current = Reflect.get(current, "cause");
+  }
+  let code = "fetch_failed";
+  if (transportCode === "ENOTFOUND") code = "dns_not_found";
+  else if (transportCode === "EAI_AGAIN") code = "dns_unavailable";
+  else if (transportCode === "HPE_HEADER_OVERFLOW")
+    code = "response_headers_too_large";
+  else if (
+    ["ERR_RESPONSE_BODY_TOO_LARGE", "ERR_BUFFER_TOO_LARGE"].includes(
+      transportCode ?? "",
+    )
+  )
+    code = "response_body_too_large";
+  else if (
+    transportCode === "ETIMEDOUT" ||
+    (error instanceof Error && error.name === "TimeoutError")
+  )
+    code = "timeout";
+  else if (error instanceof Error && error.name === "AbortError")
+    code = "aborted";
+  else if (
+    transportCode?.includes("CERT") ||
+    transportCode === "UNABLE_TO_VERIFY_LEAF_SIGNATURE"
+  )
+    code = "tls_error";
+  else if (
+    ["ECONNREFUSED", "ECONNRESET", "ENETUNREACH", "EHOSTUNREACH"].includes(
+      transportCode ?? "",
+    )
+  )
+    code = "connection_failed";
+  else if (stage === "decode") code = "response_decode_failed";
+  return new WebReadError(code, `Website retrieval failed (${code}).`, {
+    attempts: [],
+    failure: {
+      stage,
+      ...(transportCode ? { transportCode } : {}),
+      ...((code === "response_headers_too_large" ||
+        code === "response_body_too_large") &&
+      limitBytes
+        ? { limitBytes }
+        : {}),
+    },
+  });
+};
+
 /** Diagnostic metadata only: no page bodies, headers, URL credentials, queries or fragments. */
 export type WebReadDiagnostics = {
   url?: string;
   finalUrl?: string;
   method?: "http" | "browser";
   attempts: WebReadAttempt[];
+  failure?: WebReadFailureDetails;
 };
 const diagnosticUrl = (value: unknown): string | undefined => {
   if (typeof value !== "string") return undefined;
@@ -31,7 +142,9 @@ export const webReadDiagnostics = (value: {
   finalUrl?: unknown;
   method?: unknown;
   attempts?: unknown;
+  failure?: unknown;
 }): WebReadDiagnostics => ({
+  failure: webReadFailureDetails(value.failure),
   url: diagnosticUrl(value.url),
   finalUrl: diagnosticUrl(value.finalUrl),
   method:
@@ -52,6 +165,19 @@ export const webReadDiagnostics = (value: {
           {
             method: attempt.method as "http" | "browser",
             status: attempt.status,
+            ...(webReadFailureDetails(attempt.failure)
+              ? { failure: webReadFailureDetails(attempt.failure) }
+              : {}),
+            ...(Array.isArray(attempt.resourceFailures)
+              ? {
+                  resourceFailures: attempt.resourceFailures
+                    .slice(0, 8)
+                    .flatMap((v: unknown) => {
+                      const safe = webReadFailureDetails(v);
+                      return safe ? [safe] : [];
+                    }),
+                }
+              : {}),
             ...(Number.isInteger(attempt.httpStatus) &&
             attempt.httpStatus >= 100 &&
             attempt.httpStatus <= 599
@@ -103,6 +229,7 @@ export type WebFetchOptions = {
   signal?: AbortSignal;
   redirect?: "follow" | "manual";
   maxBytes?: number;
+  maxHeaderBytes?: number;
   method?: string;
   body?: string;
   headers?: Record<string, string>;
@@ -153,7 +280,9 @@ export const fetchPublicWebResource = async (
   for (let hop = 0; hop <= 5; hop++) {
     signal.throwIfAborted();
     const host = url.hostname.replace(/^\[|\]$/gu, "");
-    const addresses = await lookup(host, { all: true });
+    const addresses = await lookup(host, { all: true }).catch((error) => {
+      throw webTransportFailure(error, "dns");
+    });
     if (
       !addresses.length ||
       addresses.some(({ address }) => !isPublicWebAddress(address))
@@ -178,14 +307,33 @@ export const fetchPublicWebResource = async (
           host: url.host,
         },
       }),
-      { hostname: host, address: selected.address, maxResponseBytes: maxBytes },
-    );
+      {
+        hostname: host,
+        address: selected.address,
+        maxResponseBytes: maxBytes,
+        maxResponseHeaderBytes: options.maxHeaderBytes ?? 65_536,
+      },
+    ).catch((error) => {
+      const failure = webTransportFailure(error, "request");
+      if (failure.diagnostics?.failure) {
+        if (failure.code === "response_headers_too_large")
+          failure.diagnostics.failure.limitBytes =
+            options.maxHeaderBytes ?? 65_536;
+        if (failure.code === "response_body_too_large")
+          failure.diagnostics.failure.limitBytes = maxBytes;
+      }
+      throw failure;
+    });
     let data: Uint8Array = new Uint8Array(await incoming.arrayBuffer());
     const encoding = incoming.headers.get("content-encoding");
     const limits = { maxOutputLength: maxBytes };
-    if (encoding === "gzip") data = gunzipSync(data, limits);
-    else if (encoding === "br") data = brotliDecompressSync(data, limits);
-    else if (encoding === "deflate") data = inflateSync(data, limits);
+    try {
+      if (encoding === "gzip") data = gunzipSync(data, limits);
+      else if (encoding === "br") data = brotliDecompressSync(data, limits);
+      else if (encoding === "deflate") data = inflateSync(data, limits);
+    } catch (error) {
+      throw webTransportFailure(error, "decode", maxBytes);
+    }
     const response: WebFetchResult = {
       url: url.href,
       status: incoming.status,

@@ -3,12 +3,18 @@ import {
   fetchPublicWebResource,
   validatePublicWebUrl,
   WebReadError,
+  isWebReadError,
+  webTransportFailure,
+  type WebReadFailureDetails,
 } from "./transport";
 import type { WebRedirect } from "./transport";
 import type { WebRenderer } from "./index";
 /** Fresh contexts share a browser, never cookies; all HTTP traffic uses pinned public DNS. */
 export const createPlaywrightWebRenderer = (
-  options: { executablePath?: string } = {},
+  options: {
+    executablePath?: string;
+    fetchResource?: typeof fetchPublicWebResource;
+  } = {},
 ) => {
   let browser: Browser | undefined;
   let launching: Promise<Browser> | undefined;
@@ -39,6 +45,8 @@ export const createPlaywrightWebRenderer = (
     };
     signal.addEventListener("abort", abort, { once: true });
     const redirects: WebRedirect[] = [];
+    let navigationFailure: WebReadError | undefined;
+    const resourceFailures: WebReadFailureDetails[] = [];
     let count = 0,
       bytes = 0;
     try {
@@ -58,7 +66,9 @@ export const createPlaywrightWebRenderer = (
           const headers: Record<string, string> = {};
           for (const key of ["accept", "content-type", "origin", "user-agent"])
             if (original[key]) headers[key] = original[key];
-          const response = await fetchPublicWebResource(request.url(), {
+          const response = await (
+            options.fetchResource ?? fetchPublicWebResource
+          )(request.url(), {
             signal,
             maxBytes: 5_000_000,
             method: request.method(),
@@ -85,7 +95,15 @@ export const createPlaywrightWebRenderer = (
             headers: response.headers,
             body: Buffer.from(response.body),
           });
-        } catch {
+        } catch (error) {
+          const failure = webTransportFailure(error, "request");
+          if (
+            request.isNavigationRequest() &&
+            request.frame() === context.pages()[0]?.mainFrame()
+          )
+            navigationFailure = failure;
+          else if (failure.diagnostics?.failure && resourceFailures.length < 8)
+            resourceFailures.push(failure.diagnostics.failure);
           await route.abort().catch(() => {});
         }
       });
@@ -99,10 +117,21 @@ export const createPlaywrightWebRenderer = (
           redirects.push({ from: previousUrl, to: next, kind: "client" });
         previousUrl = next;
       });
-      const response = await page.goto(url, {
-        waitUntil: "domcontentloaded",
-        timeout: 25000,
-      });
+      const response = await page
+        .goto(url, {
+          waitUntil: "domcontentloaded",
+          timeout: 25000,
+        })
+        .catch((error) => {
+          if (navigationFailure) throw navigationFailure;
+          if (error instanceof Error && error.name === "TimeoutError")
+            throw new WebReadError(
+              "renderer_timeout",
+              "Browser navigation timed out",
+              { attempts: [], failure: { stage: "navigation" } },
+            );
+          throw error;
+        });
       const settled = await page
         .waitForFunction(
           () => {
@@ -146,6 +175,7 @@ export const createPlaywrightWebRenderer = (
         );
       return {
         html,
+        resourceFailures,
         redirects,
         settled,
         text: await page.locator("body").innerText(),
@@ -161,9 +191,28 @@ export const createPlaywrightWebRenderer = (
     try {
       return await renderOnce(url, options);
     } catch (error) {
-      if (options.signal.aborted || browser?.isConnected()) throw error;
+      const safeFailure = (failure: unknown) => {
+        if (isWebReadError(failure)) return failure;
+        if (options.signal.aborted)
+          return webTransportFailure(options.signal.reason, "render");
+        const code =
+          failure instanceof Error &&
+          /(?:browser|target|page|context).*(?:closed|disconnected|crashed)/iu.test(
+            failure.message,
+          )
+            ? "renderer_disconnected"
+            : "renderer_failed";
+        return new WebReadError(code, `Browser rendering failed (${code}).`, {
+          attempts: [],
+          failure: { stage: "render" },
+        });
+      };
+      if (options.signal.aborted || browser?.isConnected())
+        throw safeFailure(error);
       // A crashed worker may be replaced once; the same total deadline still applies.
-      return renderOnce(url, options);
+      return renderOnce(url, options).catch((failure) => {
+        throw safeFailure(failure);
+      });
     }
   };
   return {

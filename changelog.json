@@ -6,6 +6,51 @@
 			"changes": [
 				{
 					"kind": "fixed",
+					"summary": "Read sites with legitimate larger response headers using the bounded egress transport; preserve safe DNS, TLS, connection, timeout and size-limit diagnostics through HTTP, browser and isolated-reader boundaries.",
+					"symbols": [
+						"fetchPublicWebResource",
+						"WebFetchOptions",
+						"WebReadDiagnostics",
+						"WebReadAttempt",
+						"createPlaywrightWebRenderer",
+						"createWebsiteReaderClient"
+					]
+				},
+				{
+					"kind": "fixed",
+					"summary": "Avoid browser fallback for classified non-rendering failures, report the terminal method, and preserve useful static evidence when browser rendering fails or encounters an access challenge. Optional resource failures do not invalidate readable pages.",
+					"symbols": [
+						"readRAGWebpage",
+						"WebRenderer"
+					]
+				},
+				{
+					"kind": "added",
+					"summary": "Expose bounded transport diagnostic helpers and an injectable browser resource transport for deterministic secure integration tests.",
+					"symbols": [
+						"webReadDiagnostics",
+						"webReadFailureDetails",
+						"webTransportFailure",
+						"WebReadFailureDetails",
+						"createPlaywrightWebRenderer"
+					]
+				},
+				{
+					"kind": "changed",
+					"summary": "Carry the richer typed reader diagnostic contract through inferred research and web-index plugin signatures.",
+					"symbols": [
+						"researchPlugin",
+						"webIndexPlugin"
+					]
+				}
+			],
+			"date": "2026-11-20",
+			"version": "0.24.14"
+		},
+		{
+			"changes": [
+				{
+					"kind": "fixed",
 					"summary": "Extract Office files from opaque signed URLs by MIME type, read streamed ZIP data descriptors, and preserve PowerPoint text runs and numeric slide ordering"
 				}
 			],

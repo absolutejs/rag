@@ -18,20 +18,31 @@ import {
   WebReadError,
   isWebReadError,
   type WebFetchResult,
+  type WebReadFailureDetails,
 } from "./transport";
 export {
   fetchPublicWebResource,
   validatePublicWebUrl,
   isPublicWebAddress,
+  webReadDiagnostics,
+  webReadFailureDetails,
+  webTransportFailure,
   WebReadError,
   isWebReadError,
 } from "./transport";
-export type { WebFetchResult, WebFetchOptions } from "./transport";
+export type {
+  WebFetchResult,
+  WebFetchOptions,
+  WebReadFailureDetails,
+  WebReadDiagnostics,
+} from "./transport";
 export type WebReadAttempt = {
   method: "http" | "browser";
   status: string;
   httpStatus?: number;
   extractedChars?: number;
+  failure?: WebReadFailureDetails;
+  resourceFailures?: WebReadFailureDetails[];
 };
 export type WebReadResult = {
   status: "ok" | "partial" | "error";
@@ -61,6 +72,7 @@ export type WebRenderer = (
   status: number;
   redirects?: WebRedirect[];
   settled?: boolean;
+  resourceFailures?: WebReadFailureDetails[];
 }>;
 export type ReadWebpageOptions = {
   url: string;
@@ -147,8 +159,25 @@ export const readRAGWebpage = async (
         { signal, maxBytes: 5_000_000 },
       );
     } catch (error) {
-      attempts.push({ method: "http", status: codeFor(error) });
-      if (isWebReadError(error) && error.code === "blocked_url")
+      attempts.push({
+        method: "http",
+        status: codeFor(error),
+        ...(isWebReadError(error)
+          ? { failure: error.diagnostics?.failure }
+          : {}),
+      });
+      if (
+        isWebReadError(error) &&
+        [
+          "blocked_url",
+          "dns_not_found",
+          "dns_unavailable",
+          "tls_error",
+          "response_headers_too_large",
+          "response_body_too_large",
+          "aborted",
+        ].includes(error.code)
+      )
         throw error;
       if (!options.render) throw error;
     }
@@ -205,11 +234,12 @@ export const readRAGWebpage = async (
             "Static HTML was incomplete. Browser rendering is required; this is not evidence that the site has no information.",
         });
       try {
-        const rendered = await options.render(finalUrl, { signal });
         method = "browser";
+        const rendered = await options.render(finalUrl, { signal });
         finalUrl = rendered.url;
         validatePublicWebUrl(finalUrl);
         redirects.push(...(rendered.redirects ?? []));
+        const previous = { text, title, evidence };
         evidence = extractWebEvidence(rendered.html, finalUrl);
         if (rendered.settled === false)
           limitations.push(
@@ -219,23 +249,37 @@ export const readRAGWebpage = async (
         title = titleOf(rendered.html) ?? title;
         attempts.push({
           method: "browser",
+          ...(rendered.resourceFailures?.length
+            ? { resourceFailures: rendered.resourceFailures }
+            : {}),
           status: text ? "extracted" : "empty",
           httpStatus: rendered.status,
           extractedChars: text.length,
         });
+        const renderingFailure = (
+          error: NonNullable<WebReadResult["error"]>,
+        ) => {
+          if (previous.text && !isChallenge(previous.text)) {
+            text = previous.text;
+            title = previous.title;
+            evidence = previous.evidence;
+            return result("partial", error);
+          }
+          return result("error", error);
+        };
         if (rendered.status === 401)
-          return result("error", {
+          return renderingFailure({
             code: "authentication_required",
             message: "This page requires sign-in.",
           });
         if ([403, 429].includes(rendered.status) || isChallenge(text))
-          return result("error", {
+          return renderingFailure({
             code: "access_blocked",
             message:
               "The website blocked automated access or presented a verification challenge.",
           });
         if (rendered.status >= 400)
-          return result("error", {
+          return renderingFailure({
             code: "http_error",
             message: `Website returned HTTP ${rendered.status}.`,
           });
@@ -244,7 +288,7 @@ export const readRAGWebpage = async (
           /^(?:loading[.\s]*|please wait[.\s]*)$/iu.test(text) ||
           /(?:enable|requires?)\s+javascript/iu.test(text)
         )
-          return result("error", {
+          return renderingFailure({
             code: "rendering_incomplete",
             message:
               "The page still provided no usable text after browser rendering.",
@@ -256,7 +300,13 @@ export const readRAGWebpage = async (
               "Some content was extracted, but the application did not reach the readability threshold. Do not treat it as complete.",
           });
       } catch (error) {
-        attempts.push({ method: "browser", status: codeFor(error) });
+        attempts.push({
+          method: "browser",
+          status: codeFor(error),
+          ...(isWebReadError(error)
+            ? { failure: error.diagnostics?.failure }
+            : {}),
+        });
         return result(text ? "partial" : "error", {
           code: codeFor(error),
           message: messageFor(error),
