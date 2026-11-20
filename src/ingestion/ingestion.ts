@@ -2671,7 +2671,13 @@ const slugify = (value: string) =>
 
 /** A display slug is not an identity: truncation, punctuation and case are lossy. */
 const documentIdentity = (value: string, page?: number, region?: number) =>
-  `${slugify(value)}-${createHash("sha256").update(page === undefined ? value : JSON.stringify([value, page, region ?? null])).digest("hex")}`;
+  `${slugify(value)}-${createHash("sha256")
+    .update(
+      page === undefined
+        ? value
+        : JSON.stringify([value, page, region ?? null]),
+    )
+    .digest("hex")}`;
 
 const inferFormatFromPath = (path: string) => {
   const extension = extname(path).toLowerCase();
@@ -7558,6 +7564,23 @@ const ocrRegionDocuments = (
 };
 
 const textExtractorSupports = (input: RAGFileExtractionInput) => {
+  // URL format inference may default to text for an opaque signed URL. That
+  // default must never authorize decoding an image/archive/media payload.
+  const mediaType =
+    (input.contentType ?? "").split(";", 1)[0]?.trim().toLowerCase() ?? "";
+  if (
+    /^(image|audio|video)\//u.test(mediaType) ||
+    [
+      "application/pdf",
+      "application/zip",
+      "application/gzip",
+      "application/postscript",
+      "application/vnd.ms-office",
+    ].includes(mediaType) ||
+    mediaType.startsWith("application/vnd.openxmlformats-officedocument.") ||
+    !isLikelyTextData(input.data)
+  )
+    return false;
   if (input.format) {
     return true;
   }
@@ -10083,10 +10106,16 @@ export const prepareRAGDocument = (
     document.id?.trim() ||
     documentIdentity(
       document.source || document.title || normalizedText,
-      typeof document.metadata?.pageNumber === "number" ? document.metadata.pageNumber : undefined,
-      typeof document.metadata?.regionNumber === "number" ? document.metadata.regionNumber : undefined,
+      typeof document.metadata?.pageNumber === "number"
+        ? document.metadata.pageNumber
+        : undefined,
+      typeof document.metadata?.regionNumber === "number"
+        ? document.metadata.regionNumber
+        : undefined,
     );
-  const title = document.title?.trim() || document.id?.trim() ||
+  const title =
+    document.title?.trim() ||
+    document.id?.trim() ||
     slugify(document.source || normalizedText);
   let sourceExtension = "txt";
   if (format === "markdown") {
@@ -10476,7 +10505,11 @@ export const loadRAGDocumentFile = async (input: RAGDocumentFileInput) => {
 
   return getFirstExtractedDocument(documents, "for file input");
 };
-export const loadRAGDocumentFromURL = async (input: RAGDocumentUrlInput, fetchURL: (url: string) => Promise<Response> = (url) => fetch(url, h2IfHttps(url))) => {
+export const loadRAGDocumentFromURL = async (
+  input: RAGDocumentUrlInput,
+  fetchURL: (url: string) => Promise<Response> = (url) =>
+    fetch(url, h2IfHttps(url)),
+) => {
   const url = input.url.trim();
   if (!url) {
     throw new Error("RAG URL is required");

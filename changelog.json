@@ -6,6 +6,16 @@
 			"changes": [
 				{
 					"kind": "fixed",
+					"summary": "Prevent binary image archive and media payloads from falling through to text extraction on signed URLs"
+				}
+			],
+			"date": "2026-11-20",
+			"version": "0.24.12"
+		},
+		{
+			"changes": [
+				{
+					"kind": "fixed",
 					"summary": "Recover omitted empty research-plan action lists without paid retries, preserve valid actions and strict validation, and distinguish retained-evidence fallback in diagnostics.",
 					"symbols": [
 						"createResearch",
