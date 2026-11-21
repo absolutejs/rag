@@ -6,6 +6,23 @@
 			"changes": [
 				{
 					"kind": "fixed",
+					"summary": "Correct public-address reads via Egress 0.3.3 and retain safe URL/DNS policy reasons and redirect hops through source failures and reader diagnostics.",
+					"symbols": [
+						"validatePublicWebUrl",
+						"WebReadFailureDetails",
+						"WebReadResult",
+						"readRAGWebsite",
+						"ResearchResult"
+					]
+				}
+			],
+			"date": "2026-11-21",
+			"version": "0.24.16"
+		},
+		{
+			"changes": [
+				{
+					"kind": "fixed",
 					"summary": "Retain typed admission and preflight stop reasons in research results and durable checkpoints without shrinking unaffected review batches; clear terminal failure after successful continuation. Accept only matching scalar reviewer echoes and never changed facts.",
 					"symbols": [
 						"createResearch",

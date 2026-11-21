@@ -17,6 +17,7 @@ import {
   validatePublicWebUrl,
   WebReadError,
   isWebReadError,
+  webReadFailureDetails,
   type WebFetchResult,
   type WebReadFailureDetails,
 } from "./transport";
@@ -56,6 +57,7 @@ export type WebReadResult = {
   method: "http" | "browser";
   truncated: boolean;
   attempts: WebReadAttempt[];
+  failure?: WebReadFailureDetails;
   error?: { code: string; message: string };
   fetchedAt: string;
   redirects: WebRedirect[];
@@ -130,6 +132,7 @@ export const readRAGWebpage = async (
     text = "",
     title: string | null = null,
     method: "http" | "browser" = "http";
+  let failure: WebReadFailureDetails | undefined;
   const result = (
     status: WebReadResult["status"],
     error?: WebReadResult["error"],
@@ -147,6 +150,7 @@ export const readRAGWebpage = async (
     redirects,
     evidence,
     limitations,
+    failure,
     fetchedAt: new Date().toISOString(),
     ...(error ? { error } : {}),
   });
@@ -159,6 +163,8 @@ export const readRAGWebpage = async (
         { signal, maxBytes: 5_000_000 },
       );
     } catch (error) {
+      if (isWebReadError(error))
+        failure = webReadFailureDetails(error.diagnostics?.failure);
       attempts.push({
         method: "http",
         status: codeFor(error),
@@ -300,6 +306,8 @@ export const readRAGWebpage = async (
               "Some content was extracted, but the application did not reach the readability threshold. Do not treat it as complete.",
           });
       } catch (error) {
+        if (isWebReadError(error))
+          failure = webReadFailureDetails(error.diagnostics?.failure);
         attempts.push({
           method: "browser",
           status: codeFor(error),
@@ -320,6 +328,8 @@ export const readRAGWebpage = async (
           message: "The page returned no readable text.",
         });
   } catch (error) {
+    if (isWebReadError(error))
+      failure = webReadFailureDetails(error.diagnostics?.failure);
     return result("error", {
       code: codeFor(error),
       message: messageFor(error),

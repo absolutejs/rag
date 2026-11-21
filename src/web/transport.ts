@@ -1,5 +1,6 @@
 import {
   isPublicNetworkAddress,
+  networkAddressBlockReason,
   pinnedPublicRequest,
 } from "@absolutejs/egress/transport";
 import { lookup } from "node:dns/promises";
@@ -10,10 +11,34 @@ import type { WebReadAttempt } from "./index";
 
 /** Allowlisted diagnostic data; never carries transport messages, headers or content. */
 export type WebReadFailureDetails = {
-  stage: "dns" | "request" | "decode" | "navigation" | "render";
+  stage: "url" | "dns" | "request" | "decode" | "navigation" | "render";
+  blockReason?: string;
+  redirectHop?: number;
   transportCode?: string;
   limitBytes?: number;
 };
+const blockReasons = new Set([
+  "unsupported_protocol",
+  "url_credentials",
+  "nonstandard_port",
+  "local_hostname",
+  "empty_dns",
+  "ipv4_this_network",
+  "ipv4_private",
+  "ipv4_loopback",
+  "ipv4_multicast_reserved",
+  "ipv4_shared",
+  "ipv4_link_local",
+  "ipv4_protocol_assignment",
+  "ipv4_documentation",
+  "ipv4_transition",
+  "ipv4_benchmark",
+  "invalid_address",
+  "ipv6_non_global",
+  "ipv6_transition",
+  "ipv6_special",
+  "ipv6_documentation",
+]);
 const transportCodes = new Set([
   "ENOTFOUND",
   "EAI_AGAIN",
@@ -39,12 +64,22 @@ export const webReadFailureDetails = (
 ): WebReadFailureDetails | undefined => {
   if (!value || typeof value !== "object") return undefined;
   const stage = Reflect.get(value, "stage");
-  if (!["dns", "request", "decode", "navigation", "render"].includes(stage))
+  if (
+    !["url", "dns", "request", "decode", "navigation", "render"].includes(stage)
+  )
     return undefined;
   const code = Reflect.get(value, "transportCode"),
     limit = Reflect.get(value, "limitBytes");
+  const reason = Reflect.get(value, "blockReason"),
+    hop = Reflect.get(value, "redirectHop");
   return {
     stage,
+    ...(typeof reason === "string" && blockReasons.has(reason)
+      ? { blockReason: reason }
+      : {}),
+    ...(Number.isInteger(hop) && hop >= 0 && hop <= 5
+      ? { redirectHop: hop as number }
+      : {}),
     ...(typeof code === "string" && transportCodes.has(code)
       ? { transportCode: code }
       : {}),
@@ -234,7 +269,12 @@ export type WebFetchOptions = {
   body?: string;
   headers?: Record<string, string>;
 };
-export const validatePublicWebUrl = (raw: string) => {
+const blockedUrl = (reason: string, stage: "url" | "dns", redirectHop = 0) =>
+  new WebReadError("blocked_url", "Source excluded by public-network policy.", {
+    attempts: [],
+    failure: { stage, blockReason: reason, redirectHop },
+  });
+export const validatePublicWebUrl = (raw: string, redirectHop = 0) => {
   let url: URL;
   try {
     url = new URL(raw);
@@ -244,26 +284,19 @@ export const validatePublicWebUrl = (raw: string) => {
       "Provide a valid public HTTP or HTTPS URL.",
     );
   }
-  if (
-    !["http:", "https:"].includes(url.protocol) ||
-    url.username ||
-    url.password ||
-    (url.port && !["80", "443"].includes(url.port))
-  )
-    throw new WebReadError(
-      "blocked_url",
-      "Only public HTTP/HTTPS URLs on standard ports are supported.",
-    );
+  if (!["http:", "https:"].includes(url.protocol))
+    throw blockedUrl("unsupported_protocol", "url", redirectHop);
+  if (url.username || url.password)
+    throw blockedUrl("url_credentials", "url", redirectHop);
+  if (url.port && !["80", "443"].includes(url.port))
+    throw blockedUrl("nonstandard_port", "url", redirectHop);
   const host = url.hostname.replace(/^\[|\]$/gu, "").toLowerCase();
-  if (
-    host === "localhost" ||
-    /\.(?:localhost|local|internal)$/u.test(host) ||
-    (isIP(host) && !isPublicWebAddress(host))
-  )
-    throw new WebReadError(
-      "blocked_url",
-      "Private and local network destinations are not allowed.",
-    );
+  if (host === "localhost" || /\.(?:localhost|local|internal)$/u.test(host))
+    throw blockedUrl("local_hostname", "url", redirectHop);
+  if (isIP(host)) {
+    const reason = networkAddressBlockReason(host);
+    if (reason) throw blockedUrl(reason, "url", redirectHop);
+  }
   return url;
 };
 /** Pin the validated DNS answer into the connection, including every redirect. */
@@ -283,14 +316,11 @@ export const fetchPublicWebResource = async (
     const addresses = await lookup(host, { all: true }).catch((error) => {
       throw webTransportFailure(error, "dns");
     });
-    if (
-      !addresses.length ||
-      addresses.some(({ address }) => !isPublicWebAddress(address))
-    )
-      throw new WebReadError(
-        "blocked_url",
-        "The destination resolved to a private or reserved network.",
-      );
+    if (!addresses.length) throw blockedUrl("empty_dns", "dns", hop);
+    for (const { address } of addresses) {
+      const reason = networkAddressBlockReason(address);
+      if (reason) throw blockedUrl(reason, "dns", hop);
+    }
     signal.throwIfAborted();
     const selected =
       addresses.find(({ family }) => family === 4) ?? addresses[0]!;
@@ -357,6 +387,7 @@ export const fetchPublicWebResource = async (
     ) {
       const next = validatePublicWebUrl(
         new URL(response.headers.location, url).href,
+        hop + 1,
       );
       redirects.push({
         from: url.href,

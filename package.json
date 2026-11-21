@@ -1,6 +1,6 @@
 {
   "name": "@absolutejs/rag",
-  "version": "0.24.15",
+  "version": "0.24.16",
   "homepage": "https://github.com/absolutejs/rag",
   "bugs": {
     "url": "https://github.com/absolutejs/rag/issues"
@@ -97,7 +97,7 @@
     "manifestContract": 2
   },
   "dependencies": {
-    "@absolutejs/egress": "^0.3.2",
+    "@absolutejs/egress": "^0.3.3",
     "@absolutejs/manifest": "^0.9.0",
     "@absolutejs/search": "^0.2.0",
     "@sinclair/typebox": "^0.34.0",

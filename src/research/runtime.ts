@@ -637,7 +637,9 @@ export const createResearch = (config: ResearchConfig): ResearchRuntime => {
               : {}),
           };
           if (!isWebReadError(error) || !messages[error.code]) throw error;
-          readDiagnostics = error.diagnostics;
+          readDiagnostics = error.diagnostics
+            ? webReadDiagnostics(error.diagnostics)
+            : undefined;
           return {
             status: "error" as const,
             url,
@@ -673,14 +675,22 @@ export const createResearch = (config: ResearchConfig): ResearchRuntime => {
           sourceText.delete(url);
         }
         const message = "Source unavailable (" + code + ")";
-        (result.sourceFailures ??= []).push({ url, code, message });
+        const diagnostic = readDiagnostics ?? webReadDiagnostics(page);
+        (result.sourceFailures ??= []).push({
+          url,
+          code,
+          message,
+          ...(diagnostic.failure || diagnostic.attempts.length
+            ? { read: diagnostic }
+            : {}),
+        });
         result.limitations.push(`${message}: ${url}`);
         try {
           config.onError?.({
             runId: result.id,
             phase: "read",
-            error: new WebReadError(code, message),
-            read: { ...(readDiagnostics ?? webReadDiagnostics(page)), code },
+            error: new WebReadError(code, message, diagnostic),
+            read: { ...diagnostic, code },
           });
         } catch {
           /* Diagnostics cannot interrupt usable evidence. */

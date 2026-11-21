@@ -1085,7 +1085,10 @@ test("explicit blocked-source isolation keeps the destination blocked and exclud
     ),
     reader: async (input) => {
       reads.push(input.url);
-      throw new WebReadError("blocked_address", "Private network details");
+      throw new WebReadError("blocked_address", "Private network details", {
+        attempts: [],
+        failure: { stage: "dns", blockReason: "ipv4_private", redirectHop: 1 },
+      });
     },
   });
   const result = await runtime.extract(
@@ -1100,6 +1103,10 @@ test("explicit blocked-source isolation keeps the destination blocked and exclud
       url: blocked.url,
       code: "blocked_address",
       message: "Source unavailable (blocked_address)",
+      read: {
+        attempts: [],
+        failure: { stage: "dns", blockReason: "ipv4_private", redirectHop: 1 },
+      },
     },
   ]);
   expect(JSON.stringify(calls.slice(1))).not.toContain(

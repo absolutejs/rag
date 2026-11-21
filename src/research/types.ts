@@ -71,7 +71,12 @@ export type ResearchResult<T = unknown> = {
     text: string;
     originalChars: number;
   }>;
-  sourceFailures?: Array<{ url: string; code: string; message: string }>;
+  sourceFailures?: Array<{
+    url: string;
+    code: string;
+    message: string;
+    read?: import("../web/transport").WebReadDiagnostics;
+  }>;
   coverage?: { requested: number; supported: number; complete: boolean };
   /** Reviewed drafts, including rejected fields, retained for audit. */
   reviewPasses?: Array<{
