@@ -52,7 +52,14 @@ export type ResearchReviewCheckpoint = {
   links?: Array<{ url: string; label: string; discoveredOn: string }>;
   result: ResearchResult;
 };
+/** Why a run stopped; absence means no terminal operation failure. */
+export type ResearchFailureKind =
+  | "admission_denied"
+  | "preflight_failed"
+  | "invalid_output"
+  | "provider_unknown";
 export type ResearchResult<T = unknown> = {
+  failure?: { kind: ResearchFailureKind; phase: ResearchOperation };
   /** Unreviewed extraction is retained for recovery, never an endorsed answer. */
   draft?: unknown;
   reviewCheckpoint?: ResearchReviewCheckpoint;
@@ -137,6 +144,8 @@ export type ResearchConfig = {
   /** Per-batch output ceiling, independent of extraction size. */
   reviewOutputTokens?: number;
   /** Host must confirm completed response AND durable accounting. Allows a malformed plan to consume another already-configured discovery round; review retry still requires explicit continuation. Unused with package admission. */
+  /** Host classification does not replace durable accounting confirmation. */
+  classifyFailure?: (error: unknown) => ResearchFailureKind | undefined;
   isReviewFailureSettled?: (error: unknown) => Promise<boolean>;
   /** Server-side diagnostics only. Errors are never serialized into public research results. */
   onError?: (event: {

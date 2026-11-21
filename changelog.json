@@ -6,6 +6,29 @@
 			"changes": [
 				{
 					"kind": "fixed",
+					"summary": "Retain typed admission and preflight stop reasons in research results and durable checkpoints without shrinking unaffected review batches; clear terminal failure after successful continuation. Accept only matching scalar reviewer echoes and never changed facts.",
+					"symbols": [
+						"createResearch",
+						"ResearchResult",
+						"ResearchConfig",
+						"ResearchFailureKind"
+					]
+				},
+				{
+					"kind": "changed",
+					"summary": "Carry typed research stop reasons through inferred plugin result contracts.",
+					"symbols": [
+						"researchPlugin"
+					]
+				}
+			],
+			"date": "2026-11-20",
+			"version": "0.24.15"
+		},
+		{
+			"changes": [
+				{
+					"kind": "fixed",
 					"summary": "Read sites with legitimate larger response headers using the bounded egress transport; preserve safe DNS, TLS, connection, timeout and size-limit diagnostics through HTTP, browser and isolated-reader boundaries.",
 					"symbols": [
 						"fetchPublicWebResource",

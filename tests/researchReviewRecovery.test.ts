@@ -96,6 +96,8 @@ test("30-field extraction survives budget stop and resumes only unfinished batch
       stored = structuredClone(checkpoint);
     },
   });
+  expect(first.failure).toEqual({ kind: "admission_denied", phase: "review" });
+  expect(stored?.result.failure).toEqual(first.failure);
   expect(first.data).toBeNull();
   expect(first.draft).toEqual(draft);
   expect(first.fields).toHaveLength(16);
@@ -108,6 +110,7 @@ test("30-field extraction survives budget stop and resumes only unfinished batch
     resumeReview: stored,
   });
   expect(calls.slice(before)).toEqual(["review:/facts/16", "review:/facts/24"]);
+  expect(recovered.failure).toBeUndefined();
   expect(recovered.data).toEqual(draft);
   expect(recovered.fields).toHaveLength(30);
   expect(recovered.reviewCheckpoint?.finished).toBe(true);
@@ -465,3 +468,37 @@ test("isolated relationship fields retain unreviewed entity context without expa
   expect(result.fields).toHaveLength(4);
   expect(result.data).toEqual(candidates);
 });
+
+for (const kind of ["admission_denied", "preflight_failed"] as const) {
+  test(`${kind} preserves the exact review batch and durable stop reason`, async () => {
+    const failure = Error("known failure");
+    let attempts = 0;
+    const broken: AIProviderConfig = {
+      ...provider,
+      async *stream(input) {
+        const payload = JSON.parse(input.messages.at(-1)!.content as string);
+        if (payload.fields) {
+          attempts++;
+          throw failure;
+        }
+        yield* provider.stream(input);
+      },
+    };
+    const result = await createResearch({
+      search,
+      provider: broken,
+      model: "fixture",
+      reviewBatchSize: 8,
+      limits: { rounds: 0 },
+      classifyFailure: () => kind,
+      isReviewFailureSettled: async () => true,
+    }).extract(task, { query: "Example" });
+    expect(attempts).toBe(1);
+    expect(result.failure).toEqual({ kind, phase: "review" });
+    expect(result.reviewCheckpoint?.result.failure).toEqual(result.failure);
+    expect(result.reviewCheckpoint?.pending).toBe(false);
+    expect(result.reviewCheckpoint?.nextBatchSize).toBe(8);
+    expect(result.draft).toEqual(draft);
+    expect(result.documents?.[0]?.text).toBe("Example exists");
+  });
+}

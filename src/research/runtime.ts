@@ -11,6 +11,7 @@ import {
 } from "@absolutejs/search";
 import { Type } from "@sinclair/typebox";
 import {
+  normalizeReviewEcho,
   checkResearchValue,
   researchValidationDiagnostics,
   type ResearchSchema,
@@ -266,6 +267,11 @@ export const createResearch = (config: ResearchConfig): ResearchRuntime => {
               }
             : {}),
         };
+    if (!resumed?.finished) delete result.failure;
+    const failureKind = (error: unknown) =>
+      error instanceof Error && error.message === "Research budget denied"
+        ? ("admission_denied" as const)
+        : (config.classifyFailure?.(error) ?? ("provider_unknown" as const));
     const persistReview = async (
       pass: number,
       nextField: number,
@@ -327,7 +333,10 @@ export const createResearch = (config: ResearchConfig): ResearchRuntime => {
     ): Promise<T> => {
       signal.throwIfAborted();
       const reservation = await admit?.({ runId: result.id, kind, signal });
-      if (reservation === false) throw new Error("Research budget denied");
+      if (reservation === false) {
+        result.failure = { kind: "admission_denied", phase: kind };
+        throw new Error("Research budget denied");
+      }
       const started = Date.now();
       let settled = false;
       try {
@@ -345,11 +354,13 @@ export const createResearch = (config: ResearchConfig): ResearchRuntime => {
           durationMs: Date.now() - started,
           usage: measured.usage,
         });
+        delete result.failure;
         settled = true;
         await reservation?.settle({ status: "fulfilled", ...measured });
         signal.throwIfAborted();
         return value;
       } catch (error) {
+        result.failure = { kind: failureKind(error), phase: kind };
         try {
           // Plans are reported by generate or its evidence fallback, once the
           // recovery decision is known. Other operation reporting is unchanged.
@@ -412,6 +423,8 @@ export const createResearch = (config: ResearchConfig): ResearchRuntime => {
                 ],
                 validate: (value) => {
                   if (kind === "plan") value = normalizePlan(value);
+                  if (kind === "review")
+                    value = normalizeReviewEcho(value, payload);
                   if (!checkResearchValue(schema, value)) {
                     validationFailure = {
                       invalidValue: value,
@@ -948,10 +961,8 @@ export const createResearch = (config: ResearchConfig): ResearchRuntime => {
                 (await config.isReviewFailureSettled?.(error)) === true);
             if (
               known &&
-              !(
-                error instanceof Error &&
-                error.message === "Research budget denied"
-              )
+              failureKind(error) !== "admission_denied" &&
+              failureKind(error) !== "preflight_failed"
             )
               nextBatchSize = Math.max(1, Math.floor(batch.length / 2));
             await persistReview(pass, offset, !known, data);
@@ -1085,18 +1096,22 @@ export const createResearch = (config: ResearchConfig): ResearchRuntime => {
       result.limitations.push(
         signal.aborted
           ? "Research deadline reached"
-          : error instanceof Error &&
-              [
-                "Research budget denied",
-                "Research price exceeded its configured reservation ceiling",
-                "Research output nesting limit exceeded",
-                "Research output field limit exceeded",
-                "Invalid plan output",
-                "Invalid extract output",
-                "Invalid review output",
-              ].includes(error.message)
-            ? error.message
-            : "Research operation failed; inspect server-side provider accounting",
+          : result.failure?.kind === "admission_denied"
+            ? "Research paused: the next operation exceeds the remaining approved credits. Saved evidence and review progress are retained."
+            : result.failure?.kind === "preflight_failed"
+              ? "Research paused before generation: provider capacity lookup failed. Saved evidence and review progress are retained."
+              : error instanceof Error &&
+                  [
+                    "Research budget denied",
+                    "Research price exceeded its configured reservation ceiling",
+                    "Research output nesting limit exceeded",
+                    "Research output field limit exceeded",
+                    "Invalid plan output",
+                    "Invalid extract output",
+                    "Invalid review output",
+                  ].includes(error.message)
+                ? error.message
+                : "Research operation failed; inspect server-side provider accounting",
       );
       result.status = result.sources.length ? "partial" : "unavailable";
       return result;

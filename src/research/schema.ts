@@ -40,3 +40,42 @@ export const researchValidationDiagnostics = (
       );
   return errors.slice(0, 8).join("; ").slice(0, 2000);
 };
+
+/** A reviewer may echo the supplied scalar, but may never change the draft. */
+export const normalizeReviewEcho = (
+  value: unknown,
+  payload: unknown,
+): unknown => {
+  if (
+    !value ||
+    typeof value !== "object" ||
+    !("fields" in value) ||
+    !Array.isArray(value.fields) ||
+    !payload ||
+    typeof payload !== "object" ||
+    !("fields" in payload) ||
+    !Array.isArray(payload.fields)
+  )
+    return value;
+  const originals = new Map<string, unknown>();
+  for (const field of payload.fields)
+    if (field && typeof field === "object" && typeof field.path === "string")
+      originals.set(field.path, field.value);
+  return {
+    ...value,
+    fields: value.fields.map((field: unknown) => {
+      if (
+        !field ||
+        typeof field !== "object" ||
+        !("value" in field) ||
+        !("path" in field) ||
+        typeof field.path !== "string" ||
+        !originals.has(field.path) ||
+        !Object.is(originals.get(field.path), field.value)
+      )
+        return field;
+      const { value: _echo, ...verdict } = field;
+      return verdict;
+    }),
+  };
+};
